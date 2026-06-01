@@ -1,0 +1,6 @@
+{
+  "name": "GymWeather",
+  "description": "Smart coaching app that optimizes gym workouts based on real-time weather forecasts and fitness goals.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
