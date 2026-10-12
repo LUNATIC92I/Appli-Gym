@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Bootstrap 5 — le cours des jeunes développeurs</title>
+<style>
+$highlighting-css$
+:root {
+  --violet: #6d28d9; --violet2: #8b5cf6; --rose: #db2777; --bleu: #0284c7; --vert: #059669;
+  --orange: #ea580c; --jaune: #f59e0b; --encre: #1e1b4b; --gris: #64748b; --fond: #faf9ff;
+}
+@page { size: A4; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "Inter", "Liberation Sans", "DejaVu Sans", "Noto Color Emoji", sans-serif; font-feature-settings: "calt" 0;
+  font-size: 9.6pt; line-height: 1.4; color: #1f2937; margin: 0; background: #fff; }
+.mk { font-size: 2px; color: #fff; }
+p { margin: 6px 0 8px; }
+a { color: var(--violet); text-decoration: none; }
+strong { color: var(--encre); }
+/* Titres */
+h1 { page-break-before: always; margin: 0 0 18px; padding: 22px 26px; border-radius: 22px; color: #fff; font-size: 25pt; line-height: 1.2;
+  background: linear-gradient(120deg, var(--violet) 0%, var(--rose) 60%, var(--orange) 100%); box-shadow: 0 6px 0 #ddd6fe; }
+h1.nontoc { background: linear-gradient(120deg, var(--bleu), var(--violet)); }
+h2 { font-size: 15.5pt; color: var(--violet); margin: 20px 0 8px; padding-bottom: 5px; border-bottom: 3px dotted #c4b5fd; page-break-after: avoid; }
+h3 { font-size: 13.5pt; color: var(--rose); margin: 18px 0 6px; page-break-after: avoid; }
+h4 { font-size: 12pt; color: var(--bleu); margin: 12px 0 4px; page-break-after: avoid; }
+ul, ol { margin: 4px 0 8px; padding-left: 24px; }
+li { margin: 2px 0; }
+/* Code */
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 9.6pt; background: #f1edff; color: #5b21b6; padding: 1px 4px; border-radius: 4px; }
+div.sourceCode, pre { background: #fbfaff; border: 2px solid #e4dcff; border-radius: 12px; padding: 7px 10px; margin: 6px 0 9px; }
+pre { white-space: pre-wrap; word-break: break-word; }
+pre > code.sourceCode { white-space: pre-wrap !important; }
+pre > code.sourceCode > span { display: inline !important; text-indent: 0 !important; padding-left: 0 !important; line-height: 1.24; }
+code.sourceCode > span > a:first-child::before { display: none !important; }
+div.sourceCode pre { border: 0; padding: 0; margin: 0; }
+pre code, div.sourceCode code { background: none; color: #1e1b4b; padding: 0; font-size: 7.7pt; line-height: 1.24; }
+pre.ascii code, div.ascii pre code, div.ascii code { color: #a5f3fc !important; font-size: 8.4pt; line-height: 1.25; }
+pre.ascii, div.ascii pre { background: #0f172a; color: #a5f3fc; border-color: #1e293b; font-size: 9pt; line-height: 1.3; }
+/* Encadrés */
+.retenir, .astuce, .attention, .analogie, .defi { border-radius: 16px; padding: 10px 16px 8px 16px; margin: 14px 0; page-break-inside: avoid; }
+.retenir { background: #fff8dc; border: 3px solid #fcd34d; }
+.retenir::before { content: "📌 À retenir"; font-weight: 800; color: #b45309; display: block; font-size: 12.5pt; margin-bottom: 2px; }
+.astuce { background: #ecfdf5; border: 3px solid #6ee7b7; }
+.astuce::before { content: "💡 Astuce"; font-weight: 800; color: var(--vert); display: block; font-size: 12.5pt; margin-bottom: 2px; }
+.attention { background: #fff1f2; border: 3px solid #fda4af; }
+.attention::before { content: "⚠️ Attention"; font-weight: 800; color: #be123c; display: block; font-size: 12.5pt; margin-bottom: 2px; }
+.analogie { background: #f5f3ff; border: 3px dashed #a78bfa; }
+.analogie::before { content: "🧸 Comme dans la vraie vie"; font-weight: 800; color: var(--violet); display: block; font-size: 12.5pt; margin-bottom: 2px; }
+.defi { background: #eff6ff; border: 3px solid #93c5fd; }
+.defi::before { content: "🚀 Petit défi"; font-weight: 800; color: var(--bleu); display: block; font-size: 12.5pt; }
+/* Rendu navigateur */
+.rendu { border: 2px solid #c7d2fe; border-radius: 14px; margin: 6px 0 16px; overflow: hidden; page-break-inside: avoid; background: #fff; }
+.rendu > p:first-child { margin: 0; padding: 6px 12px; background: linear-gradient(90deg, #e0e7ff, #fce7f3); font-size: 9.5pt; }
+.rendu > p:first-child strong::before { content: "● ● ●  "; color: #f87171; letter-spacing: -1px; }
+.rendu img.cote { display: inline-block; vertical-align: top; margin: 6px 3px; border: 1px solid #e5e7eb; }
+.rendu p:has(img.cote) { text-align: center; }
+.rendu img { display: block; max-width: 100%; max-height: 125mm; object-fit: contain; margin: 6px auto; }
+.rendu p { margin: 0; }
+/* Exercices */
+.exercice { border: 3px solid #bae6fd; border-radius: 18px; padding: 4px 16px 10px; margin: 18px 0; background: #f8fcff; }
+.exercice h3 { color: var(--bleu); }
+.niveau1 h3::after { content: "  ⭐ Niveau 1 · Facile"; font-size: 10pt; color: #fff; background: #10b981; border-radius: 20px; padding: 2px 10px; margin-left: 8px; white-space: nowrap; display: inline-block; }
+.niveau2 h3::after { content: "  ⭐⭐ Niveau 2 · Moyen"; font-size: 10pt; color: #fff; background: #f59e0b; border-radius: 20px; padding: 2px 10px; margin-left: 8px; white-space: nowrap; display: inline-block; }
+.niveau3 h3::after { content: "  ⭐⭐⭐ Niveau 3 · Avancé"; font-size: 10pt; color: #fff; background: #ef4444; border-radius: 20px; padding: 2px 10px; margin-left: 8px; white-space: nowrap; display: inline-block; }
+.solution { border-top: 3px dashed #86efac; margin-top: 10px; padding-top: 4px; }
+.solution::before { content: "✅ Solution"; font-weight: 800; color: var(--vert); font-size: 12.5pt; }
+/* Quiz */
+.quiz { background: #fff7ed; border: 3px solid #fdba74; border-radius: 18px; padding: 6px 16px 10px; margin: 18px 0; }
+.quiz::before { content: "❓ Quiz : teste-toi !"; font-weight: 800; color: var(--orange); font-size: 14pt; display: block; margin: 4px 0; }
+.quiz ol > li { margin-top: 8px; font-weight: 600; }
+.quiz ol ol, .quiz ol ul { font-weight: 400; list-style: none; padding-left: 16px; display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; margin: 2px 0 6px; }
+.reponses { background: #f0fdf4; border: 3px solid #86efac; border-radius: 18px; padding: 6px 16px 10px; margin: 14px 0; page-break-inside: avoid; }
+.reponses::before { content: "🏆 Réponses du quiz"; font-weight: 800; color: var(--vert); font-size: 13pt; display: block; margin: 4px 0; }
+/* Tableaux */
+table { border-collapse: separate; border-spacing: 0; width: 100%; margin: 10px 0 14px; font-size: 10pt; border: 2px solid #ddd6fe; border-radius: 12px; overflow: hidden; }
+th { background: var(--violet); color: #fff; padding: 6px 8px; text-align: left; }
+td { padding: 5px 8px; border-top: 1px solid #ede9fe; vertical-align: top; }
+tr:nth-child(even) td { background: #faf8ff; }
+tr { page-break-inside: avoid; }
+img { max-width: 100%; }
+/* Sommaire */
+.toc h1 { page-break-before: avoid; }
+.toc-h1, .toc-h2 { display: flex; align-items: baseline; }
+.toc-h1 { font-weight: 800; color: var(--violet); font-size: 11.5pt; margin-top: 7px; }
+.toc-h2 { margin-left: 22px; font-size: 9.6pt; color: #374151; }
+.toc a { color: inherit; }
+.dots { flex: 1; border-bottom: 2px dotted #c4b5fd; margin: 0 5px; transform: translateY(-3px); }
+.pg { min-width: 24px; text-align: right; }
+.chapitre-intro { font-size: 12pt; background: #f5f3ff; border-radius: 14px; padding: 10px 16px; color: #3b0764; }
+</style>
+</head>
+<body>
+<!--TOC-->
+$body$
+</body>
+</html>
