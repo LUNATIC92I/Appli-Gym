@@ -2,236 +2,276 @@ N°;Identifiant;Module;Sous-section;Titre;Niveau;Objectif officiel;Bonne répons
 1;M1-001;1;Architecture, portail Defender et espaces de travail;Rôle de Microsoft Sentinel dans l'architecture SecOps;Débutant;1;B;sent-overview sent-defender-portal;
 2;M1-002;1;Architecture, portail Defender et espaces de travail;Prérequis de déploiement de Microsoft Sentinel;Débutant;1;D;sent-overview la-workspace-design;
 3;M1-003;1;Architecture, portail Defender et espaces de travail;Portail d'exploitation recommandé;Débutant;1;C;sent-defender-portal sent-roles;
-4;M1-004;1;Architecture, portail Defender et espaces de travail;Création d'incidents après connexion au portail Defender;Intermédiaire;1;A;sent-defender-portal xdr-correlation;Examen 2 Q12
+4;M1-004;1;Architecture, portail Defender et espaces de travail;Création d'incidents après connexion au portail Defender;Intermédiaire;1;A;sent-defender-portal xdr-correlation;Examen 2 Q28
 5;M1-005;1;Architecture, portail Defender et espaces de travail;Nombre d'instances Sentinel par espace de travail;Débutant;1;B;la-workspace-design sent-overview;
-6;M1-006;1;Architecture, portail Defender et espaces de travail;Requête inter-espaces de travail;Intermédiaire;1;D;la-workspace-design kql-union;Examen 1 Q32
-7;M1-007;1;Architecture, portail Defender et espaces de travail;Données stockées pour les incidents Sentinel;Intermédiaire;1;C;la-t-SecurityIncident kql-argmax;Examen 1 Q4
-8;M1-008;1;Architecture, portail Defender et espaces de travail;Connexion de Microsoft Sentinel au portail Defender — prérequis;Intermédiaire;1;A;sent-onboard-defender sent-defender-portal;Examen 2 Q21
+6;M1-006;1;Architecture, portail Defender et espaces de travail;Requête inter-espaces de travail;Intermédiaire;1;D;la-workspace-design kql-union;Examen 1 Q17
+7;M1-007;1;Architecture, portail Defender et espaces de travail;Données stockées pour les incidents Sentinel;Intermédiaire;1;C;la-t-SecurityIncident kql-argmax;Examen 1 Q47
+8;M1-008;1;Architecture, portail Defender et espaces de travail;Connexion de Microsoft Sentinel au portail Defender — prérequis;Intermédiaire;1;A;sent-onboard-defender sent-defender-portal;Examen 2 Q6
 9;M1-009;1;Rôles et contrôle d'accès (RBAC);Rôle minimal pour gérer les incidents;Débutant;1;B;sent-roles;
-10;M1-010;1;Rôles et contrôle d'accès (RBAC);Exécuter un playbook sans pouvoir le modifier;Intermédiaire;1;D;sent-roles sent-playbooks;Examen 1 Q29
-11;M1-011;1;Rôles et contrôle d'accès (RBAC);Échec d'exécution de playbook depuis une règle d'automatisation;Intermédiaire;1;A;sent-automation-rules sent-roles;Examen 1 Q38
-12;M1-012;1;Rôles et contrôle d'accès (RBAC);Restreindre l'accès à certaines tables;Avancé;1;C;sent-roles la-workspace-design;Examen 1 Q7
-13;M1-013;1;Rôles et contrôle d'accès (RBAC);Accès aux journaux d'une équipe applicative sans Sentinel;Intermédiaire;1;D;sent-roles la-workspace-design;Examen 2 Q5
-14;M1-014;1;Rôles et contrôle d'accès (RBAC);Rôles du data lake Microsoft Sentinel;Avancé;1;A;sent-roles sent-lake;Examen 3 Q27
-15;M1-015;1;Rôles et contrôle d'accès (RBAC);Gestion des incidents dans le portail Defender avec le RBAC unifié;Intermédiaire;1;C;xdr-urbac xdr-case-mgmt;Examen 3 Q33
+10;M1-010;1;Rôles et contrôle d'accès (RBAC);Exécuter un playbook sans pouvoir le modifier;Intermédiaire;1;D;sent-roles sent-playbooks;Examen 1 Q26
+11;M1-011;1;Rôles et contrôle d'accès (RBAC);Échec d'exécution de playbook depuis une règle d'automatisation;Intermédiaire;1;A;sent-automation-rules sent-roles;Examen 1 Q6
+12;M1-012;1;Rôles et contrôle d'accès (RBAC);Restreindre l'accès à certaines tables;Avancé;1;C;sent-roles la-workspace-design;Examen 1 Q15
+13;M1-013;1;Rôles et contrôle d'accès (RBAC);Accès aux journaux d'une équipe applicative sans Sentinel;Intermédiaire;1;D;sent-roles la-workspace-design;Examen 2 Q25
+14;M1-014;1;Rôles et contrôle d'accès (RBAC);Rôles du data lake Microsoft Sentinel;Avancé;1;A;sent-roles sent-lake;Examen 3 Q3
+15;M1-015;1;Rôles et contrôle d'accès (RBAC);Gestion des incidents dans le portail Defender avec le RBAC unifié;Intermédiaire;1;C;xdr-urbac xdr-case-mgmt;Examen 3 Q1
 16;M1-016;1;Connecteurs de données et ingestion;Choisir le connecteur pour les événements de sécurité Windows;Débutant;1;B;sent-ama-windows la-dcr;
-17;M1-017;1;Connecteurs de données et ingestion;Filtrer les événements Windows à la source;Intermédiaire;1;D;sent-ama-windows la-dcr;Examen 3 Q8
-18;M1-018;1;Connecteurs de données et ingestion;Windows Event Forwarding (WEF);Intermédiaire;1;A;sent-wef sent-ama-windows;Examen 3 Q34
-19;M1-019;1;Connecteurs de données et ingestion;Collecte CEF depuis un pare-feu;Intermédiaire;1;C;sent-cef-syslog-ama;Examen 1 Q48
-20;M1-020;1;Connecteurs de données et ingestion;Doublons entre Syslog et CommonSecurityLog;Avancé;1;B;sent-cef-syslog-ama la-dcr;Examen 3 Q50
-21;M1-021;1;Connecteurs de données et ingestion;Collecter le journal d'activité Azure;Débutant;1;D;la-activity-log la-diag-settings;Examen 1 Q33
-22;M1-022;1;Connecteurs de données et ingestion;Ingestion d'indicateurs de menace via TAXII;Intermédiaire;1;C;sent-ti-connect sent-ti;Examen 2 Q27
-23;M1-023;1;Connecteurs de données et ingestion;Table personnalisée pour une application métier;Avancé;1;A;la-ingestion-api la-custom-table sent-custom-logs;Examen 1 Q9
-24;M1-024;1;Connecteurs de données et ingestion;Connecteur Microsoft Defender XDR;Intermédiaire;1;DE;sent-xdr-connector;Examen 1 Q12
+17;M1-017;1;Connecteurs de données et ingestion;Filtrer les événements Windows à la source;Intermédiaire;1;D;sent-ama-windows la-dcr;Examen 3 Q17
+18;M1-018;1;Connecteurs de données et ingestion;Windows Event Forwarding (WEF);Intermédiaire;1;A;sent-wef sent-ama-windows;Examen 3 Q31
+19;M1-019;1;Connecteurs de données et ingestion;Collecte CEF depuis un pare-feu;Intermédiaire;1;C;sent-cef-syslog-ama;Examen 1 Q35
+20;M1-020;1;Connecteurs de données et ingestion;Doublons entre Syslog et CommonSecurityLog;Avancé;1;B;sent-cef-syslog-ama la-dcr;Examen 3 Q4
+21;M1-021;1;Connecteurs de données et ingestion;Collecter le journal d'activité Azure;Débutant;1;D;la-activity-log la-diag-settings;Examen 1 Q42
+22;M1-022;1;Connecteurs de données et ingestion;Ingestion d'indicateurs de menace via TAXII;Intermédiaire;1;C;sent-ti-connect sent-ti;Examen 2 Q50
+23;M1-023;1;Connecteurs de données et ingestion;Table personnalisée pour une application métier;Avancé;1;A;la-ingestion-api la-custom-table sent-custom-logs;Examen 1 Q30
+24;M1-024;1;Connecteurs de données et ingestion;Connecteur Microsoft Defender XDR;Intermédiaire;1;DE;sent-xdr-connector;Examen 1 Q24
 25;M1-025;1;Rétention, niveaux de données, coûts et optimisation SOC;Niveau de données adapté aux règles de détection;Débutant;1;B;sent-log-plans sent-tiers;
-26;M1-026;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention longue à faible coût;Intermédiaire;1;C;sent-lake sent-tables;Examen 1 Q19
-27;M1-027;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention des tables Defender XDR;Intermédiaire;1;D;sent-tables xdr-ah-overview;Examen 1 Q14
-28;M1-028;1;Rétention, niveaux de données, coûts et optimisation SOC;Choisir entre job KQL, règle de synthèse et job de recherche;Avancé;1;A;sent-lake-compare sent-lake-jobs sent-summary-rules;Examen 2 Q9
-29;M1-029;1;Rétention, niveaux de données, coûts et optimisation SOC;Règles de synthèse pour des journaux verbeux;Intermédiaire;1;B;sent-summary-rules sent-lake-compare;Examen 3 Q39
-30;M1-030;1;Rétention, niveaux de données, coûts et optimisation SOC;Restaurer ou rechercher des données archivées;Intermédiaire;1;C;sent-search-jobs sent-retention;Examen 1 Q5
+26;M1-026;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention longue à faible coût;Intermédiaire;1;C;sent-lake sent-tables;Examen 1 Q28
+27;M1-027;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention des tables Defender XDR;Intermédiaire;1;D;sent-tables xdr-ah-overview;Examen 1 Q22
+28;M1-028;1;Rétention, niveaux de données, coûts et optimisation SOC;Choisir entre job KQL, règle de synthèse et job de recherche;Avancé;1;A;sent-lake-compare sent-lake-jobs sent-summary-rules;Examen 2 Q35
+29;M1-029;1;Rétention, niveaux de données, coûts et optimisation SOC;Règles de synthèse pour des journaux verbeux;Intermédiaire;1;B;sent-summary-rules sent-lake-compare;Examen 3 Q33
+30;M1-030;1;Rétention, niveaux de données, coûts et optimisation SOC;Restaurer ou rechercher des données archivées;Intermédiaire;1;C;sent-search-jobs sent-retention;Examen 1 Q23
 31;M1-031;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention gratuite incluse avec Sentinel;Débutant;1;D;sent-billing sent-log-plans;
-32;M1-032;1;Rétention, niveaux de données, coûts et optimisation SOC;Recommandations d'optimisation SOC;Intermédiaire;1;B;sent-soc-optimization;Examen 2 Q17
-33;M1-033;1;Rétention, niveaux de données, coûts et optimisation SOC;Identifier les tables les plus volumineuses;Intermédiaire;1;A;la-t-Usage sent-cost-reduce;Examen 3 Q40
-34;M1-034;1;Rétention, niveaux de données, coûts et optimisation SOC;Supprimer une colonne volumineuse avant stockage;Avancé;1;C;la-transform la-dcr;Examen 2 Q44
+32;M1-032;1;Rétention, niveaux de données, coûts et optimisation SOC;Recommandations d'optimisation SOC;Intermédiaire;1;B;sent-soc-optimization;Examen 2 Q46
+33;M1-033;1;Rétention, niveaux de données, coûts et optimisation SOC;Identifier les tables les plus volumineuses;Intermédiaire;1;A;la-t-Usage sent-cost-reduce;Examen 3 Q9
+34;M1-034;1;Rétention, niveaux de données, coûts et optimisation SOC;Supprimer une colonne volumineuse avant stockage;Avancé;1;C;la-transform la-dcr;Examen 2 Q38
 35;M1-035;1;Règles d'analyse et détections;Règle planifiée ou NRT;Débutant;1;B;sent-nrt sent-scheduled-details;
-36;M1-036;1;Règles d'analyse et détections;Fréquence et fenêtre de recherche;Intermédiaire;1;D;sent-scheduled-details;Examen 3 Q24
-37;M1-037;1;Règles d'analyse et détections;Délai d'ingestion et événements manqués;Avancé;1;A;sent-ingestion-delay kql-ingestion-time;Examen 3 Q9
-38;M1-038;1;Règles d'analyse et détections;Regroupement des événements en alertes;Intermédiaire;1;C;sent-scheduled-details sent-alert-grouping;Examen 3 Q37
-39;M1-039;1;Règles d'analyse et détections;Mappage des entités;Intermédiaire;1;D;sent-entity-mapping;Examen 3 Q28
-40;M1-040;1;Règles d'analyse et détections;Personnaliser le titre de l'alerte;Intermédiaire;1;A;sent-alert-details sent-custom-details;Examen 1 Q37
-41;M1-041;1;Règles d'analyse et détections;Regroupement des alertes en incidents;Avancé;1;B;sent-alert-grouping;Examen 1 Q6
-42;M1-042;1;Règles d'analyse et détections;Suppression temporaire d'une règle;Intermédiaire;1;D;sent-scheduled-details;Examen 1 Q36
-43;M1-043;1;Règles d'analyse et détections;Règle désactivée automatiquement;Avancé;1;A;sent-detect-threats sent-health;Examen 1 Q45
-44;M1-044;1;Règles d'analyse et détections;Détection multi-étapes Fusion;Intermédiaire;1;C;sent-fusion;Examen 2 Q45
-45;M1-045;1;Règles d'analyse et détections;Correspondance avec le renseignement sur les menaces;Intermédiaire;1;B;sent-ti-matching;Examen 2 Q32
-46;M1-046;1;Règles d'analyse et détections;Règles d'anomalie;Avancé;1;A;sent-anomalies la-t-Anomalies;Examen 1 Q39
+36;M1-036;1;Règles d'analyse et détections;Fréquence et fenêtre de recherche;Intermédiaire;1;D;sent-scheduled-details;Examen 3 Q44
+37;M1-037;1;Règles d'analyse et détections;Délai d'ingestion et événements manqués;Avancé;1;A;sent-ingestion-delay kql-ingestion-time;Examen 3 Q27
+38;M1-038;1;Règles d'analyse et détections;Regroupement des événements en alertes;Intermédiaire;1;C;sent-scheduled-details sent-alert-grouping;Examen 3 Q46
+39;M1-039;1;Règles d'analyse et détections;Mappage des entités;Intermédiaire;1;D;sent-entity-mapping;Examen 3 Q29
+40;M1-040;1;Règles d'analyse et détections;Personnaliser le titre de l'alerte;Intermédiaire;1;A;sent-alert-details sent-custom-details;Examen 1 Q3
+41;M1-041;1;Règles d'analyse et détections;Regroupement des alertes en incidents;Avancé;1;B;sent-alert-grouping;Examen 1 Q5
+42;M1-042;1;Règles d'analyse et détections;Suppression temporaire d'une règle;Intermédiaire;1;D;sent-scheduled-details;Examen 1 Q44
+43;M1-043;1;Règles d'analyse et détections;Règle désactivée automatiquement;Avancé;1;A;sent-detect-threats sent-health;Examen 1 Q14
+44;M1-044;1;Règles d'analyse et détections;Détection multi-étapes Fusion;Intermédiaire;1;C;sent-fusion;Examen 2 Q14
+45;M1-045;1;Règles d'analyse et détections;Correspondance avec le renseignement sur les menaces;Intermédiaire;1;B;sent-ti-matching;Examen 2 Q24
+46;M1-046;1;Règles d'analyse et détections;Règles d'anomalie;Avancé;1;A;sent-anomalies la-t-Anomalies;Examen 1 Q50
 47;M1-047;1;Règles d'analyse et détections;Mesurer la couverture MITRE ATT&CK;Débutant;1;D;sent-mitre;
 48;M1-048;1;Règles d'analyse et détections;Créer une règle à partir d'un modèle du hub de contenu;Débutant;1;C;sent-content-hub sent-scheduled;
 49;M1-049;1;Règles d'analyse et détections;Seuil d'alerte d'une règle planifiée;Débutant;1;B;sent-scheduled-details;
 50;M1-050;1;Automatisation : règles d'automatisation et playbooks;Déclencheurs des règles d'automatisation;Débutant;1;D;sent-automation-rules;
-51;M1-051;1;Automatisation : règles d'automatisation et playbooks;Fermer automatiquement des faux positifs connus;Intermédiaire;1;C;sent-create-automation-rules;Examen 2 Q3
-52;M1-052;1;Automatisation : règles d'automatisation et playbooks;Ordre d'exécution des règles d'automatisation;Avancé;1;B;sent-automation-rules;Examen 3 Q42
-53;M1-053;1;Automatisation : règles d'automatisation et playbooks;Déclencheur de playbook recommandé;Intermédiaire;1;A;sent-playbook-triggers sent-playbooks;Examen 2 Q47
-54;M1-054;1;Automatisation : règles d'automatisation et playbooks;Identité managée pour un playbook;Avancé;1;C;sent-playbook-create logic-apps;Examen 3 Q12
-55;M1-055;1;Automatisation : règles d'automatisation et playbooks;Tâches d'incident;Intermédiaire;1;D;sent-incident-tasks sent-automation-rules;Examen 3 Q23
-56;M1-056;1;Automatisation : règles d'automatisation et playbooks;Playbook sur une entité pendant la chasse;Intermédiaire;1;B;sent-playbook-triggers sent-hunting;Examen 2 Q43
-57;M1-057;1;Automatisation : règles d'automatisation et playbooks;Exécuter un playbook sur les alertes Defender for Cloud;Avancé;1;A;sent-automation-rules mdc-workflow;Examen 2 Q14
+51;M1-051;1;Automatisation : règles d'automatisation et playbooks;Fermer automatiquement des faux positifs connus;Intermédiaire;1;C;sent-create-automation-rules;Examen 2 Q18
+52;M1-052;1;Automatisation : règles d'automatisation et playbooks;Ordre d'exécution des règles d'automatisation;Avancé;1;B;sent-automation-rules;Examen 3 Q25
+53;M1-053;1;Automatisation : règles d'automatisation et playbooks;Déclencheur de playbook recommandé;Intermédiaire;1;A;sent-playbook-triggers sent-playbooks;Examen 2 Q23
+54;M1-054;1;Automatisation : règles d'automatisation et playbooks;Identité managée pour un playbook;Avancé;1;C;sent-playbook-create logic-apps;Examen 3 Q30
+55;M1-055;1;Automatisation : règles d'automatisation et playbooks;Tâches d'incident;Intermédiaire;1;D;sent-incident-tasks sent-automation-rules;Examen 3 Q40
+56;M1-056;1;Automatisation : règles d'automatisation et playbooks;Playbook sur une entité pendant la chasse;Intermédiaire;1;B;sent-playbook-triggers sent-hunting;Examen 2 Q41
+57;M1-057;1;Automatisation : règles d'automatisation et playbooks;Exécuter un playbook sur les alertes Defender for Cloud;Avancé;1;A;sent-automation-rules mdc-workflow;Examen 2 Q37
 58;M1-058;1;Automatisation : règles d'automatisation et playbooks;Automatisation des incidents dans le portail Defender;Avancé;1;D;sent-defender-portal sent-automation-rules;Examen 2 Q2
-59;M1-059;1;Automatisation : règles d'automatisation et playbooks;Synchronisation avec un outil ITSM;Intermédiaire;1;C;sent-playbooks logic-apps;Examen 2 Q26
-60;M1-060;1;Automatisation : règles d'automatisation et playbooks;Interruption automatique d'attaque et automatisation Sentinel;Intermédiaire;1;B;xdr-disruption sent-playbooks;Examen 3 Q11
-61;M1-061;1;Classeurs, chasse, UEBA, watchlists et data lake;Créer un classeur à partir d'un modèle;Débutant;1;A;sent-workbooks;Examen 2 Q40
-62;M1-062;1;Classeurs, chasse, UEBA, watchlists et data lake;Paramètre de période dans un classeur;Intermédiaire;1;C;sent-workbooks;Examen 3 Q22
+59;M1-059;1;Automatisation : règles d'automatisation et playbooks;Synchronisation avec un outil ITSM;Intermédiaire;1;C;sent-playbooks logic-apps;Examen 2 Q47
+60;M1-060;1;Automatisation : règles d'automatisation et playbooks;Interruption automatique d'attaque et automatisation Sentinel;Intermédiaire;1;B;xdr-disruption sent-playbooks;Examen 3 Q24
+61;M1-061;1;Classeurs, chasse, UEBA, watchlists et data lake;Créer un classeur à partir d'un modèle;Débutant;1;A;sent-workbooks;Examen 2 Q13
+62;M1-062;1;Classeurs, chasse, UEBA, watchlists et data lake;Paramètre de période dans un classeur;Intermédiaire;1;C;sent-workbooks;Examen 3 Q19
 63;M1-063;1;Classeurs, chasse, UEBA, watchlists et data lake;Requêtes de chasse et bookmarks;Débutant;1;D;sent-hunting sent-bookmarks;
-64;M1-064;1;Classeurs, chasse, UEBA, watchlists et data lake;Mener une campagne de chasse structurée;Intermédiaire;1;A;sent-hunts sent-hunting;Examen 2 Q15
-65;M1-065;1;Classeurs, chasse, UEBA, watchlists et data lake;Activer l'UEBA;Intermédiaire;1;B;sent-ueba-enable sent-ueba;Examen 1 Q34
-66;M1-066;1;Classeurs, chasse, UEBA, watchlists et data lake;Exploiter BehaviorAnalytics;Avancé;1;C;sent-ueba-ref la-t-BehaviorAnalytics;Examen 2 Q25
-67;M1-067;1;Classeurs, chasse, UEBA, watchlists et data lake;Watchlist d'actifs critiques;Intermédiaire;1;A;sent-watchlists;Examen 2 Q8
-68;M1-068;1;Classeurs, chasse, UEBA, watchlists et data lake;Jupyter notebooks et MSTICPy;Intermédiaire;1;B;sent-notebooks sent-lake-notebooks;Examen 3 Q36
-69;M1-069;1;Classeurs, chasse, UEBA, watchlists et data lake;Serveur MCP de Microsoft Sentinel;Intermédiaire;1;D;sent-mcp sent-mcp-tools;Examen 1 Q46
-70;M1-070;1;Classeurs, chasse, UEBA, watchlists et data lake;Graphe Microsoft Sentinel et rayon d'impact;Intermédiaire;1;A;sent-graph xdr-hunting-graph;Examen 2 Q29
-71;M1-071;1;Classeurs, chasse, UEBA, watchlists et data lake;Modèle d'information ASIM;Avancé;1;B;sent-asim;Examen 3 Q17
-72;M1-072;1;Classeurs, chasse, UEBA, watchlists et data lake;Surveiller l'intégrité des connecteurs;Intermédiaire;1;C;sent-health la-t-SentinelHealth;Examen 2 Q46
-73;M1-073;1;Classeurs, chasse, UEBA, watchlists et data lake;Investigation dans le graphe d'un incident;Débutant;1;D;sent-incidents;Examen 3 Q47
-74;M1-074;1;Classeurs, chasse, UEBA, watchlists et data lake;Déployer le contenu Sentinel « as code »;Intermédiaire;1;A;sent-repositories;Examen 1 Q1
-75;M1-075;1;Classeurs, chasse, UEBA, watchlists et data lake;Plusieurs espaces Sentinel dans le portail Defender;Avancé;1;C;sent-onboard-defender sent-defender-portal;Examen 1 Q11
+64;M1-064;1;Classeurs, chasse, UEBA, watchlists et data lake;Mener une campagne de chasse structurée;Intermédiaire;1;A;sent-hunts sent-hunting;Examen 2 Q1
+65;M1-065;1;Classeurs, chasse, UEBA, watchlists et data lake;Activer l'UEBA;Intermédiaire;1;B;sent-ueba-enable sent-ueba;Examen 1 Q45
+66;M1-066;1;Classeurs, chasse, UEBA, watchlists et data lake;Exploiter BehaviorAnalytics;Avancé;1;C;sent-ueba-ref la-t-BehaviorAnalytics;Examen 2 Q48
+67;M1-067;1;Classeurs, chasse, UEBA, watchlists et data lake;Watchlist d'actifs critiques;Intermédiaire;1;A;sent-watchlists;Examen 2 Q49
+68;M1-068;1;Classeurs, chasse, UEBA, watchlists et data lake;Jupyter notebooks et MSTICPy;Intermédiaire;1;B;sent-notebooks sent-lake-notebooks;Examen 3 Q14
+69;M1-069;1;Classeurs, chasse, UEBA, watchlists et data lake;Serveur MCP de Microsoft Sentinel;Intermédiaire;1;D;sent-mcp sent-mcp-tools;Examen 1 Q43
+70;M1-070;1;Classeurs, chasse, UEBA, watchlists et data lake;Graphe Microsoft Sentinel et rayon d'impact;Intermédiaire;1;A;sent-graph xdr-hunting-graph;Examen 2 Q45
+71;M1-071;1;Classeurs, chasse, UEBA, watchlists et data lake;Modèle d'information ASIM;Avancé;1;B;sent-asim;Examen 3 Q11
+72;M1-072;1;Classeurs, chasse, UEBA, watchlists et data lake;Surveiller l'intégrité des connecteurs;Intermédiaire;1;C;sent-health la-t-SentinelHealth;Examen 2 Q43
+73;M1-073;1;Classeurs, chasse, UEBA, watchlists et data lake;Investigation dans le graphe d'un incident;Débutant;1;D;sent-incidents;Examen 3 Q7
+74;M1-074;1;Classeurs, chasse, UEBA, watchlists et data lake;Déployer le contenu Sentinel « as code »;Intermédiaire;1;A;sent-repositories;Examen 1 Q21
+75;M1-075;1;Classeurs, chasse, UEBA, watchlists et data lake;Plusieurs espaces Sentinel dans le portail Defender;Avancé;1;C;sent-onboard-defender sent-defender-portal;Examen 1 Q29
 76;M2-076;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Incident et alerte dans Defender XDR;Débutant;2;B;xdr-incidents xdr-alert-tuning;
 77;M2-077;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Notifications par e-mail des incidents;Débutant;2;D;xdr-notif-incidents;
-78;M2-078;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Notification lors d'actions de réponse;Intermédiaire;2;A;xdr-action-notif xdr-ta-notif;Examen 2 Q19
+78;M2-078;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Notification lors d'actions de réponse;Intermédiaire;2;A;xdr-action-notif xdr-ta-notif;Examen 2 Q29
 79;M2-079;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Ajustement des alertes (alert tuning);Intermédiaire;2;B;xdr-tuning mde-alert-suppression;
 80;M2-080;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Classification d'un incident;Débutant;2;C;xdr-manage-incidents;
-81;M2-081;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Fusion et scission d'incidents;Intermédiaire;2;D;xdr-correlation xdr-manage-incidents;Examen 2 Q7
-82;M2-082;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Priorisation de la file d'incidents;Intermédiaire;2;B;xdr-incidents xdr-investigate-incidents;Examen 2 Q38
+81;M2-081;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Fusion et scission d'incidents;Intermédiaire;2;D;xdr-correlation xdr-manage-incidents;Examen 2 Q15
+82;M2-082;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Priorisation de la file d'incidents;Intermédiaire;2;B;xdr-incidents xdr-investigate-incidents;Examen 2 Q34
 83;M2-083;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Analyse des menaces (Threat analytics);Débutant;2;AC;xdr-threat-analytics;
 84;M2-084;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Chasse avancée : portée et rétention;Débutant;2;C;xdr-ah-overview xdr-ah-sentinel;
-85;M2-085;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Agir depuis les résultats de chasse;Intermédiaire;2;D;xdr-ah-take-action;Examen 2 Q35
-86;M2-086;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Investiguer avec Security Copilot dans Defender;Intermédiaire;2;CE;xdr-copilot-summary xdr-copilot-agents;Examen 3 Q6
-87;M2-087;2;Defender for Endpoint : configuration et politiques;Fonctionnalités avancées requises pour les indicateurs réseau;Intermédiaire;2;A;mde-advanced-features mde-indicators-ip;Examen 1 Q17
+85;M2-085;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Agir depuis les résultats de chasse;Intermédiaire;2;D;xdr-ah-take-action;Examen 2 Q22
+86;M2-086;2;Portail Defender XDR : incidents, alertes, corrélation et notifications;Investiguer avec Security Copilot dans Defender;Intermédiaire;2;CE;xdr-copilot-summary xdr-copilot-agents;Examen 3 Q37
+87;M2-087;2;Defender for Endpoint : configuration et politiques;Fonctionnalités avancées requises pour les indicateurs réseau;Intermédiaire;2;A;mde-advanced-features mde-indicators-ip;Examen 1 Q39
 88;M2-088;2;Defender for Endpoint : configuration et politiques;Indicateur de fichier : prérequis;Intermédiaire;2;C;mde-indicator-file;
 89;M2-089;2;Defender for Endpoint : configuration et politiques;Règles de réduction de la surface d'attaque (ASR);Débutant;2;B;mde-asr mde-asr-overview;
-90;M2-090;2;Defender for Endpoint : configuration et politiques;Déploiement progressif des règles ASR;Intermédiaire;2;A;mde-asr-overview;Examen 2 Q16
-91;M2-091;2;Defender for Endpoint : configuration et politiques;Groupes d'appareils et ordre de priorité;Intermédiaire;2;D;mde-device-groups;Examen 1 Q41
+90;M2-090;2;Defender for Endpoint : configuration et politiques;Déploiement progressif des règles ASR;Intermédiaire;2;A;mde-asr-overview;Examen 2 Q7
+91;M2-091;2;Defender for Endpoint : configuration et politiques;Groupes d'appareils et ordre de priorité;Intermédiaire;2;D;mde-device-groups;Examen 1 Q8
 92;M2-092;2;Defender for Endpoint : configuration et politiques;Niveau d'automatisation recommandé;Débutant;2;B;mde-automation-levels;
-93;M2-093;2;Defender for Endpoint : configuration et politiques;Activer Live Response pour les serveurs;Intermédiaire;2;C;mde-advanced-features mde-live-response;Examen 3 Q26
+93;M2-093;2;Defender for Endpoint : configuration et politiques;Activer Live Response pour les serveurs;Intermédiaire;2;C;mde-advanced-features mde-live-response;Examen 3 Q42
 94;M2-094;2;Defender for Endpoint : configuration et politiques;Protection contre les falsifications;Débutant;2;D;mde-tamper;
 95;M2-095;2;Defender for Endpoint : configuration et politiques;Mode bloc EDR;Intermédiaire;2;A;mde-edr-block;
 96;M2-096;2;Defender for Endpoint : configuration et politiques;Collecte de données personnalisée;Avancé;2;C;mde-custom-data mde-custom-data-rules;
 97;M2-097;2;Defender for Endpoint : configuration et politiques;Accès contrôlé aux dossiers;Débutant;2;B;mde-cfa;
-98;M2-098;2;Defender for Endpoint : configuration et politiques;Restreindre la corrélation aux groupes d'appareils;Avancé;2;D;mde-advanced-features mde-device-groups;Examen 1 Q23
-99;M2-099;2;Defender for Endpoint : configuration et politiques;Découverte des appareils non gérés;Intermédiaire;2;A;mde-device-discovery;Examen 1 Q42
+98;M2-098;2;Defender for Endpoint : configuration et politiques;Restreindre la corrélation aux groupes d'appareils;Avancé;2;D;mde-advanced-features mde-device-groups;Examen 1 Q19
+99;M2-099;2;Defender for Endpoint : configuration et politiques;Découverte des appareils non gérés;Intermédiaire;2;A;mde-device-discovery;Examen 1 Q32
 100;M2-100;2;Defender for Endpoint : configuration et politiques;Filtrage du contenu web;Débutant;2;B;mde-web-content;
-101;M2-101;2;Defender for Endpoint : configuration et politiques;Rôles personnalisés et Live Response avancé;Avancé;2;D;mde-rbac mde-live-response;Examen 1 Q2
-102;M2-102;2;Defender for Endpoint : investigation et réponse sur les appareils;Isolation sélective;Intermédiaire;2;C;mde-response-device;Examen 2 Q34
-103;M2-103;2;Defender for Endpoint : investigation et réponse sur les appareils;Package d'investigation;Intermédiaire;2;A;mde-response-device;Examen 2 Q10
+101;M2-101;2;Defender for Endpoint : configuration et politiques;Rôles personnalisés et Live Response avancé;Avancé;2;D;mde-rbac mde-live-response;Examen 1 Q10
+102;M2-102;2;Defender for Endpoint : investigation et réponse sur les appareils;Isolation sélective;Intermédiaire;2;C;mde-response-device;Examen 2 Q3
+103;M2-103;2;Defender for Endpoint : investigation et réponse sur les appareils;Package d'investigation;Intermédiaire;2;A;mde-response-device;Examen 2 Q9
 104;M2-104;2;Defender for Endpoint : investigation et réponse sur les appareils;Restreindre l'exécution d'applications;Intermédiaire;2;B;mde-response-device;
 105;M2-105;2;Defender for Endpoint : investigation et réponse sur les appareils;Contenir un appareil non géré;Avancé;2;C;mde-response-device mde-device-discovery;
 106;M2-106;2;Defender for Endpoint : investigation et réponse sur les appareils;Chronologie d'un appareil;Débutant;2;A;mde-investigate-machine mde-timeline;
-107;M2-107;2;Defender for Endpoint : investigation et réponse sur les appareils;Analyse approfondie d'un fichier;Intermédiaire;2;D;mde-response-file;Examen 3 Q21
+107;M2-107;2;Defender for Endpoint : investigation et réponse sur les appareils;Analyse approfondie d'un fichier;Intermédiaire;2;D;mde-response-file;Examen 3 Q48
 108;M2-108;2;Defender for Endpoint : investigation et réponse sur les appareils;Arrêter et mettre en quarantaine un fichier;Débutant;2;C;mde-response-file;
 109;M2-109;2;Defender for Endpoint : investigation et réponse sur les appareils;Live Response : collecter une image mémoire avec un script;Avancé;2;B;mde-live-response;
-110;M2-110;2;Defender for Endpoint : investigation et réponse sur les appareils;Arborescence de processus d'une alerte;Intermédiaire;2;A;mde-investigate-machine xdr-alert-tuning;Examen 1 Q43
-111;M2-111;2;Defender for Endpoint : investigation et réponse sur les appareils;Rechercher l'exécution d'un hachage sur le parc;Intermédiaire;2;D;xdr-t-DeviceProcessEvents xdr-ah-overview;Examen 3 Q7
-112;M2-112;2;Defender for Endpoint : investigation et réponse sur les appareils;Investigation d'un compte utilisateur sur les appareils;Intermédiaire;2;B;xdr-t-DeviceLogonEvents;Examen 1 Q27
-113;M2-113;2;Defender for Endpoint : investigation et réponse sur les appareils;Évaluer la prévalence d'un fichier;Avancé;2;A;xdr-ah-fileprofile;Examen 1 Q31
+110;M2-110;2;Defender for Endpoint : investigation et réponse sur les appareils;Arborescence de processus d'une alerte;Intermédiaire;2;A;mde-investigate-machine xdr-alert-tuning;Examen 1 Q12
+111;M2-111;2;Defender for Endpoint : investigation et réponse sur les appareils;Rechercher l'exécution d'un hachage sur le parc;Intermédiaire;2;D;xdr-t-DeviceProcessEvents xdr-ah-overview;Examen 3 Q26
+112;M2-112;2;Defender for Endpoint : investigation et réponse sur les appareils;Investigation d'un compte utilisateur sur les appareils;Intermédiaire;2;B;xdr-t-DeviceLogonEvents;Examen 1 Q13
+113;M2-113;2;Defender for Endpoint : investigation et réponse sur les appareils;Évaluer la prévalence d'un fichier;Avancé;2;A;xdr-ah-fileprofile;Examen 1 Q9
 114;M2-114;2;Defender for Endpoint : investigation et réponse sur les appareils;Analyse antivirus à distance;Débutant;2;D;mde-response-device;
 115;M2-115;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Approuver une action en attente;Débutant;2;C;xdr-action-center mde-air;
-116;M2-116;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Déclenchement d'une enquête automatisée;Intermédiaire;2;A;mde-air xdr-air;Examen 3 Q15
+116;M2-116;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Déclenchement d'une enquête automatisée;Intermédiaire;2;A;mde-air xdr-air;Examen 3 Q21
 117;M2-117;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Prérequis de l'interruption automatique d'attaque;Avancé;2;AB;xdr-disruption-config xdr-disruption;
-118;M2-118;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Incident portant l'étiquette d'interruption d'attaque;Intermédiaire;2;D;xdr-disruption;Examen 2 Q20
-119;M2-119;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Résolution automatique des alertes;Intermédiaire;2;B;mde-advanced-features mde-air;Examen 3 Q48
+118;M2-118;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Incident portant l'étiquette d'interruption d'attaque;Intermédiaire;2;D;xdr-disruption;Examen 2 Q27
+119;M2-119;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Résolution automatique des alertes;Intermédiaire;2;B;mde-advanced-features mde-air;Examen 3 Q13
 120;M2-120;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Enquête manuelle à la demande;Débutant;2;C;mde-response-device mde-air;
-121;M2-121;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Désactiver l'interruption pour un compte de service critique;Avancé;2;A;xdr-disruption-config;Examen 2 Q42
+121;M2-121;2;Investigation et réponse automatisées (AIR) et interruption d'attaque;Désactiver l'interruption pour un compte de service critique;Avancé;2;A;xdr-disruption-config;Examen 2 Q33
 122;M2-122;2;Defender for Office 365 : messagerie et collaboration;Threat Explorer et licences;Débutant;2;B;mdo-explorer mdo-overview;
-123;M2-123;2;Defender for Office 365 : messagerie et collaboration;Purger un e-mail d'hameçonnage déjà distribué;Intermédiaire;2;D;mdo-remediate mdo-explorer-hunting;Examen 2 Q13
+123;M2-123;2;Defender for Office 365 : messagerie et collaboration;Purger un e-mail d'hameçonnage déjà distribué;Intermédiaire;2;D;mdo-remediate mdo-explorer-hunting;Examen 2 Q32
 124;M2-124;2;Defender for Office 365 : messagerie et collaboration;Purge automatique zero-hour (ZAP);Débutant;2;C;mdo-zap;
 125;M2-125;2;Defender for Office 365 : messagerie et collaboration;Liens sécurisés et clics;Intermédiaire;2;A;mdo-safe-links xdr-t-UrlClickEvents;
-126;M2-126;2;Defender for Office 365 : messagerie et collaboration;Pièces jointes sécurisées et remise dynamique;Intermédiaire;2;D;mdo-safe-attachments;Examen 1 Q8
-127;M2-127;2;Defender for Office 365 : messagerie et collaboration;Messages signalés par les utilisateurs;Intermédiaire;2;C;mdo-user-reported mdo-air;Examen 3 Q3
+126;M2-126;2;Defender for Office 365 : messagerie et collaboration;Pièces jointes sécurisées et remise dynamique;Intermédiaire;2;D;mdo-safe-attachments;Examen 1 Q20
+127;M2-127;2;Defender for Office 365 : messagerie et collaboration;Messages signalés par les utilisateurs;Intermédiaire;2;C;mdo-user-reported mdo-air;Examen 3 Q36
 128;M2-128;2;Defender for Office 365 : messagerie et collaboration;Soumissions administrateur;Débutant;2;B;mdo-submissions mdo-tabl;
-129;M2-129;2;Defender for Office 365 : messagerie et collaboration;Corréler e-mail et pièce jointe;Intermédiaire;2;A;xdr-t-EmailAttachmentInfo xdr-t-EmailEvents;Examen 3 Q35
-130;M2-130;2;Defender for Office 365 : messagerie et collaboration;Usurpation d'identité de dirigeants;Intermédiaire;2;C;mdo-anti-phishing;Examen 1 Q30
-131;M2-131;2;Defender for Office 365 : messagerie et collaboration;Règle de transfert suspecte;Avancé;2;D;mdo-compromised la-t-OfficeActivity;Examen 2 Q33
-132;M2-132;2;Defender for Office 365 : messagerie et collaboration;Bloquer le transfert automatique externe;Intermédiaire;2;B;mdo-forwarding;Examen 1 Q28
-133;M2-133;2;Defender for Office 365 : messagerie et collaboration;Campagnes et Threat Trackers;Intermédiaire;2;C;mdo-campaigns;Examen 3 Q10
+129;M2-129;2;Defender for Office 365 : messagerie et collaboration;Corréler e-mail et pièce jointe;Intermédiaire;2;A;xdr-t-EmailAttachmentInfo xdr-t-EmailEvents;Examen 3 Q45
+130;M2-130;2;Defender for Office 365 : messagerie et collaboration;Usurpation d'identité de dirigeants;Intermédiaire;2;C;mdo-anti-phishing;Examen 1 Q36
+131;M2-131;2;Defender for Office 365 : messagerie et collaboration;Règle de transfert suspecte;Avancé;2;D;mdo-compromised la-t-OfficeActivity;Examen 2 Q31
+132;M2-132;2;Defender for Office 365 : messagerie et collaboration;Bloquer le transfert automatique externe;Intermédiaire;2;B;mdo-forwarding;Examen 1 Q31
+133;M2-133;2;Defender for Office 365 : messagerie et collaboration;Campagnes et Threat Trackers;Intermédiaire;2;C;mdo-campaigns;Examen 3 Q38
 134;M2-134;2;Defender for Office 365 : messagerie et collaboration;Simulation d'attaques;Débutant;2;D;mdo-attack-sim;
-135;M2-135;2;Defender for Office 365 : messagerie et collaboration;Remédiation d'un compte de messagerie compromis;Avancé;2;AD;mdo-compromised entra-revoke;Examen 1 Q44
+135;M2-135;2;Defender for Office 365 : messagerie et collaboration;Remédiation d'un compte de messagerie compromis;Avancé;2;AD;mdo-compromised entra-revoke;Examen 1 Q48
 136;M2-136;2;Defender for Identity : menaces sur Active Directory;Architecture de Defender for Identity;Débutant;2;B;mdi-overview mdi-sensor;
-137;M2-137;2;Defender for Identity : menaces sur Active Directory;Reconnaissance par énumération SAMR;Intermédiaire;2;A;mdi-alerts xdr-t-IdentityQueryEvents;Examen 1 Q18
-138;M2-138;2;Defender for Identity : menaces sur Active Directory;Attaque DCSync;Avancé;2;C;mdi-alerts;Examen 2 Q49
-139;M2-139;2;Defender for Identity : menaces sur Active Directory;Kerberoasting;Avancé;2;D;mdi-alerts la-t-SecurityEvent;Examen 3 Q32
+137;M2-137;2;Defender for Identity : menaces sur Active Directory;Reconnaissance par énumération SAMR;Intermédiaire;2;A;mdi-alerts xdr-t-IdentityQueryEvents;Examen 1 Q38
+138;M2-138;2;Defender for Identity : menaces sur Active Directory;Attaque DCSync;Avancé;2;C;mdi-alerts;Examen 2 Q44
+139;M2-139;2;Defender for Identity : menaces sur Active Directory;Kerberoasting;Avancé;2;D;mdi-alerts la-t-SecurityEvent;Examen 3 Q22
 140;M2-140;2;Defender for Identity : menaces sur Active Directory;Chemins de mouvement latéral;Intermédiaire;2;A;mdi-overview mdi-sensitive;
-141;M2-141;2;Defender for Identity : menaces sur Active Directory;Compte leurre (honeytoken);Intermédiaire;2;B;mdi-sensitive mdi-alerts;Examen 3 Q45
+141;M2-141;2;Defender for Identity : menaces sur Active Directory;Compte leurre (honeytoken);Intermédiaire;2;B;mdi-sensitive mdi-alerts;Examen 3 Q49
 142;M2-142;2;Defender for Identity : menaces sur Active Directory;Force brute sur Active Directory;Intermédiaire;2;C;mdi-alerts xdr-t-IdentityLogonEvents;Examen 3 Q2
 143;M2-143;2;Defender for Identity : menaces sur Active Directory;Actions de remédiation MDI;Intermédiaire;2;AE;mdi-remediation;
 144;M2-144;2;Defender for Identity : menaces sur Active Directory;Pass-the-ticket et Golden Ticket;Avancé;2;A;mdi-alerts;
-145;M2-145;2;Defender for Identity : menaces sur Active Directory;Événements d'annuaire dans la chasse avancée;Intermédiaire;2;B;xdr-t-IdentityDirectoryEvents;Examen 3 Q30
+145;M2-145;2;Defender for Identity : menaces sur Active Directory;Événements d'annuaire dans la chasse avancée;Intermédiaire;2;B;xdr-t-IdentityDirectoryEvents;Examen 3 Q47
 146;M2-146;2;Defender for Identity : menaces sur Active Directory;Santé des capteurs MDI;Débutant;2;D;mdi-overview;
 147;M2-147;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Découverte du Shadow IT sans collecteur;Débutant;2;C;mdca-discovery mdca-mde;
-148;M2-148;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Bloquer une application non approuvée;Intermédiaire;2;A;mdca-mde mdca-discovery;Examen 2 Q11
+148;M2-148;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Bloquer une application non approuvée;Intermédiaire;2;A;mdca-mde mdca-discovery;Examen 2 Q21
 149;M2-149;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Contrôle des sessions;Intermédiaire;2;D;mdca-session mdca-cac;
 150;M2-150;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Alerte de voyage impossible;Intermédiaire;2;B;mdca-anomaly mdca-anomaly-alerts;
 151;M2-151;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Actions de gouvernance sur un utilisateur;Intermédiaire;2;C;mdca-governance;
 152;M2-152;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Application OAuth à risque;Avancé;2;A;mdca-investigate-oauth mdca-app-gov;
-153;M2-153;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Stratégie de fichier pour données sensibles;Intermédiaire;2;D;mdca-file-policy;Examen 3 Q38
+153;M2-153;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Stratégie de fichier pour données sensibles;Intermédiaire;2;D;mdca-file-policy;Examen 3 Q35
 154;M2-154;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Activité depuis une adresse IP anonyme;Débutant;2;B;mdca-anomaly;
 155;M2-155;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Connecteur d'application API;Débutant;2;A;mdca-overview;
-156;M2-156;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Chasse dans CloudAppEvents;Avancé;2;C;xdr-t-CloudAppEvents;Examen 1 Q50
+156;M2-156;2;Defender for Cloud Apps : applications SaaS et Shadow IT;Chasse dans CloudAppEvents;Avancé;2;C;xdr-t-CloudAppEvents;Examen 1 Q7
 157;M2-157;2;Microsoft Entra ID : identités compromises;Risque utilisateur et risque de connexion;Débutant;2;D;entra-risks;
 158;M2-158;2;Microsoft Entra ID : identités compromises;Stratégies basées sur le risque;Intermédiaire;2;B;entra-risk-policies entra-ca;
-159;M2-159;2;Microsoft Entra ID : identités compromises;Révoquer les sessions d'un utilisateur;Intermédiaire;2;C;entra-revoke entra-cae;Examen 1 Q25
-160;M2-160;2;Microsoft Entra ID : identités compromises;Fatigue MFA;Avancé;2;D;la-t-SigninLogs entra-error-codes;Examen 3 Q46
-161;M2-161;2;Microsoft Entra ID : identités compromises;Connexions non interactives;Intermédiaire;2;A;la-t-AADNonInteractive entra-signin-logs;Examen 1 Q40
+159;M2-159;2;Microsoft Entra ID : identités compromises;Révoquer les sessions d'un utilisateur;Intermédiaire;2;C;entra-revoke entra-cae;Examen 1 Q2
+160;M2-160;2;Microsoft Entra ID : identités compromises;Fatigue MFA;Avancé;2;D;la-t-SigninLogs entra-error-codes;Examen 3 Q50
+161;M2-161;2;Microsoft Entra ID : identités compromises;Connexions non interactives;Intermédiaire;2;A;la-t-AADNonInteractive entra-signin-logs;Examen 1 Q4
 162;M2-162;2;Microsoft Entra ID : identités compromises;Confirmer ou rejeter le risque;Débutant;2;B;entra-investigate entra-remediate;
-163;M2-163;2;Microsoft Entra ID : identités compromises;Adversary-in-the-middle et vol de jeton;Avancé;2;D;entra-risks entra-ca;Examen 2 Q1
-164;M2-164;2;Microsoft Entra ID : identités compromises;Consentement d'application dans les journaux d'audit;Intermédiaire;2;A;la-t-AuditLogs entra-consent;Examen 2 Q18
-165;M2-165;2;Microsoft Entra ID : identités compromises;Ajout de méthode MFA par un attaquant;Avancé;2;B;la-t-AuditLogs entra-audit-logs;Examen 2 Q37
-166;M2-166;2;Microsoft Entra ID : identités compromises;Comptes d'urgence et stratégies de risque;Intermédiaire;2;C;entra-ca;Examen 1 Q24
+163;M2-163;2;Microsoft Entra ID : identités compromises;Adversary-in-the-middle et vol de jeton;Avancé;2;D;entra-risks entra-ca;Examen 2 Q36
+164;M2-164;2;Microsoft Entra ID : identités compromises;Consentement d'application dans les journaux d'audit;Intermédiaire;2;A;la-t-AuditLogs entra-consent;Examen 2 Q42
+165;M2-165;2;Microsoft Entra ID : identités compromises;Ajout de méthode MFA par un attaquant;Avancé;2;B;la-t-AuditLogs entra-audit-logs;Examen 2 Q4
+166;M2-166;2;Microsoft Entra ID : identités compromises;Comptes d'urgence et stratégies de risque;Intermédiaire;2;C;entra-ca;Examen 1 Q1
 167;M2-167;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Rechercher dans le journal d'audit Purview;Débutant;2;D;purview-audit-search purview-audit;
-168;M2-168;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;MailItemsAccessed;Avancé;2;B;purview-audit;Examen 2 Q50
-169;M2-169;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Purger des e-mails avec la recherche de contenu;Avancé;2;C;purview-content-search purview-ediscovery;Examen 3 Q16
-170;M2-170;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Journaux d'activité Microsoft Graph;Intermédiaire;2;A;entra-graph-activity la-t-MicrosoftGraphActivityLogs;Examen 2 Q28
-171;M2-171;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Alertes DLP de Microsoft Purview;Intermédiaire;2;D;purview-dlp purview-dlp-alerts;Examen 3 Q18
-172;M2-172;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Gestion des risques internes;Intermédiaire;2;B;purview-insider;Examen 3 Q31
-173;M2-173;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Chasse sur les activités Microsoft 365 dans Sentinel;Intermédiaire;2;C;la-t-OfficeActivity;Examen 1 Q21
-174;M2-174;2;Règles de détection personnalisées Defender XDR;Colonnes requises d'une détection personnalisée;Intermédiaire;1;A;xdr-custom-det xdr-custom-det-manage;Examen 3 Q41
-175;M2-175;2;Règles de détection personnalisées Defender XDR;Fréquence d'une détection personnalisée;Avancé;1;D;xdr-custom-det;Examen 3 Q5
+168;M2-168;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;MailItemsAccessed;Avancé;2;B;purview-audit;Examen 2 Q8
+169;M2-169;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Purger des e-mails avec la recherche de contenu;Avancé;2;C;purview-content-search purview-ediscovery;Examen 3 Q6
+170;M2-170;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Journaux d'activité Microsoft Graph;Intermédiaire;2;A;entra-graph-activity la-t-MicrosoftGraphActivityLogs;Examen 2 Q17
+171;M2-171;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Alertes DLP de Microsoft Purview;Intermédiaire;2;D;purview-dlp purview-dlp-alerts;Examen 3 Q15
+172;M2-172;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Gestion des risques internes;Intermédiaire;2;B;purview-insider;Examen 3 Q8
+173;M2-173;2;Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365;Chasse sur les activités Microsoft 365 dans Sentinel;Intermédiaire;2;C;la-t-OfficeActivity;Examen 1 Q16
+174;M2-174;2;Règles de détection personnalisées Defender XDR;Colonnes requises d'une détection personnalisée;Intermédiaire;1;A;xdr-custom-det xdr-custom-det-manage;Examen 3 Q5
+175;M2-175;2;Règles de détection personnalisées Defender XDR;Fréquence d'une détection personnalisée;Avancé;1;D;xdr-custom-det;Examen 3 Q16
 176;M3-176;3;Compréhension de requêtes existantes;Lire une requête de base sur les échecs de connexion;Débutant;3;B;kql-where kql-top la-t-SigninLogs;
 177;M3-177;3;Compréhension de requêtes existantes;Agrégation temporelle avec bin();Débutant;3;A;kql-bin kql-summarize kql-render;
 178;M3-178;3;Compréhension de requêtes existantes;Différence entre extend et project;Débutant;3;C;kql-extend kql-project;
 179;M3-179;3;Compréhension de requêtes existantes;Opérateur count et fonction count();Débutant;3;D;kql-count kql-summarize;
-180;M3-180;3;Compréhension de requêtes existantes;has et contains;Intermédiaire;3;A;kql-has kql-contains kql-string-ops;Examen 2 Q48
+180;M3-180;3;Compréhension de requêtes existantes;has et contains;Intermédiaire;3;A;kql-has kql-contains kql-string-ops;Examen 1 Q27
 181;M3-181;3;Compréhension de requêtes existantes;Égalité sensible ou non à la casse;Débutant;3;C;kql-string-ops kql-in;
-182;M3-182;3;Compréhension de requêtes existantes;Jointure par défaut innerunique;Avancé;3;B;kql-join;Examen 2 Q41
-183;M3-183;3;Compréhension de requêtes existantes;Jointure leftanti;Intermédiaire;3;A;kql-join;Examen 1 Q10
-184;M3-184;3;Compréhension de requêtes existantes;arg_max pour le dernier état;Intermédiaire;3;C;kql-argmax;Examen 1 Q22
-185;M3-185;3;Compréhension de requêtes existantes;make_set et dcount;Intermédiaire;3;D;kql-makeset kql-dcount;Examen 3 Q14
+182;M3-182;3;Compréhension de requêtes existantes;Jointure par défaut innerunique;Avancé;3;B;kql-join;
+183;M3-183;3;Compréhension de requêtes existantes;Jointure leftanti;Intermédiaire;3;A;kql-join;
+184;M3-184;3;Compréhension de requêtes existantes;arg_max pour le dernier état;Intermédiaire;3;C;kql-argmax;
+185;M3-185;3;Compréhension de requêtes existantes;make_set et dcount;Intermédiaire;3;D;kql-makeset kql-dcount;
 186;M3-186;3;Compréhension de requêtes existantes;Variables let et toscalar;Intermédiaire;3;B;kql-let kql-toscalar;
-187;M3-187;3;Compréhension de requêtes existantes;mv-expand sur un tableau dynamique;Avancé;3;A;kql-mvexpand la-t-SecurityIncident;Examen 1 Q3
-188;M3-188;3;Compréhension de requêtes existantes;Opérateur parse;Intermédiaire;3;C;kql-parse la-t-Syslog;Examen 1 Q13
+187;M3-187;3;Compréhension de requêtes existantes;mv-expand sur un tableau dynamique;Avancé;3;A;kql-mvexpand la-t-SecurityIncident;Examen 2 Q19
+188;M3-188;3;Compréhension de requêtes existantes;Opérateur parse;Intermédiaire;3;C;kql-parse la-t-Syslog;
 189;M3-189;3;Compréhension de requêtes existantes;Fonctions iff et case;Débutant;3;B;kql-iff kql-case;
-190;M3-190;3;Compréhension de requêtes existantes;Détection d'anomalies avec make-series;Avancé;3;D;kql-make-series kql-anomalies;Examen 2 Q31
-191;M3-191;3;Compréhension de requêtes existantes;Délai entre événements avec prev();Avancé;3;C;kql-prev kql-serialize;Examen 3 Q1
-192;M3-192;3;Compréhension de requêtes existantes;union avec withsource;Intermédiaire;3;B;kql-union;Examen 3 Q29
+190;M3-190;3;Compréhension de requêtes existantes;Détection d'anomalies avec make-series;Avancé;3;D;kql-make-series kql-anomalies;
+191;M3-191;3;Compréhension de requêtes existantes;Délai entre événements avec prev();Avancé;3;C;kql-prev kql-serialize;Examen 1 Q34
+192;M3-192;3;Compréhension de requêtes existantes;union avec withsource;Intermédiaire;3;B;kql-union;
 193;M3-193;3;Compréhension de requêtes existantes;distinct et summarize by;Débutant;3;D;kql-distinct;
-194;M3-194;3;Compréhension de requêtes existantes;Décoder une commande PowerShell encodée;Avancé;3;A;kql-base64 kql-extract;Examen 1 Q26
-195;M3-195;3;Compréhension de requêtes existantes;Filtrer sur des valeurs dynamiques;Intermédiaire;3;C;kql-dynamic la-t-SigninLogs;Examen 2 Q6
+194;M3-194;3;Compréhension de requêtes existantes;Décoder une commande PowerShell encodée;Avancé;3;A;kql-base64 kql-extract;
+195;M3-195;3;Compréhension de requêtes existantes;Filtrer sur des valeurs dynamiques;Intermédiaire;3;C;kql-dynamic la-t-SigninLogs;Examen 2 Q10
 196;M3-196;3;Correction de requêtes erronées;Opérateur d'égalité dans where;Débutant;3;B;kql-where;
-197;M3-197;3;Correction de requêtes erronées;Regroupement sur une colonne dynamique;Intermédiaire;3;D;kql-dynamic la-t-SigninLogs;Examen 3 Q25
-198;M3-198;3;Correction de requêtes erronées;Colonne temporelle selon l'environnement;Intermédiaire;3;A;xdr-ah-sentinel xdr-t-DeviceProcessEvents;Examen 3 Q13
+197;M3-197;3;Correction de requêtes erronées;Regroupement sur une colonne dynamique;Intermédiaire;3;D;kql-dynamic la-t-SigninLogs;Examen 3 Q41
+198;M3-198;3;Correction de requêtes erronées;Colonne temporelle selon l'environnement;Intermédiaire;3;A;xdr-ah-sentinel xdr-t-DeviceProcessEvents;
 199;M3-199;3;Correction de requêtes erronées;Point-virgule manquant après let;Débutant;3;C;kql-let;
-200;M3-200;3;Correction de requêtes erronées;Jointure sur des colonnes de noms différents;Intermédiaire;3;B;kql-join;Examen 3 Q44
-201;M3-201;3;Correction de requêtes erronées;Colonne supprimée par project;Intermédiaire;3;D;kql-project;Examen 2 Q24
+200;M3-200;3;Correction de requêtes erronées;Jointure sur des colonnes de noms différents;Intermédiaire;3;B;kql-join;
+201;M3-201;3;Correction de requêtes erronées;Colonne supprimée par project;Intermédiaire;3;D;kql-project;Examen 2 Q26
 202;M3-202;3;Correction de requêtes erronées;Nom de colonne d'agrégat;Débutant;3;A;kql-summarize;
 203;M3-203;3;Correction de requêtes erronées;Colonne utilisée avant sa création;Débutant;3;B;kql-extend;
 204;M3-204;3;Correction de requêtes erronées;Fenêtre temporelle inversée;Débutant;3;D;kql-ago;
 205;M3-205;3;Correction de requêtes erronées;Liste insensible à la casse;Intermédiaire;3;A;kql-in;
-206;M3-206;3;Correction de requêtes erronées;Syntaxe de between;Intermédiaire;3;C;kql-between kql-datetime;Examen 2 Q30
+206;M3-206;3;Correction de requêtes erronées;Syntaxe de between;Intermédiaire;3;C;kql-between kql-datetime;Examen 2 Q39
 207;M3-207;3;Correction de requêtes erronées;Ordre des arguments de arg_max;Intermédiaire;3;B;kql-argmax;
-208;M3-208;3;Correction de requêtes erronées;Chemin Windows et chaînes verbatim;Intermédiaire;3;D;kql-string-ops kql-regex;Examen 3 Q49
+208;M3-208;3;Correction de requêtes erronées;Chemin Windows et chaînes verbatim;Intermédiaire;3;D;kql-string-ops kql-regex;Examen 3 Q10
 209;M3-209;3;Correction de requêtes erronées;top sans critère de tri;Débutant;3;A;kql-top;
 210;M3-210;3;Correction de requêtes erronées;Comparer une valeur à un tableau;Avancé;3;C;kql-mvexpand kql-dynamic;
-211;M3-211;3;Correction de requêtes erronées;Union de colonnes aux noms différents;Avancé;3;B;kql-union kql-coalesce;Examen 3 Q20
-212;M3-212;3;Correction de requêtes erronées;bin() appliqué au mauvais type;Intermédiaire;3;A;kql-bin kql-summarize;
-213;M3-213;3;Correction de requêtes erronées;Jointure sur clé de casse différente;Avancé;3;C;kql-join kql-tolower;Examen 1 Q49
+211;M3-211;3;Correction de requêtes erronées;Union de colonnes aux noms différents;Avancé;3;B;kql-union kql-coalesce;
+212;M3-212;3;Correction de requêtes erronées;bin() appliqué au mauvais type;Intermédiaire;3;A;kql-bin kql-summarize;Examen 2 Q12
+213;M3-213;3;Correction de requêtes erronées;Jointure sur clé de casse différente;Avancé;3;C;kql-join kql-tolower;Examen 3 Q20
 214;M3-214;3;Correction de requêtes erronées;Expression régulière non correspondante;Avancé;3;D;kql-matches-regex kql-regex;
-215;M3-215;3;Correction de requêtes erronées;Ordre des opérations dans une détection de seuil;Intermédiaire;3;B;kql-summarize kql-countif;Examen 1 Q15
-216;M3-216;3;Correction de requêtes erronées;Opérateur search trop large;Intermédiaire;3;A;kql-search kql-best;Examen 3 Q43
-217;M3-217;3;Création de requêtes à partir d'un besoin;Force brute RDP sur des serveurs Windows;Intermédiaire;3;C;la-t-SecurityEvent kql-summarize;Examen 2 Q4
-218;M3-218;3;Création de requêtes à partir d'un besoin;Création d'un compte local ajouté aux administrateurs;Avancé;3;D;la-t-SecurityEvent kql-join;Examen 2 Q22
+215;M3-215;3;Correction de requêtes erronées;Ordre des opérations dans une détection de seuil;Intermédiaire;3;B;kql-summarize kql-countif;
+216;M3-216;3;Correction de requêtes erronées;Opérateur search trop large;Intermédiaire;3;A;kql-search kql-best;
+217;M3-217;3;Création de requêtes à partir d'un besoin;Force brute RDP sur des serveurs Windows;Intermédiaire;3;C;la-t-SecurityEvent kql-summarize;
+218;M3-218;3;Création de requêtes à partir d'un besoin;Création d'un compte local ajouté aux administrateurs;Avancé;3;D;la-t-SecurityEvent kql-join;Examen 1 Q46
 219;M3-219;3;Création de requêtes à partir d'un besoin;Lignes de commande PowerShell encodées;Débutant;3;B;xdr-t-DeviceProcessEvents kql-has-any;
-220;M3-220;3;Création de requêtes à partir d'un besoin;Téléchargement avec certutil;Intermédiaire;3;C;xdr-t-DeviceProcessEvents;Examen 1 Q47
-221;M3-221;3;Création de requêtes à partir d'un besoin;Suppression des clichés instantanés;Intermédiaire;3;A;xdr-t-DeviceProcessEvents ir-ransomware;Examen 1 Q35
-222;M3-222;3;Création de requêtes à partir d'un besoin;Tâche planifiée créée par un processus suspect;Intermédiaire;3;D;xdr-t-DeviceProcessEvents;
-223;M3-223;3;Création de requêtes à partir d'un besoin;Persistance par clé Run;Intermédiaire;3;B;xdr-t-DeviceRegistryEvents;Examen 2 Q23
+220;M3-220;3;Création de requêtes à partir d'un besoin;Téléchargement avec certutil;Intermédiaire;3;C;xdr-t-DeviceProcessEvents;
+221;M3-221;3;Création de requêtes à partir d'un besoin;Suppression des clichés instantanés;Intermédiaire;3;A;xdr-t-DeviceProcessEvents ir-ransomware;Examen 3 Q12
+222;M3-222;3;Création de requêtes à partir d'un besoin;Tâche planifiée créée par un processus suspect;Intermédiaire;3;D;xdr-t-DeviceProcessEvents;Examen 1 Q33
+223;M3-223;3;Création de requêtes à partir d'un besoin;Persistance par clé Run;Intermédiaire;3;B;xdr-t-DeviceRegistryEvents;Examen 3 Q39
 224;M3-224;3;Création de requêtes à partir d'un besoin;Accès à la mémoire de LSASS;Avancé;3;A;xdr-t-DeviceProcessEvents mde-asr;
-225;M3-225;3;Création de requêtes à partir d'un besoin;Pays de connexion jamais vus;Avancé;3;D;la-t-SigninLogs kql-join;Examen 2 Q39
-226;M3-226;3;Création de requêtes à partir d'un besoin;Pulvérisation réussie sur Entra ID;Avancé;3;C;la-t-SigninLogs entra-incident-pw;
-227;M3-227;3;Création de requêtes à partir d'un besoin;Attribution de rôle Azure;Intermédiaire;3;A;la-t-AzureActivity;Examen 3 Q4
+225;M3-225;3;Création de requêtes à partir d'un besoin;Pays de connexion jamais vus;Avancé;3;D;la-t-SigninLogs kql-join;Examen 1 Q41
+226;M3-226;3;Création de requêtes à partir d'un besoin;Pulvérisation réussie sur Entra ID;Avancé;3;C;la-t-SigninLogs entra-incident-pw;Examen 1 Q18
+227;M3-227;3;Création de requêtes à partir d'un besoin;Attribution de rôle Azure;Intermédiaire;3;A;la-t-AzureActivity;
 228;M3-228;3;Création de requêtes à partir d'un besoin;Pièce jointe exécutable reçue;Débutant;3;B;xdr-t-EmailAttachmentInfo;
-229;M3-229;3;Création de requêtes à partir d'un besoin;Résolution DNS d'une liste de domaines malveillants;Intermédiaire;3;C;xdr-t-DeviceNetworkEvents kql-datatable;Examen 1 Q20
+229;M3-229;3;Création de requêtes à partir d'un besoin;Résolution DNS d'une liste de domaines malveillants;Intermédiaire;3;C;xdr-t-DeviceNetworkEvents kql-datatable;
 230;M3-230;3;Création de requêtes à partir d'un besoin;Volume sortant élevé vers Internet;Intermédiaire;3;D;la-t-CommonSecurityLog kql-ipv4-private;
 231;M3-231;3;Création de requêtes à partir d'un besoin;Échecs SSH sur des serveurs Linux;Débutant;3;B;la-t-Syslog;
-232;M3-232;3;Création de requêtes à partir d'un besoin;Suppression massive de fichiers SharePoint;Intermédiaire;3;A;la-t-OfficeActivity;Examen 3 Q19
-233;M3-233;3;Création de requêtes à partir d'un besoin;Service installé sur un appareil;Intermédiaire;3;C;xdr-t-DeviceEvents;Examen 2 Q36
-234;M3-234;3;Création de requêtes à partir d'un besoin;Lecture massive de secrets dans des comptes de stockage;Avancé;3;D;la-t-StorageBlobLogs mdc-storage;Examen 1 Q16
+232;M3-232;3;Création de requêtes à partir d'un besoin;Suppression massive de fichiers SharePoint;Intermédiaire;3;A;la-t-OfficeActivity;
+233;M3-233;3;Création de requêtes à partir d'un besoin;Service installé sur un appareil;Intermédiaire;3;C;xdr-t-DeviceEvents;Examen 2 Q16
+234;M3-234;3;Création de requêtes à partir d'un besoin;Lecture massive de secrets dans des comptes de stockage;Avancé;3;D;la-t-StorageBlobLogs mdc-storage;
 235;M3-235;3;Création de requêtes à partir d'un besoin;Effacement d'un journal ou désactivation de l'audit;Débutant;3;B;la-t-SecurityEvent;
 236;M3-236;3;Création de requêtes à partir d'un besoin;Connexion d'un compte d'urgence;Débutant;3;A;la-t-SigninLogs entra-ca;
+237;M3-237;3;Corrélation entre plusieurs tables;Hameçonnage cliqué : e-mail et clic;Intermédiaire;3;C;xdr-t-EmailEvents xdr-t-UrlClickEvents;
+238;M3-238;3;Corrélation entre plusieurs tables;Pièce jointe enregistrée puis exécutée;Avancé;3;D;xdr-t-EmailAttachmentInfo xdr-t-DeviceProcessEvents;
+239;M3-239;3;Corrélation entre plusieurs tables;Processus à l'origine d'une connexion suspecte;Intermédiaire;3;B;xdr-t-DeviceNetworkEvents xdr-t-DeviceProcessEvents;
+240;M3-240;3;Corrélation entre plusieurs tables;Correspondance d'adresses IP avec le renseignement sur les menaces;Avancé;3;C;sent-ti-work la-t-ThreatIntelIndicators la-t-SigninLogs;
+241;M3-241;3;Corrélation entre plusieurs tables;Alertes d'un incident;Intermédiaire;3;D;la-t-SecurityIncident la-t-SecurityAlert kql-mvexpand;
+242;M3-242;3;Corrélation entre plusieurs tables;Enrichissement par IdentityInfo;Intermédiaire;3;A;la-t-IdentityInfo sent-ueba;
+243;M3-243;3;Corrélation entre plusieurs tables;Preuves d'alertes Defender XDR;Intermédiaire;3;B;xdr-t-AlertInfo xdr-t-AlertEvidence;Examen 3 Q23
+244;M3-244;3;Corrélation entre plusieurs tables;Processus lancés dans une session RDP;Avancé;3;C;xdr-t-DeviceLogonEvents xdr-t-DeviceProcessEvents;
+245;M3-245;3;Corrélation entre plusieurs tables;Connexion suspecte suivie d'un changement de méthode MFA;Avancé;3;D;la-t-SigninLogs la-t-AuditLogs;Examen 3 Q32
+246;M3-246;3;Corrélation entre plusieurs tables;Alertes et priorité UEBA;Intermédiaire;3;A;la-t-BehaviorAnalytics la-t-SecurityAlert;
+247;M3-247;3;Corrélation entre plusieurs tables;Appareils vulnérables avec alertes actives;Intermédiaire;3;B;xdr-t-DeviceTvm xdr-t-AlertEvidence;
+248;M3-248;3;Corrélation entre plusieurs tables;Opérations Azure depuis une IP de connexion suspecte;Avancé;3;D;la-t-AzureActivity la-t-SigninLogs;Examen 2 Q11
+249;M3-249;3;Corrélation entre plusieurs tables;Refus du pare-feu et processus du poste;Avancé;3;A;la-t-CommonSecurityLog xdr-t-DeviceNetworkEvents;Examen 2 Q5
+250;M3-250;3;Corrélation entre plusieurs tables;Connexions réussies sans MFA pour des comptes privilégiés;Intermédiaire;3;C;la-t-SigninLogs la-t-IdentityInfo;Examen 1 Q25
+251;M3-251;3;Corrélation entre plusieurs tables;Enrichissement avec une watchlist via lookup;Débutant;3;D;sent-watchlists kql-lookup;
+252;M3-252;3;Corrélation entre plusieurs tables;Agents silencieux : Heartbeat et inventaire;Intermédiaire;3;A;la-t-Heartbeat kql-join;Examen 3 Q18
+253;M3-253;3;Corrélation entre plusieurs tables;Reconnaissance LDAP puis outil d'attaque sur le poste source;Avancé;3;B;xdr-t-IdentityQueryEvents xdr-t-DeviceProcessEvents;Examen 1 Q37
+254;M3-254;3;Corrélation entre plusieurs tables;Règle de boîte de réception après détection de risque;Avancé;3;C;la-t-AADUserRiskEvents la-t-OfficeActivity;Examen 1 Q49
+255;M3-255;3;Corrélation entre plusieurs tables;Succès après une rafale d'échecs (auto-jointure temporelle);Avancé;3;D;la-t-SecurityEvent kql-join;Examen 3 Q34
+256;M3-256;3;Corrélation entre plusieurs tables;Vérifier l'effet d'une remédiation ZAP;Intermédiaire;3;A;xdr-t-EmailPostDeliveryEvents xdr-t-EmailEvents;Examen 1 Q40
+257;M3-257;3;Chasse aux menaces sur journaux simulés;Pulvérisation dans des journaux simulés;Intermédiaire;3;B;kql-datatable kql-dcount;Examen 2 Q40
+258;M3-258;3;Chasse aux menaces sur journaux simulés;Balisage de commande et contrôle;Avancé;3;C;kql-prev kql-serialize;Examen 3 Q43
+259;M3-259;3;Chasse aux menaces sur journaux simulés;Voyage impossible calculé;Avancé;3;A;kql-datetime-diff kql-geo;
+260;M3-260;3;Chasse aux menaces sur journaux simulés;Lignée de processus rare;Intermédiaire;3;B;kql-summarize kql-dcount;
+261;M3-261;3;Chasse aux menaces sur journaux simulés;Exfiltration hors norme par utilisateur;Avancé;3;C;kql-summarize kql-percentile;
+262;M3-262;3;Chasse aux menaces sur journaux simulés;Mouvement latéral en éventail;Intermédiaire;3;D;kql-dcount xdr-t-DeviceLogonEvents;Examen 2 Q20
+263;M3-263;3;Chasse aux menaces sur journaux simulés;Renommage massif de fichiers (rançongiciel);Avancé;3;A;kql-summarize xdr-t-DeviceFileEvents;Examen 2 Q30
+264;M3-264;3;Chasse aux menaces sur journaux simulés;Kerberoasting dans des événements 4769;Avancé;3;C;la-t-SecurityEvent mdi-alerts;
+265;M3-265;3;Chasse aux menaces sur journaux simulés;Exécution de JavaScript via rundll32;Intermédiaire;3;D;kql-has xdr-t-DeviceProcessEvents;
+266;M3-266;3;Chasse aux menaces sur journaux simulés;Tunnel DNS par longueur de sous-domaine;Avancé;3;B;kql-split kql-summarize;
+267;M3-267;3;Chasse aux menaces sur journaux simulés;Règle de boîte de réception de dissimulation;Intermédiaire;3;C;la-t-OfficeActivity kql-has;
+268;M3-268;3;Chasse aux menaces sur journaux simulés;Effacement de journaux et arrêt de service;Intermédiaire;3;A;kql-in la-t-SecurityEvent;
+269;M3-269;3;Chasse aux menaces sur journaux simulés;Ajout puis retrait rapide d'un administrateur;Avancé;3;B;la-t-SecurityEvent kql-datetime-diff;
+270;M3-270;3;Chasse aux menaces sur journaux simulés;Activité administrative hors heures ouvrées;Débutant;3;D;kql-hourofday kql-dayofweek;
+271;M3-271;3;Chasse aux menaces sur journaux simulés;Rejeu de jeton depuis deux adresses;Avancé;3;C;kql-dcount la-t-AADNonInteractive;
+272;M3-272;3;Chasse aux menaces sur journaux simulés;Ajout d'identifiants à un principal de service;Avancé;3;B;la-t-AuditLogs kql-dynamic;
+273;M3-273;3;Chasse aux menaces sur journaux simulés;Série temporelle et anomalie de connexions;Avancé;3;A;kql-make-series kql-anomalies;Examen 1 Q11
+274;M3-274;3;Chasse aux menaces sur journaux simulés;Fatigue MFA dans des journaux simulés;Intermédiaire;3;D;la-t-SigninLogs entra-error-codes;Examen 3 Q28
+275;M3-275;3;Chasse aux menaces sur journaux simulés;Compte de service utilisé de manière interactive;Intermédiaire;3;B;xdr-t-DeviceLogonEvents kql-in;
+276;M3-276;3;Chasse aux menaces sur journaux simulés;Fichier déposé puis exécuté sur plusieurs postes;Avancé;3;C;kql-join xdr-t-DeviceFileEvents;

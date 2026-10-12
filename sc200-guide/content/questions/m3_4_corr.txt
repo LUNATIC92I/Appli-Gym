@@ -1,0 +1,789 @@
+@@ module=3
+
+### Hameçonnage cliqué : e-mail et clic
+@ niveau=I sub=corr ref=xdr-t-EmailEvents,xdr-t-UrlClickEvents
+?: **Besoin :** identifier les destinataires d'e-mails classés hameçonnage qui ont cliqué sur une URL du message. Quelle requête de corrélation est correcte ?
++: ```kqlx
+EmailEvents
+| where Timestamp > ago(7d)
+| where ThreatTypes has "Phish"
+| project NetworkMessageId, RecipientEmailAddress, SenderFromAddress, Subject
+| join kind=inner (
+    UrlClickEvents
+    | where Timestamp > ago(7d)
+    | project NetworkMessageId, AccountUpn, Url, ActionType, IsClickedThrough, ClickTime = Timestamp
+  ) on NetworkMessageId
+| where RecipientEmailAddress =~ AccountUpn
+| project ClickTime, AccountUpn, SenderFromAddress, Subject, Url, ActionType, IsClickedThrough
+```
+-: ```kqlbad
+EmailEvents
+| where Timestamp > ago(7d)
+| where ThreatTypes has "Phish"
+| join kind=inner (UrlClickEvents) on RecipientEmailAddress
+```
+|| UrlClickEvents n'a pas de colonne RecipientEmailAddress ; la clé commune est NetworkMessageId (puis AccountUpn).
+-: ```kqlx
+EmailUrlInfo
+| where Timestamp > ago(7d)
+| summarize count() by UrlDomain
+```
+|| Statistiques de domaines présents dans les e-mails, sans clics ni destinataires.
+-: ```kqlx
+UrlClickEvents
+| where Timestamp > ago(7d)
+| where ActionType == "ClickBlocked"
+```
+|| Ne garde que les clics bloqués, sans lien avec le verdict hameçonnage du message.
+=: **NetworkMessageId** relie un message (EmailEvents) aux clics associés (UrlClickEvents). La condition `RecipientEmailAddress =~ AccountUpn` garantit que le clic provient bien du destinataire (un message peut avoir plusieurs destinataires). **IsClickedThrough** révèle les utilisateurs ayant ignoré l'avertissement.
+T: La clause `on` n'accepte que des égalités de colonnes : les conditions supplémentaires (ici l'égalité insensible à la casse entre deux colonnes) se placent dans un `where` après la jointure. ThreatTypes est une chaîne (par exemple « Phish, Malware ») : on utilise `has`.
+R: Les clics des destinataires sur des messages d'hameçonnage, avec l'URL et le résultat (autorisé/bloqué).
+S: UrlClickEvents ne couvre que les URL réécrites/protégées par Safe Links.
+M: Ajouter une troisième étape : connexions Entra (EntraIdSignInEvents ou SigninLogs) du même utilisateur dans l'heure suivant le clic, depuis une IP inhabituelle.
+!: E-mail ↔ clic = NetworkMessageId (+ RecipientEmailAddress = AccountUpn).
+
+### Pièce jointe enregistrée puis exécutée
+@ niveau=A sub=corr ref=xdr-t-EmailAttachmentInfo,xdr-t-DeviceProcessEvents
+?: **Besoin :** vérifier si des pièces jointes malveillantes reçues par e-mail ont été exécutées sur des postes. Quelle approche de corrélation est correcte ?
++: ```kqlx
+let PJ = EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| where ThreatTypes has "Malware"
+| distinct SHA256, FileName, RecipientEmailAddress;
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| join kind=inner PJ on SHA256
+| project Timestamp, DeviceName, AccountUpn, RecipientEmailAddress, FileName, ProcessCommandLine
+```
+-: ```kqlx
+EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| join kind=inner (DeviceProcessEvents) on FileName
+```
+|| Joindre sur le nom de fichier est peu fiable (renommage, noms génériques) et très coûteux sans filtre temporel à droite.
+-: ```kqlbad
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| join kind=inner (EmailEvents) on NetworkMessageId
+```
+|| DeviceNetworkEvents n'a pas de NetworkMessageId.
+-: ```kqlx
+EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| where ThreatTypes has "Malware"
+```
+|| Liste les pièces jointes malveillantes sans vérifier leur exécution.
+=: Le **SHA256** est la clé stable entre la messagerie (EmailAttachmentInfo) et les terminaux (DeviceProcessEvents, DeviceFileEvents). La liste des hachages malveillants est préparée dans une variable `let` puis jointe aux exécutions.
+T: Bonne pratique : placer la table la plus petite à gauche ou la préfiltrer (ici la variable PJ est petite). Pour les fichiers enregistrés sans exécution, utiliser DeviceFileEvents. Les documents Office ne s'« exécutent » pas : rechercher plutôt leurs processus enfants.
+R: Les exécutions sur les postes de fichiers reçus en pièce jointe malveillante.
+M: Comparer RecipientEmailAddress et AccountUpn pour distinguer l'ouverture par le destinataire d'une propagation à d'autres utilisateurs.
+!: Messagerie ↔ terminal = SHA256 de la pièce jointe.
+
+### Processus à l'origine d'une connexion suspecte
+@ niveau=I sub=corr ref=xdr-t-DeviceNetworkEvents,xdr-t-DeviceProcessEvents
+?: **Besoin :** pour chaque connexion vers une IP de commande et contrôle, afficher la ligne de commande complète du processus et celle de son parent. Quelle requête est la plus simple et correcte ?
++: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemoteIP == "198.51.100.23"
+| project Timestamp, DeviceName, RemoteIP, RemotePort, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessParentFileName
+```
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemoteIP == "198.51.100.23"
+| join kind=inner (DeviceProcessEvents) on DeviceName
+```
+|| La jointure sur le seul DeviceName associe toutes les créations de processus de l'appareil à chaque connexion (explosion de lignes, fausses associations).
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where ProcessCommandLine has "198.51.100.23"
+```
+|| Ne trouve que les processus ayant l'IP dans leur ligne de commande, pas ceux qui s'y connectent.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(7d)
+| where RemoteIP == "198.51.100.23"
+```
+|| Ouvertures de session depuis cette IP, pas connexions sortantes.
+=: Les tables d'événements MDE incluent déjà le contexte du **processus initiateur** (`InitiatingProcessFileName`, `InitiatingProcessCommandLine`, `InitiatingProcessParentFileName`, hachages…). Une jointure est souvent **inutile** : la corrélation est intégrée au schéma.
+T: Pour remonter plus haut que le parent, joindre DeviceProcessEvents sur `DeviceId` **et** l'identifiant unique du processus (`InitiatingProcessUniqueId` ↔ `ProcessUniqueId`, lorsque disponible) ou sur (DeviceId, ProcessId, ProcessCreationTime) — jamais sur le seul nom d'appareil.
+R: Chaque connexion vers l'IP avec le processus et son parent.
+!: Les tables Device* embarquent le processus initiateur et son parent : éviter les jointures inutiles.
+
+### Correspondance d'adresses IP avec le renseignement sur les menaces
+@ niveau=A sub=corr ref=sent-ti-work,la-t-ThreatIntelIndicators,la-t-SigninLogs
+?: **Besoin :** détecter les connexions Entra ID provenant d'adresses IP présentes dans les indicateurs de menace actifs de Sentinel. Quelle requête est correcte ?
++: ```kql
+let IOC = ThreatIntelIndicators
+| where TimeGenerated > ago(30d)
+| where ObservableKey == "ipv4-addr:value"
+| summarize arg_max(TimeGenerated, *) by Id
+| where IsActive == true and ValidUntil > now()
+| project IP = ObservableValue, Confidence;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| join kind=inner IOC on $left.IPAddress == $right.IP
+| project TimeGenerated, UserPrincipalName, IPAddress, ResultType, AppDisplayName, Confidence
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where IPAddress in ("ThreatIntelIndicators")
+```
+|| Compare l'IP à la chaîne littérale « ThreatIntelIndicators ».
+-: ```kql
+ThreatIntelIndicators
+| where TimeGenerated > ago(30d)
+| summarize count() by ObservableKey
+```
+|| Statistiques sur les indicateurs, sans corrélation avec les connexions.
+-: ```kql
+let IOC = ThreatIntelIndicators | where ObservableKey == "ipv4-addr:value" | project IP = ObservableValue;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| join kind=inner IOC on $left.IPAddress == $right.IP
+```
+|| Ne vérifie ni l'état actif ni la validité des indicateurs, ni la version la plus récente : risque d'alertes sur des IOC expirés ou révoqués.
+=: La table **ThreatIntelIndicators** (modèle STIX) décrit chaque indicateur par **ObservableKey** (par exemple `ipv4-addr:value`) et **ObservableValue** (l'IP). Les indicateurs sont **historisés** : on garde la dernière version par **Id**, puis on filtre **IsActive** et **ValidUntil**.
+T: Les modèles de règles « TI map IP entity to SigninLogs » appliquent cette logique. L'ancienne table ThreatIntelligenceIndicator utilisait NetworkIP/ExpirationDateTime/Active ; les requêtes doivent être migrées vers le nouveau schéma. La colonne Confidence aide à prioriser.
+R: Les connexions dont l'IP figure dans un indicateur actif et valide, avec le niveau de confiance.
+S: Hypothèse : indicateurs IPv4 stockés avec ObservableKey « ipv4-addr:value » ; les indicateurs IPv6 ou de réseau (CIDR) nécessitent une logique dédiée (`ipv4_is_in_range`).
+M: Inclure AADNonInteractiveUserSignInLogs et les journaux de pare-feu ; utiliser `lookup` pour enrichir sans perdre de lignes.
+!: TI moderne = ThreatIntelIndicators (ObservableKey/ObservableValue) ; dernière version par Id + IsActive + ValidUntil.
+
+### Alertes d'un incident
+@ niveau=I sub=corr ref=la-t-SecurityIncident,la-t-SecurityAlert,kql-mvexpand
+?: **Besoin :** lister, pour chaque incident fermé comme vrai positif le mois dernier, le nom et le produit de ses alertes. Quelle requête est correcte ?
++: ```kql
+SecurityIncident
+| where TimeGenerated > ago(45d)
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| where Status == "Closed" and Classification == "TruePositive"
+| mv-expand AlertId = AlertIds to typeof(string)
+| join kind=inner (
+    SecurityAlert
+    | where TimeGenerated > ago(45d)
+    | summarize arg_max(TimeGenerated, AlertName, ProductName, AlertSeverity) by SystemAlertId
+  ) on $left.AlertId == $right.SystemAlertId
+| project IncidentNumber, Title, AlertName, ProductName, AlertSeverity
+```
+-: ```kqlbad
+SecurityIncident
+| join kind=inner (SecurityAlert) on Title
+```
+|| Le titre d'un incident ne correspond pas au nom de ses alertes ; la clé est l'identifiant d'alerte.
+-: ```kql
+SecurityAlert
+| where TimeGenerated > ago(45d)
+| summarize count() by ProductName
+```
+|| Statistiques d'alertes sans lien avec les incidents.
+-: ```kqlbad
+SecurityIncident
+| where TimeGenerated > ago(45d)
+| join kind=inner (SecurityAlert) on $left.AlertIds == $right.SystemAlertId
+```
+|| AlertIds est un tableau dynamique : il faut le développer (`mv-expand`) et typer la valeur avant de joindre.
+=: **SecurityIncident.AlertIds** est un tableau des identifiants d'alertes ; **mv-expand** crée une ligne par alerte, jointe à **SecurityAlert.SystemAlertId**. Les deux tables étant historisées, on garde la dernière version avec `arg_max`.
+T: Ce modèle alimente les rapports d'efficacité (taux de vrais positifs par règle ou produit) et l'optimisation des détections (règles générant surtout des faux positifs).
+R: Une ligne par (incident vrai positif, alerte) avec le nom, le produit et la gravité de l'alerte.
+!: Incident → alertes : mv-expand AlertIds puis jointure sur SystemAlertId (après arg_max).
+
+### Enrichissement par IdentityInfo
+@ niveau=I sub=corr ref=la-t-IdentityInfo,sent-ueba
+?: **Besoin :** prioriser les connexions risquées en affichant le service et le poste de l'utilisateur, ainsi que ses rôles. Quelle requête utilise correctement IdentityInfo (UEBA) ?
++: ```kql
+let Identites = IdentityInfo
+| where TimeGenerated > ago(14d)
+| summarize arg_max(TimeGenerated, Department, JobTitle, AssignedRoles) by AccountUPN;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where RiskLevelDuringSignIn in ("medium", "high")
+| lookup kind=leftouter Identites on $left.UserPrincipalName == $right.AccountUPN
+| project TimeGenerated, UserPrincipalName, Department, JobTitle, AssignedRoles, IPAddress, RiskLevelDuringSignIn
+```
+-: ```kql
+IdentityInfo
+| where TimeGenerated > ago(14d)
+| where Department == "Finance"
+```
+|| Liste des identités sans lien avec les connexions risquées.
+-: ```kqlbad
+SigninLogs
+| where TimeGenerated > ago(1d)
+| join kind=inner (IdentityInfo) on UserPrincipalName
+```
+|| IdentityInfo nomme la colonne AccountUPN, et l'absence de déduplication multiplie les lignes (table historisée).
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| extend Department = "Inconnu"
+```
+|| Valeur fixe, aucun enrichissement réel.
+=: **IdentityInfo** (alimentée par l'UEBA) décrit les comptes : service, poste, rôles attribués, groupes, état. On prend la **dernière ligne par compte** (`arg_max`) puis on enrichit avec **lookup** (jointure gauche optimisée pour une petite table de dimension) sur **AccountUPN**.
+T: **lookup** conserve toutes les lignes de gauche (leftouter par défaut) et est plus performant que `join` pour enrichir avec une table de référence. Les comptes avec des rôles à privilèges (AssignedRoles non vide) doivent être traités en priorité.
+R: Les connexions à risque moyen/élevé enrichies du service, du poste et des rôles.
+S: IdentityInfo nécessite l'activation de l'UEBA ; la table est rafraîchie périodiquement (instantanés).
+M: Ajouter `IsAccountEnabled` et `BlastRadius` (si présent) pour estimer l'impact potentiel.
+!: Enrichir avec une table de référence = lookup (après arg_max) ; IdentityInfo utilise AccountUPN.
+
+### Preuves d'alertes Defender XDR
+@ niveau=I sub=corr ref=xdr-t-AlertInfo,xdr-t-AlertEvidence
+?: **Besoin :** lister les appareils et utilisateurs impliqués dans les alertes de gravité élevée des 7 derniers jours, tous produits confondus. Quelle requête de chasse avancée convient ?
++: ```kqlx
+AlertInfo
+| where Timestamp > ago(7d)
+| where Severity == "High"
+| join kind=inner (
+    AlertEvidence
+    | where Timestamp > ago(7d)
+    | where EntityType in ("Machine", "User")
+  ) on AlertId
+| summarize Alertes = dcount(AlertId), Titres = make_set(Title1, 10) by EntityType, DeviceName, AccountUpn, ServiceSource
+```
+-: ```kqlx
+AlertInfo
+| where Timestamp > ago(7d)
+| summarize count() by Severity
+```
+|| Nombre d'alertes par gravité, sans entités.
+-: ```kqlx
+AlertEvidence
+| where Timestamp > ago(7d)
+| where Severity == "High"
+| summarize count() by FileName
+```
+|| Se limite aux fichiers et ignore les appareils et utilisateurs demandés.
+-: ```kqlbad
+DeviceInfo
+| where Timestamp > ago(7d)
+| join kind=inner (AlertInfo) on DeviceId
+```
+|| AlertInfo n'a pas de DeviceId : les entités sont dans AlertEvidence.
+=: **AlertInfo** décrit les alertes (titre, gravité, catégorie, source) ; **AlertEvidence** décrit leurs **entités** (EntityType : Machine, User, File, Process, Ip, Url, MailMessage…) avec un rôle (Impacted, Related). La jointure se fait sur **AlertId**.
+T: Après la jointure, les colonnes de même nom de la table de droite sont suffixées (`Title1`, `Severity1`…). Ces tables couvrent toutes les sources (MDE, MDO, MDI, MDCA, Entra ID Protection, Purview…).
+R: Une ligne par entité (appareil ou utilisateur) avec le nombre d'alertes élevées et leurs titres.
+M: Filtrer `EvidenceRole == "Impacted"` pour distinguer les victimes des entités simplement liées.
+!: Alertes XDR : AlertInfo (métadonnées) ⨝ AlertEvidence (entités) sur AlertId.
+
+### Processus lancés dans une session RDP
+@ niveau=A sub=corr ref=xdr-t-DeviceLogonEvents,xdr-t-DeviceProcessEvents
+?: **Besoin :** après une connexion RDP depuis une IP externe suspecte, lister les processus lancés pendant cette session sur le serveur. Quelle requête permet la corrélation la plus précise ?
++: ```kqlx
+let Sessions = DeviceLogonEvents
+| where Timestamp > ago(2d)
+| where ActionType == "LogonSuccess" and LogonType == "RemoteInteractive"
+| where RemoteIP == "203.0.113.88"
+| project DeviceId, LogonId, AccountName, DebutSession = Timestamp;
+DeviceProcessEvents
+| where Timestamp > ago(2d)
+| join kind=inner Sessions on DeviceId, $left.InitiatingProcessLogonId == $right.LogonId
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, DebutSession
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(2d)
+| where ProcessCommandLine has "203.0.113.88"
+```
+|| L'IP de connexion n'apparaît pas dans les lignes de commande des processus de la session.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(2d)
+| join kind=inner (DeviceProcessEvents) on AccountName
+```
+|| La jointure sur le seul nom de compte mélange toutes les sessions de ce compte sur tous les appareils.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(2d)
+| where RemoteIP == "203.0.113.88" and RemotePort == 3389
+```
+|| Montre la connexion réseau mais pas les processus lancés ensuite.
+=: Le **LogonId** identifie une session d'ouverture sur un appareil ; les processus créés dans cette session portent le même identifiant dans **InitiatingProcessLogonId** (ou LogonId selon la colonne). La jointure sur **DeviceId + identifiant de session** isole précisément l'activité de la session RDP.
+T: Une clause `on` peut combiner plusieurs clés, y compris avec la syntaxe `$left.X == $right.Y`. Les colonnes `IsInitiatingProcessRemoteSession` et `InitiatingProcessRemoteSessionIP` de DeviceProcessEvents donnent aussi le contexte de session à distance.
+R: Les processus exécutés pendant la ou les sessions RDP ouvertes depuis l'IP suspecte.
+S: Les identifiants de session ne sont uniques que sur un appareil donné et pendant une période : toujours joindre aussi sur DeviceId.
+M: Alternative plus simple : filtrer DeviceProcessEvents sur `InitiatingProcessRemoteSessionIP == "203.0.113.88"` lorsque cette colonne est renseignée.
+!: Activité d'une session = DeviceId + LogonId (InitiatingProcessLogonId).
+
+### Connexion suspecte suivie d'un changement de méthode MFA
+@ niveau=A sub=corr ref=la-t-SigninLogs,la-t-AuditLogs
+?: **Besoin :** détecter un utilisateur qui, dans l'heure suivant une connexion depuis un pays inhabituel (risque élevé), enregistre une nouvelle méthode d'authentification. Quelle requête est correcte ?
++: ```kql
+let ConnexionsRisquees = SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "0" and RiskLevelDuringSignIn == "high"
+| project ConnexionTime = TimeGenerated, UserPrincipalName = tolower(UserPrincipalName), IPAddress, Location;
+AuditLogs
+| where TimeGenerated > ago(1d)
+| where OperationName has "security info"
+| extend UserPrincipalName = tolower(tostring(TargetResources[0].userPrincipalName))
+| join kind=inner ConnexionsRisquees on UserPrincipalName
+| where TimeGenerated between (ConnexionTime .. ConnexionTime + 1h)
+| project ConnexionTime, AjoutTime = TimeGenerated, UserPrincipalName, OperationName, IPAddress, Location
+```
+-: ```kql
+AuditLogs
+| where TimeGenerated > ago(1d)
+| where OperationName has "security info"
+```
+|| Liste toutes les modifications de méthodes, sans lien avec une connexion risquée.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where RiskLevelDuringSignIn == "high"
+| join kind=inner (AuditLogs) on CorrelationId
+```
+|| Le CorrelationId d'une connexion ne correspond pas à celui d'une opération d'audit ultérieure ; et aucune fenêtre temporelle n'est appliquée.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where AuthenticationRequirement == "multiFactorAuthentication"
+```
+|| Liste les connexions avec MFA, sans détecter l'ajout d'une méthode.
+=: Corrélation **séquentielle** : connexion à risque élevé (SigninLogs) puis enregistrement d'informations de sécurité (AuditLogs) par le **même utilisateur** dans l'**heure** qui suit. La clé utilisateur est normalisée (`tolower`) et extraite de `TargetResources` (dynamique).
+T: Ce scénario caractérise une persistance post-compromission (T1098.005 / ajout de MFA par l'attaquant). Les noms d'opérations d'audit liées aux méthodes d'authentification sont à vérifier dans vos données (`summarize count() by OperationName`).
+R: Les couples (connexion risquée, ajout de méthode) rapprochés dans le temps.
+S: Dans AuditLogs, l'utilisateur concerné peut figurer dans TargetResources ou InitiatedBy selon l'opération.
+M: Ajouter AADNonInteractiveUserSignInLogs et comparer l'IP de la connexion à celle de l'opération d'audit (`InitiatedBy.user.ipAddress`).
+!: Corrélation séquentielle = jointure sur l'entité + `between (t1 .. t1 + délai)`.
+
+### Alertes et priorité UEBA
+@ niveau=I sub=corr ref=la-t-BehaviorAnalytics,la-t-SecurityAlert
+?: **Besoin :** prioriser les alertes Sentinel dont l'utilisateur présente aussi une activité jugée très inhabituelle par l'UEBA le même jour. Quelle approche est correcte ?
++: ```kql
+let Ueba = BehaviorAnalytics
+| where TimeGenerated > ago(1d)
+| where InvestigationPriority >= 5
+| summarize PrioriteMax = max(InvestigationPriority) by Upn = tolower(UserPrincipalName);
+SecurityAlert
+| where TimeGenerated > ago(1d)
+| mv-expand Entite = todynamic(Entities)
+| where tostring(Entite.Type) == "account"
+| extend Upn = tolower(strcat(tostring(Entite.Name), "@", tostring(Entite.UPNSuffix)))
+| join kind=inner Ueba on Upn
+| project TimeGenerated, AlertName, AlertSeverity, Upn, PrioriteMax
+| order by PrioriteMax desc
+```
+-: ```kql
+SecurityAlert
+| where TimeGenerated > ago(1d)
+| join kind=inner (BehaviorAnalytics) on TimeGenerated
+```
+|| Joindre sur l'horodatage exact n'a pas de sens : les événements ne sont pas simultanés à la milliseconde.
+-: ```kql
+BehaviorAnalytics
+| where TimeGenerated > ago(1d)
+| summarize count() by ActivityType
+```
+|| Statistiques UEBA sans lien avec les alertes.
+-: ```kql
+SecurityAlert
+| where TimeGenerated > ago(1d)
+| where AlertSeverity == "High"
+```
+|| Filtre sur la gravité seule, sans le contexte UEBA demandé.
+=: **SecurityAlert.Entities** est une chaîne JSON contenant les entités : on la convertit (`todynamic`), on la développe (`mv-expand`), on extrait les comptes (Name + UPNSuffix) puis on joint avec les priorités UEBA par utilisateur.
+T: Les entités Account peuvent contenir AadUserId, Sid, Name, NTDomain, UPNSuffix selon la source ; une jointure robuste privilégie AadUserId lorsque disponible. Sentinel propose aussi l'enrichissement UEBA directement dans les pages d'entités et les incidents.
+R: Les alertes du jour concernant des utilisateurs ayant une priorité UEBA ≥ 5, triées par priorité.
+S: La structure de la colonne Entities varie selon les fournisseurs d'alertes.
+M: Utiliser AadUserId (UserId côté UEBA) pour éviter les écarts de format d'UPN.
+!: SecurityAlert.Entities = JSON → todynamic + mv-expand pour extraire les comptes.
+
+### Appareils vulnérables avec alertes actives
+@ niveau=I sub=corr ref=xdr-t-DeviceTvm,xdr-t-AlertEvidence
+?: **Besoin :** identifier les appareils touchés par une CVE critique exploitée (CVE-2024-21412) qui ont aussi déclenché une alerte au cours des 7 derniers jours. Quelle requête est correcte ?
++: ```kqlx
+DeviceTvmSoftwareVulnerabilities
+| where CveId == "CVE-2024-21412"
+| distinct DeviceId, DeviceName, SoftwareName, SoftwareVersion
+| join kind=inner (
+    AlertEvidence
+    | where Timestamp > ago(7d)
+    | where EntityType == "Machine"
+    | summarize Alertes = make_set(Title, 10) by DeviceId
+  ) on DeviceId
+```
+-: ```kqlbad
+DeviceTvmSoftwareVulnerabilities
+| where Timestamp > ago(7d)
+| where CveId == "CVE-2024-21412"
+```
+|| DeviceTvmSoftwareVulnerabilities est un instantané sans colonne Timestamp, et la requête ne vérifie pas les alertes.
+-: ```kqlx
+AlertInfo
+| where Timestamp > ago(7d)
+| where Title has "CVE-2024-21412"
+```
+|| Les titres d'alerte ne contiennent pas forcément le numéro de CVE ; aucune vérification de vulnérabilité.
+-: ```kqlx
+DeviceInfo
+| where Timestamp > ago(7d)
+| where OSPlatform == "Windows11"
+```
+|| Liste les appareils Windows 11, sans lien avec la CVE ni les alertes.
+=: **DeviceTvmSoftwareVulnerabilities** (Defender Vulnerability Management) liste les vulnérabilités par appareil et logiciel (**CveId**, VulnerabilitySeverityLevel). La jointure avec les entités Machine d'**AlertEvidence** sur **DeviceId** croise exposition et activité.
+T: Cette table est un **instantané** de l'état courant : elle n'a pas de colonne Timestamp. D'autres tables TVM : DeviceTvmSoftwareInventory, DeviceTvmSoftwareVulnerabilitiesKB (détails CVE, score CVSS, exploit public). Prioriser la correction des appareils vulnérables et actifs dans des alertes.
+R: Les appareils vulnérables à la CVE avec la liste des alertes récentes.
+M: Joindre DeviceTvmSoftwareVulnerabilitiesKB pour filtrer sur `IsExploitAvailable == true`.
+!: Exposition × activité = DeviceTvmSoftwareVulnerabilities ⨝ AlertEvidence sur DeviceId.
+
+### Opérations Azure depuis une IP de connexion suspecte
+@ niveau=A sub=corr ref=la-t-AzureActivity,la-t-SigninLogs
+?: **Besoin :** après une connexion risquée d'un administrateur au portail Azure, lister les opérations du plan de contrôle effectuées depuis la même adresse IP dans les 2 heures. Quelle requête est correcte ?
++: ```kql
+let Suspectes = SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "0" and RiskLevelDuringSignIn in ("medium", "high")
+| project ConnexionTime = TimeGenerated, IPAddress, Upn = tolower(UserPrincipalName);
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where ActivityStatusValue == "Success"
+| join kind=inner Suspectes on $left.CallerIpAddress == $right.IPAddress
+| where TimeGenerated between (ConnexionTime .. ConnexionTime + 2h)
+| project TimeGenerated, Caller, CallerIpAddress, OperationNameValue, ResourceGroup, Upn
+```
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| join kind=inner (SigninLogs) on $left.Caller == $right.AppDisplayName
+```
+|| Caller (identité ou UPN) n'a aucun rapport avec le nom de l'application.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| summarize count() by OperationNameValue
+```
+|| Statistiques globales, sans corrélation avec les connexions risquées.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where AppDisplayName == "Azure Portal"
+```
+|| Connexions au portail, sans les opérations réalisées.
+=: **AzureActivity.CallerIpAddress** et **SigninLogs.IPAddress** relient l'authentification et les actions. La contrainte temporelle limite la corrélation à la période d'exploitation de la session.
+T: Comparer aussi `Caller` (UPN ou objectId) à l'utilisateur de la connexion. Les opérations sensibles : roleAssignments/write, virtualMachines/runCommand/action, listKeys sur les comptes de stockage, diagnosticSettings/delete. Defender for Cloud (Defender for Resource Manager) détecte aussi ces opérations suspectes.
+R: Les opérations Azure réussies depuis l'IP d'une connexion risquée dans les 2 heures.
+M: Ajouter un filtre sur les opérations à fort impact et alerter en priorité sur `listKeys` et `runCommand`.
+!: Identité → actions Azure : SigninLogs.IPAddress ↔ AzureActivity.CallerIpAddress + fenêtre temporelle.
+
+### Refus du pare-feu et processus du poste
+@ niveau=A sub=corr ref=la-t-CommonSecurityLog,xdr-t-DeviceNetworkEvents
+?: **Besoin :** pour les connexions sortantes refusées par le pare-feu vers des ports inhabituels, identifier le processus du poste à l'origine (Sentinel ingère CommonSecurityLog et DeviceNetworkEvents). Quelle requête est la plus adaptée ?
++: ```kql
+let Refus = CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| where DeviceAction in~ ("deny", "drop") and DestinationPort in (4444, 8443, 1337)
+| project RefusTime = TimeGenerated, SourceIP, DestinationIP, DestinationPort;
+DeviceNetworkEvents
+| where TimeGenerated > ago(1d)
+| where RemotePort in (4444, 8443, 1337)
+| join kind=inner Refus on $left.LocalIP == $right.SourceIP, $left.RemoteIP == $right.DestinationIP
+| where abs(datetime_diff("second", TimeGenerated, RefusTime)) < 120
+| project TimeGenerated, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, RemoteIP, RemotePort
+```
+-: ```kql
+CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| where DeviceAction == "deny"
+| summarize count() by SourceIP
+```
+|| Ne relie pas les refus aux processus des postes.
+-: ```kql
+DeviceNetworkEvents
+| where TimeGenerated > ago(1d)
+| join kind=inner (CommonSecurityLog) on DeviceName
+```
+|| CommonSecurityLog n'a pas de DeviceName de poste ; la corrélation se fait par adresses IP et temps.
+-: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where ProcessCommandLine has "deny"
+```
+|| Le mot « deny » dans une ligne de commande n'a aucun rapport avec les refus du pare-feu.
+=: La corrélation réseau ↔ terminal s'appuie sur les **adresses IP** (locale/source, distante/destination) et une **tolérance temporelle** (`datetime_diff` < 120 s), car les horloges et les horodatages diffèrent entre sources. La clause `on` combine plusieurs égalités.
+T: Le NAT peut masquer l'IP source réelle du poste côté pare-feu : la corrélation n'est fiable que si le pare-feu voit les adresses internes. Les ports 4444 (Metasploit par défaut) ou 1337 sont des exemples ; adaptez la liste à votre contexte.
+R: Les processus des postes à l'origine de connexions refusées par le pare-feu sur des ports suspects.
+S: Hypothèse : le pare-feu journalise SourceIP interne (pas d'adresse traduite) et les deux sources sont synchronisées en temps.
+M: Utiliser `bin` sur le temps des deux côtés pour transformer la tolérance en clé de jointure et réduire le coût.
+!: Pare-feu ↔ terminal = IP locale/distante + tolérance temporelle (datetime_diff).
+
+### Connexions réussies sans MFA pour des comptes privilégiés
+@ niveau=I sub=corr ref=la-t-SigninLogs,la-t-IdentityInfo
+?: **Besoin :** lister les connexions réussies à facteur unique de comptes possédant un rôle privilégié Entra ID. Quelle requête est correcte ?
++: ```kql
+let Privilegies = IdentityInfo
+| where TimeGenerated > ago(14d)
+| summarize arg_max(TimeGenerated, AssignedRoles) by AccountUPN
+| where array_length(AssignedRoles) > 0
+| project Upn = tolower(AccountUPN), AssignedRoles;
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where ResultType == "0" and AuthenticationRequirement == "singleFactorAuthentication"
+| extend Upn = tolower(UserPrincipalName)
+| join kind=inner Privilegies on Upn
+| summarize Connexions = count(), Applications = make_set(AppDisplayName, 10) by Upn, tostring(AssignedRoles)
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where AuthenticationRequirement == "multiFactorAuthentication"
+```
+|| Liste les connexions avec MFA : l'inverse du besoin.
+-: ```kql
+IdentityInfo
+| where TimeGenerated > ago(14d)
+| where IsMFARegistered == false
+```
+|| Indique l'inscription MFA, pas les connexions effectives à facteur unique.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where ResultType == "0"
+| summarize count() by AppDisplayName
+```
+|| Comptage par application, sans critère de privilège ni de MFA.
+=: **AuthenticationRequirement** indique si la connexion exigeait un seul facteur ou la MFA. Le croisement avec **IdentityInfo.AssignedRoles** (tableau des rôles attribués, dernière version par compte) cible les comptes à privilèges. `tostring()` permet de regrouper sur le tableau des rôles.
+T: Les connexions à facteur unique d'administrateurs révèlent une faiblesse d'accès conditionnel (exclusions, authentification héritée). Remédiation : stratégie exigeant une MFA résistante à l'hameçonnage pour les rôles d'administration, blocage de l'authentification héritée.
+R: Les comptes privilégiés ayant des connexions sans MFA, avec le nombre et les applications.
+S: IdentityInfo nécessite l'UEBA ; AssignedRoles reflète les rôles Entra actifs (les rôles éligibles PIM peuvent ne pas apparaître).
+M: Compléter avec AuditLogs (activations PIM) et AADNonInteractiveUserSignInLogs.
+!: MFA effective = SigninLogs.AuthenticationRequirement ; rôles = IdentityInfo.AssignedRoles.
+
+### Enrichissement avec une watchlist via lookup
+@ niveau=D sub=corr ref=sent-watchlists,kql-lookup
+?: **Besoin :** marquer les connexions provenant des adresses IP de sortie connues de l'entreprise (watchlist « IPEntreprise », clé de recherche = IP) sans perdre les autres connexions. Quelle requête est correcte ?
++: ```kql
+let IPConnues = _GetWatchlist("IPEntreprise") | project IPAddress = SearchKey, Comment;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| lookup kind=leftouter IPConnues on IPAddress
+| extend Origine = iff(isempty(Comment), "Externe", "Entreprise")
+| summarize Connexions = count() by Origine
+```
+-: ```kql
+let IPConnues = _GetWatchlist("IPEntreprise") | project IPAddress = SearchKey;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| join kind=inner IPConnues on IPAddress
+```
+|| La jointure interne supprime toutes les connexions externes, alors qu'il fallait les conserver.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where IPAddress == "IPEntreprise"
+```
+|| Compare l'IP au nom de la watchlist.
+-: ```kql
+_GetWatchlist("IPEntreprise")
+| summarize count()
+```
+|| Compte les entrées de la watchlist, sans lien avec les connexions.
+=: **lookup** (leftouter par défaut) enrichit chaque ligne de la table de faits avec les colonnes de la table de dimension correspondante, sans supprimer les lignes sans correspondance. **_GetWatchlist()** expose la watchlist, dont la clé est **SearchKey**.
+T: `lookup kind=inner` existe aussi (équivalent à un filtre). Pour des plages IP (CIDR), utilisez `ipv4_lookup` ou `ipv4_is_in_range` plutôt qu'une égalité.
+R: Le nombre de connexions par origine (Entreprise / Externe).
+!: Enrichir sans perdre de lignes = lookup (leftouter) ; watchlist via `_GetWatchlist()` et SearchKey.
+
+### Agents silencieux : Heartbeat et inventaire
+@ niveau=I sub=corr ref=la-t-Heartbeat,kql-join
+?: **Besoin :** lister les serveurs qui envoyaient des battements de cœur (agent Azure Monitor) la semaine dernière mais plus aucun depuis 24 heures. Quelle requête est correcte ?
++: ```kql
+let Actifs = Heartbeat
+| where TimeGenerated > ago(1d)
+| distinct Computer;
+Heartbeat
+| where TimeGenerated between (ago(8d) .. ago(1d))
+| summarize DernierBattement = max(TimeGenerated) by Computer
+| join kind=leftanti Actifs on Computer
+```
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(1d)
+| distinct Computer
+```
+|| Liste les agents actifs, l'inverse du besoin.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(8d)
+| summarize count() by Computer
+| where count_ == 0
+```
+|| Un ordinateur sans ligne n'apparaît pas dans le résultat d'un summarize : count_ ne vaut jamais 0.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(8d)
+| join kind=inner (Heartbeat) on Computer
+```
+|| Auto-jointure sans logique d'absence.
+=: Pour détecter une **absence**, on compare deux ensembles : les ordinateurs vus sur la période de référence et ceux vus récemment, avec **leftanti** (présents à gauche, absents à droite). Un `summarize` ne produit jamais de ligne pour un groupe sans données.
+T: Un agent silencieux peut signifier une panne, un arrêt volontaire ou une tentative d'évasion (désactivation de la journalisation, T1562). Sentinel propose aussi la surveillance de l'intégrité des connecteurs (SentinelHealth).
+R: Les ordinateurs muets depuis 24 heures avec la date de leur dernier battement.
+M: Exclure les machines décommissionnées via une watchlist et alerter sur les serveurs critiques.
+!: Détecter une absence = leftanti entre période de référence et période récente.
+
+### Reconnaissance LDAP puis outil d'attaque sur le poste source
+@ niveau=A sub=corr ref=xdr-t-IdentityQueryEvents,xdr-t-DeviceProcessEvents
+?: **Besoin :** relier les requêtes LDAP de reconnaissance vues par Defender for Identity au processus du poste source qui les a émises (par exemple un outil de type SharpHound). Quelle requête est la plus adaptée ?
++: ```kqlx
+IdentityQueryEvents
+| where Timestamp > ago(1d)
+| where ActionType == "LDAP query" or Protocol == "Ldap"
+| summarize Requetes = count(), Debut = min(Timestamp), Fin = max(Timestamp) by DeviceName, AccountName
+| where Requetes > 100
+| join kind=inner (
+    DeviceProcessEvents
+    | where Timestamp > ago(1d)
+    | project DeviceName, ProcessTime = Timestamp, FileName, ProcessCommandLine
+  ) on DeviceName
+| where ProcessTime between ((Debut - 5m) .. Fin)
+| summarize Processus = make_set(FileName, 20), Commandes = make_set(ProcessCommandLine, 5) by DeviceName, AccountName, Requetes
+```
+-: ```kqlx
+IdentityQueryEvents
+| where Timestamp > ago(1d)
+| summarize count() by QueryTarget
+```
+|| Statistiques de cibles sans relier le poste source à un processus.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "ldap.exe"
+```
+|| Il n'existe pas de binaire « ldap.exe » standard ; les outils de reconnaissance ont des noms variés.
+-: ```kqlx
+IdentityLogonEvents
+| where Timestamp > ago(1d)
+| where ActionType == "LogonFailed"
+```
+|| Échecs d'authentification, pas reconnaissance LDAP.
+=: Defender for Identity voit les **requêtes LDAP** reçues par les contrôleurs de domaine (IdentityQueryEvents) avec le **poste source** ; MDE voit les **processus** de ce poste. La jointure sur le nom d'appareil et la fenêtre temporelle de l'activité LDAP identifient l'outil responsable.
+T: Les volumes élevés de requêtes LDAP (énumération des utilisateurs, groupes, SPN, ACL) sont typiques de BloodHound/SharpHound, ADFind, PowerView (T1087.002, T1069.002). Le format de DeviceName peut différer entre MDI (nom NetBIOS/FQDN) et MDE : normaliser si nécessaire.
+R: Les postes et comptes ayant émis plus de 100 requêtes LDAP, avec les processus actifs pendant cette période.
+S: Les valeurs de ActionType/Protocol dépendent des événements MDI ; vérifier les valeurs présentes (`summarize count() by ActionType, Protocol`).
+M: Normaliser DeviceName (`tolower`, suppression du suffixe de domaine) des deux côtés avant la jointure.
+!: MDI (requêtes vues par le DC) ⨝ MDE (processus du poste) = identification de l'outil de reconnaissance.
+
+### Règle de boîte de réception après détection de risque
+@ niveau=A sub=corr ref=la-t-AADUserRiskEvents,la-t-OfficeActivity
+?: **Besoin :** détecter la création d'une règle de boîte de réception dans les 6 heures suivant une détection de risque Entra ID Protection pour le même utilisateur. Quelle requête est correcte ?
++: ```kql
+let Risques = AADUserRiskEvents
+| where TimeGenerated > ago(2d)
+| project RisqueTime = TimeGenerated, Upn = tolower(UserPrincipalName), RiskEventType, RiskLevel;
+OfficeActivity
+| where TimeGenerated > ago(2d)
+| where Operation in ("New-InboxRule", "Set-InboxRule", "UpdateInboxRules")
+| extend Upn = tolower(UserId)
+| join kind=inner Risques on Upn
+| where TimeGenerated between (RisqueTime .. RisqueTime + 6h)
+| project RisqueTime, RegleTime = TimeGenerated, Upn, RiskEventType, RiskLevel, Operation, ClientIP, Parameters
+```
+-: ```kql
+AADUserRiskEvents
+| where TimeGenerated > ago(2d)
+| summarize count() by RiskEventType
+```
+|| Statistiques de risques sans lien avec les règles de messagerie.
+-: ```kql
+OfficeActivity
+| where TimeGenerated > ago(2d)
+| join kind=inner (AADUserRiskEvents) on UserId
+```
+|| AADUserRiskEvents ne possède pas la colonne UserId au format UPN attendu ici, et aucune contrainte temporelle n'est appliquée.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(2d)
+| where RiskState == "atRisk"
+```
+|| Connexions à risque sans les règles de boîte de réception.
+=: **AADUserRiskEvents** contient les détections d'Entra ID Protection (RiskEventType, RiskLevel, UserPrincipalName) ; **OfficeActivity** les opérations Exchange. La corrélation séquentielle sur l'UPN normalisé et une fenêtre de 6 heures identifie un schéma classique de compromission de messagerie (BEC).
+T: Ce scénario est couvert par l'interruption automatique d'attaque (BEC) et par des détections MDCA (« Suspicious inbox manipulation rule »). Le champ Parameters contient les conditions et actions de la règle (ForwardTo, DeleteMessage, MoveToFolder « RSS Feeds »…).
+R: Les règles de boîte de réception créées peu après une détection de risque pour le même utilisateur.
+S: Hypothèse : UserId de OfficeActivity contient l'UPN de l'utilisateur (cas habituel pour Exchange).
+M: Ajouter la comparaison des IP (ClientIP vs IpAddress du risque) pour renforcer la confiance.
+!: Risque d'identité puis règle de messagerie rapprochés = schéma BEC typique.
+
+### Succès après une rafale d'échecs (auto-jointure temporelle)
+@ niveau=A sub=corr ref=la-t-SecurityEvent,kql-join
+?: **Besoin :** détecter, pour un même compte et une même IP, une ouverture de session réussie (4624) survenant dans les 30 minutes après au moins 15 échecs (4625). Quelle requête est correcte ?
++: ```kql
+let Echecs = SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4625
+| summarize NbEchecs = count(), DernierEchec = max(TimeGenerated) by TargetAccount, IpAddress
+| where NbEchecs >= 15;
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4624
+| join kind=inner Echecs on TargetAccount, IpAddress
+| where TimeGenerated between (DernierEchec .. DernierEchec + 30m)
+| project SuccesTime = TimeGenerated, TargetAccount, IpAddress, Computer, NbEchecs, LogonType
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID in (4624, 4625)
+| summarize count() by EventID
+```
+|| Compte global des succès et échecs, sans lien entre eux.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4624
+| where TimeGenerated > ago(30m)
+```
+|| Liste les succès récents sans référence aux échecs.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4625
+| summarize count() by TargetAccount
+| where count_ >= 15
+```
+|| Identifie les rafales d'échecs, mais pas le succès qui suit (force brute réussie).
+=: L'**auto-jointure** de SecurityEvent (échecs agrégés ⨝ succès) sur le compte et l'IP, avec une contrainte temporelle après le dernier échec, met en évidence une **force brute réussie**. Le prétraitement par `summarize` limite le volume avant la jointure.
+T: Les succès réseau légitimes après des échecs (mot de passe mal tapé) existent : le seuil et la fenêtre réduisent ces cas. Selon les sources, l'IP peut être vide (« - ») pour des échecs locaux : les exclure. Technique T1110.
+R: Les succès survenus juste après une rafale d'échecs pour le même compte et la même IP.
+M: Ajouter LogonType 10 (RDP) ou 3 (réseau) selon la surface ciblée et exclure les IP de passerelles de confiance.
+!: Force brute réussie = échecs agrégés ⨝ succès (même compte + IP) dans une fenêtre après le dernier échec.
+
+### Vérifier l'effet d'une remédiation ZAP
+@ niveau=I sub=corr ref=xdr-t-EmailPostDeliveryEvents,xdr-t-EmailEvents
+?: **Besoin :** contrôler si des e-mails de hameçonnage distribués en boîte de réception ont bien été retirés après distribution (ZAP ou remédiation manuelle). Quelle requête convient ?
++: ```kqlx
+EmailEvents
+| where Timestamp > ago(3d)
+| where ThreatTypes has "Phish" and DeliveryLocation == "Inbox/folder"
+| project NetworkMessageId, RecipientEmailAddress, Subject, Remise = Timestamp
+| join kind=leftouter (
+    EmailPostDeliveryEvents
+    | where Timestamp > ago(3d)
+    | project NetworkMessageId, RecipientEmailAddress, ActionType, ActionResult, DeliveryLocation, ActionTime = Timestamp
+  ) on NetworkMessageId, RecipientEmailAddress
+| extend Etat = iff(isempty(ActionType), "Toujours en boîte de réception ?", strcat(ActionType, " - ", ActionResult))
+| project Remise, RecipientEmailAddress, Subject, Etat, DeliveryLocation, ActionTime
+```
+-: ```kqlx
+EmailPostDeliveryEvents
+| where Timestamp > ago(3d)
+| summarize count() by ActionType
+```
+|| Statistiques des actions, sans identifier les messages non retirés.
+-: ```kqlbad
+EmailEvents
+| where Timestamp > ago(3d)
+| where ThreatTypes has "Phish"
+| join kind=inner (EmailPostDeliveryEvents) on Subject
+```
+|| L'objet n'est pas une clé fiable (et EmailPostDeliveryEvents n'a pas de colonne Subject).
+-: ```kqlx
+UrlClickEvents
+| where Timestamp > ago(3d)
+| where ActionType == "ClickBlocked"
+```
+|| Clics bloqués, sans lien avec le retrait des messages.
+=: **EmailPostDeliveryEvents** enregistre les actions **après distribution** (Phish ZAP, Malware ZAP, remédiation manuelle, redistribution…) avec leur résultat. La jointure **leftouter** sur **NetworkMessageId + RecipientEmailAddress** fait apparaître les messages sans aucune action ultérieure.
+T: La colonne `LatestDeliveryLocation` d'EmailEvents donne aussi l'emplacement le plus récent connu. Les messages lus avant le retrait doivent faire l'objet d'une vérification des clics et des connexions.
+R: Chaque message d'hameçonnage distribué avec son état de retrait (ou l'absence d'action).
+!: Remédiation post-distribution = EmailPostDeliveryEvents ⨝ EmailEvents (NetworkMessageId + destinataire).
