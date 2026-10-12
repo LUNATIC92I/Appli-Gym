@@ -1,0 +1,405 @@
+@@ module=4
+@@ section=Cycle de vie, triage, priorisation et communication
+
+### Phases de la réponse aux incidents
+@ niveau=D ref=ir-overview,ir-planning
+?: Selon le modèle classique de réponse aux incidents (NIST SP 800-61), dans quel ordre se déroulent les grandes phases ?
+@ fixed
++: Préparation → Détection et analyse → Confinement, éradication et restauration → Activités post-incident.
+-: Détection → Restauration → Confinement → Préparation. || L'ordre est incohérent : on ne restaure pas avant de contenir et d'éradiquer.
+-: Éradication → Détection → Préparation → Confinement. || On ne peut pas éradiquer une menace non encore détectée.
+-: Confinement → Préparation → Analyse → Retour d'expérience. || La préparation précède l'incident.
+=: Le cycle NIST comprend : **Préparation** (outils, procédures, formation), **Détection et analyse** (triage, qualification, périmètre), **Confinement, éradication et restauration**, puis **Activités post-incident** (retour d'expérience, amélioration des détections). Le cycle est itératif : l'analyse se poursuit pendant le confinement.
+T: La révision 3 de NIST SP 800-61 (2025) rapproche la réponse aux incidents des fonctions du NIST CSF 2.0 (Gouverner, Identifier, Protéger, Détecter, Répondre, Restaurer) ; les quatre phases historiques restent un repère pédagogique largement utilisé. Microsoft publie des guides de réponse (« incident response playbooks ») alignés sur ces étapes.
+!: Préparation → Détection/analyse → Confinement/éradication/restauration → Post-incident (itératif).
+
+### Triage d'une alerte isolée
+@ niveau=D ref=xdr-investigate-incidents
+?: Un analyste N1 reçoit une alerte « Suspicious PowerShell command line » sur un poste. Quelle est la première étape de triage la plus pertinente ?
++: Qualifier l'alerte : examiner la ligne de commande, le processus parent, l'utilisateur, l'appareil et les alertes liées pour déterminer s'il s'agit d'un vrai positif et en évaluer la gravité.
+-: Réinstaller immédiatement le poste. || Action d'éradication prématurée, qui détruit les preuves et peut être inutile.
+-: Fermer l'alerte car PowerShell est un outil légitime. || L'outil est légitime mais son usage peut être malveillant ; il faut analyser.
+-: Désactiver PowerShell sur tout le parc. || Mesure disproportionnée, prise sans analyse.
+=: Le **triage** consiste à **qualifier** l'alerte (vrai/faux positif), en évaluer la **gravité** et le **périmètre**, et décider de l'escalade. On s'appuie sur le contexte : arborescence de processus, ligne de commande (décodée si nécessaire), réputation des fichiers et domaines, comportement de l'utilisateur, alertes corrélées dans l'incident.
+T: Une procédure de triage documentée (runbook) homogénéise les décisions N1. Les outils : page d'alerte, chronologie de l'appareil, chasse avancée, Copilot (analyse de script). Le résultat du triage doit être consigné dans l'incident (commentaire, classification).
+!: Triage = qualifier (vrai/faux positif), évaluer gravité et périmètre, décider de l'escalade — avant toute action destructrice.
+
+### Prioriser deux incidents simultanés
+@ niveau=I ref=xdr-incidents
+?: Deux incidents arrivent en même temps : (1) gravité moyenne, malware bloqué sur un poste standard ; (2) gravité élevée, activité de type DCSync depuis un serveur applicatif avec un compte d'administrateur. Lequel traiter en premier et pourquoi ?
++: L'incident 2, car il indique une compromission probable d'identifiants à privilèges élevés avec un impact potentiel sur tout le domaine.
+-: L'incident 1, car il est arrivé quelques secondes plus tôt. || L'ordre d'arrivée ne prime pas sur l'impact.
+-: L'incident 1, car un malware est plus dangereux qu'une réplication d'annuaire. || Le malware a été bloqué ; le DCSync peut exposer tous les hachages du domaine.
+-: Les deux ont la même priorité car ce sont des incidents. || La priorisation repose sur l'impact et l'urgence.
+=: La priorisation combine **impact** (étendue, criticité des actifs et des comptes) et **urgence** (attaque en cours, menace contenue ou non). Un DCSync avec un compte d'administrateur menace l'ensemble de l'annuaire (krbtgt, comptes à privilèges) ; un malware bloqué sur un poste est déjà contenu.
+T: Les matrices impact × urgence, la criticité des actifs (Security Exposure Management) et le score de priorité des incidents Defender XDR aident à objectiver la décision. Documenter la justification dans l'incident.
+!: Priorité = impact (actifs/comptes critiques, étendue) × urgence (attaque active, non contenue).
+
+### Escalade vers une équipe spécialisée
+@ niveau=I ref=ir-planning
+?: Pendant l'analyse d'un incident, un analyste N2 découvre que l'attaquant dispose probablement d'un accès administrateur au domaine et que des données personnelles de clients ont pu être exfiltrées. Quelle action est la plus appropriée ?
++: Escalader immédiatement selon la procédure (responsable de la réponse aux incidents, RSSI, cellule de crise, juridique/DPO) tout en poursuivant les mesures de confinement validées.
+-: Poursuivre seul l'enquête jusqu'à la fin avant d'informer qui que ce soit. || L'impact juridique et métier exige une escalade rapide.
+-: Publier immédiatement un communiqué de presse. || La communication externe relève de la cellule de crise et du juridique, après qualification.
+-: Supprimer les journaux pour éviter une fuite d'information. || Destruction de preuves, contraire aux obligations légales.
+=: Les critères d'**escalade** (compromission de comptes à privilèges, données personnelles, impact métier majeur) déclenchent l'activation de la **cellule de crise** et l'implication des fonctions **juridique** et **protection des données**. Des obligations de notification peuvent s'appliquer (par exemple, RGPD : notification à l'autorité de contrôle dans les 72 heures après la prise de connaissance d'une violation présentant un risque).
+T: Le plan de réponse aux incidents définit les niveaux d'escalade, les contacts, les canaux de communication hors bande (si la messagerie est compromise) et les délais. Le SOC documente chronologiquement toutes les décisions.
+!: Compromission majeure ou données personnelles → escalade immédiate (RSSI, crise, juridique/DPO) ; obligations de notification possibles.
+
+### Communication pendant un incident
+@ niveau=I ref=ir-planning
+?: La messagerie Microsoft 365 de l'entreprise est soupçonnée d'être sous le contrôle de l'attaquant. Comment l'équipe de réponse doit-elle communiquer ?
++: Utiliser un canal de communication hors bande prédéfini (par exemple téléphonie ou outil de collaboration indépendant du locataire compromis).
+-: Continuer à utiliser Teams et Outlook du locataire compromis. || L'attaquant pourrait lire les échanges et anticiper les mesures.
+-: Envoyer les informations sensibles par e-mail chiffré à tous les employés. || Diffusion excessive, et le canal reste compromis.
+-: Ne pas communiquer pour éviter les fuites. || La coordination est indispensable à la réponse.
+=: Lorsqu'un attaquant peut accéder aux outils de communication de l'organisation, l'équipe doit utiliser un **canal hors bande** préparé à l'avance, afin de ne pas révéler les mesures de réponse.
+T: La préparation inclut des comptes de secours, des numéros d'urgence, des copies imprimées des procédures et un annuaire des contacts critiques. Les communications doivent être factuelles, datées et limitées au besoin d'en connaître.
+!: Messagerie potentiellement compromise → communication hors bande prévue dans le plan.
+
+### Documentation d'un incident
+@ niveau=D ref=xdr-manage-incidents,xdr-case-mgmt
+?: Quelles informations doivent figurer dans la documentation d'un incident pour être exploitables ensuite (audit, retour d'expérience, procédure judiciaire) ?
++: Une chronologie horodatée des faits et des actions, les preuves collectées et leur emplacement, les décisions prises et leurs auteurs, les entités impactées, la classification et les causes identifiées.
+-: Uniquement la date de fermeture de l'incident. || Insuffisant pour reconstituer ou auditer la réponse.
+-: Les opinions personnelles de l'analyste sur les utilisateurs concernés. || La documentation doit être factuelle.
+-: Rien, car les journaux techniques suffisent. || Les journaux ne décrivent ni les décisions ni leur justification.
+=: Une documentation exploitable contient une **chronologie** (événements et actions de réponse), les **preuves** et leur **chaîne de custode**, les **décisions** et leurs auteurs, le **périmètre** (entités impactées), la **classification** et la **cause racine**.
+T: Dans le portail Defender, les commentaires, l'historique d'activité, les tâches et pièces jointes des incidents/cas conservent cette traçabilité ; la gestion des cas peut auditer les changements (table SecurityCaseEvent). Les rapports d'incident générés par Copilot sont un point de départ à vérifier.
+!: Documenter : chronologie, preuves (chaîne de custode), décisions, périmètre, classification, cause racine.
+
+### Évaluation de l'impact
+@ niveau=I ref=xdr-investigate-incidents
+?: Un incident implique la compromission d'un compte d'un employé du service RH. Quelle démarche permet d'évaluer l'impact de façon fiable ?
++: Recenser les ressources et données auxquelles le compte a accédé pendant la période de compromission (journaux d'audit Microsoft 365, accès aux fichiers, e-mails consultés, applications), et les privilèges qu'il détient.
+-: Supposer qu'aucune donnée n'a été touchée si l'antivirus n'a rien détecté. || Une compromission de compte n'implique pas forcément de malware.
+-: Mesurer l'impact par le nombre d'alertes générées. || Le volume d'alertes ne reflète pas les données exposées.
+-: Demander à l'utilisateur ce qu'il pense avoir perdu. || Témoignage utile mais insuffisant.
+=: L'**évaluation de l'impact** reconstitue les accès réels : **Purview Audit** (FileAccessed, FileDownloaded, MailItemsAccessed), **CloudAppEvents**, **SigninLogs** (applications), **MicrosoftGraphActivityLogs**, droits et rôles du compte (IdentityInfo). Elle détermine la sensibilité des données exposées et les obligations éventuelles.
+T: Délimiter précisément la **fenêtre de compromission** (premier accès malveillant → confinement) et distinguer l'activité légitime de l'utilisateur de celle de l'attaquant (IP, appareil, agent utilisateur).
+!: Impact = ce que le compte compromis a réellement consulté/modifié pendant la fenêtre de compromission, d'après les journaux.
+
+### Retour d'expérience
+@ niveau=D ref=ir-planning
+?: Après la clôture d'un incident majeur, quelle activité est la plus utile pour réduire la probabilité d'un incident similaire ?
++: Une réunion de retour d'expérience (lessons learned) identifiant la cause racine, les lacunes de détection et de réponse, et un plan d'actions suivi (nouvelles règles, durcissement, formation).
+-: Supprimer la documentation de l'incident pour libérer de l'espace. || La documentation sert au retour d'expérience et à l'audit.
+-: Désactiver les règles qui ont produit des alertes pendant l'incident. || Elles ont joué leur rôle.
+-: Attendre le prochain incident pour améliorer les procédures. || Démarche réactive.
+=: Les **activités post-incident** (retour d'expérience) analysent ce qui a fonctionné ou non, la **cause racine** et les **actions correctives** : nouvelles détections (règles analytiques, détections personnalisées), automatisations, durcissement (ASR, accès conditionnel), mise à jour des runbooks et formation.
+T: Les métriques (temps moyen de détection, de confinement, de résolution) issues de SecurityIncident aident à mesurer les progrès. Les requêtes de chasse utilisées pendant l'incident peuvent être converties en règles.
+!: Post-incident = cause racine + plan d'actions (détections, durcissement, procédures).
+
+### Mesurer le temps de résolution
+@ niveau=I ref=la-t-SecurityIncident,kql-argmax
+?: Le RSSI demande le délai moyen entre la création et la clôture des incidents de gravité élevée sur les 30 derniers jours. Quelle requête Sentinel convient ?
++: ```kql
+SecurityIncident
+| where TimeGenerated > ago(30d)
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| where Status == "Closed" and Severity == "High"
+| extend HeuresResolution = datetime_diff("minute", ClosedTime, CreatedTime) / 60.0
+| summarize MoyenneHeures = avg(HeuresResolution), Mediane = percentile(HeuresResolution, 50), Incidents = count()
+```
+-: ```kql
+SecurityIncident
+| where TimeGenerated > ago(30d)
+| summarize count() by Severity
+```
+|| Nombre d'incidents par gravité, sans délai.
+-: ```kql
+SecurityIncident
+| where TimeGenerated > ago(30d)
+| where Severity == "High"
+| extend Duree = ClosedTime - CreatedTime
+| summarize avg(Duree)
+```
+|| Sans déduplication par incident, chaque mise à jour est comptée (les incidents modifiés souvent pèsent plus) et les incidents non clos faussent le calcul.
+-: ```kql
+SecurityAlert
+| where TimeGenerated > ago(30d)
+| summarize avg(EndTime - StartTime)
+```
+|| Durée de l'activité malveillante dans les alertes, pas délai de traitement des incidents.
+=: On déduplique **SecurityIncident** (dernière version par IncidentNumber), on garde les incidents **clos** de gravité élevée, puis on calcule l'écart **ClosedTime − CreatedTime**. La médiane complète la moyenne, sensible aux valeurs extrêmes.
+T: D'autres indicateurs : délai de prise en charge (FirstModifiedTime − CreatedTime), délai de détection (CreatedTime − FirstActivityTime). Le classeur « Efficacité des opérations de sécurité » fournit ces mesures.
+R: Une ligne avec la moyenne et la médiane du délai de résolution (heures) et le nombre d'incidents.
+!: MTTR = SecurityIncident dédupliquée (arg_max) + ClosedTime − CreatedTime, avec médiane.
+
+### Faux positif récurrent
+@ niveau=I ref=sent-create-automation-rules,xdr-tuning
+?: Une règle analytique Sentinel détecte des « connexions depuis des IP Tor » mais génère chaque jour des incidents pour les adresses d'un fournisseur VPN d'entreprise mal classées comme Tor. Quelle est la meilleure correction durable ?
++: Corriger la règle : exclure les plages IP du VPN d'entreprise via une watchlist référencée dans la requête, puis documenter la modification.
+-: Fermer manuellement chaque incident comme faux positif. || Le bruit persiste et consomme du temps.
+-: Désactiver définitivement la règle. || On perdrait la détection des vraies connexions Tor.
+-: Réduire la gravité de la règle à « Informationnel ». || Le bruit reste ; les vrais positifs seraient minorés.
+=: Un **faux positif récurrent** se corrige à la **source** : affiner la logique de détection (exclusions ciblées et maintenables via **watchlist**), puis vérifier l'effet. Les règles d'automatisation de fermeture sont plutôt réservées aux exceptions temporaires.
+T: Tracer la modification (commentaire, référentiel Git), revoir périodiquement les exclusions et mesurer le taux de faux positifs par règle (classification des incidents). Dans Defender XDR, l'ajustement des alertes joue un rôle équivalent pour les alertes natives.
+!: Faux positif récurrent = corriger la règle (exclusion ciblée par watchlist), pas fermer à la main.
+
+### Faux positif ou vrai positif bénin
+@ niveau=D ref=xdr-manage-incidents
+?: Une alerte signale l'exécution de PsExec sur 20 serveurs. Il s'agit d'un déploiement planifié par l'équipe d'exploitation, documenté dans le gestionnaire de changements. Comment classer l'incident ?
++: Comme une activité réelle mais attendue (Benign Positive / « Informationnel, activité attendue »), en référençant la demande de changement.
+-: Comme un faux positif. || La détection est exacte : PsExec a bien été exécuté.
+-: Comme un vrai positif malveillant. || L'activité est autorisée et documentée.
+-: Sans classification. || La classification améliore le réglage et les statistiques.
+=: Une détection **correcte** d'une activité **légitime** n'est pas un faux positif : c'est un **vrai positif bénin** (Benign Positive / activité attendue). Un **faux positif** désigne une détection erronée (l'activité décrite n'a pas eu lieu ou est mal interprétée).
+T: Pour réduire ce type d'alerte, coordonner les changements avec le SOC (fenêtres de maintenance), utiliser des comptes de déploiement dédiés et, si besoin, une exclusion temporaire ciblée.
+!: Activité réelle autorisée = Benign Positive ; détection erronée = False Positive.
+
+### Gestion des cas dans le portail Defender
+@ niveau=I ref=xdr-case-mgmt
+?: Le SOC veut suivre dans le portail Defender un travail qui ne correspond pas à un incident (par exemple une campagne de durcissement suite à un audit), avec tâches, propriétaires, pièces jointes et SLA. Quelle fonctionnalité utiliser ?
++: Les cas génériques (generic cases) de la gestion des cas du portail Defender.
+-: Les règles d'analyse NRT. || Elles détectent des menaces, elles ne suivent pas un travail.
+-: Les watchlists. || Elles stockent des données de référence.
+-: Les recommandations du Secure Score uniquement. || Elles proposent des améliorations mais ne gèrent pas un dossier de travail collaboratif.
+=: La **gestion des cas** du portail Defender propose des **cas d'incident** (préversion, issus des incidents corrélés) et des **cas génériques** (créés manuellement pour tout travail SecOps), avec statut, priorité, assignation, balises, tâches, commentaires, pièces jointes, modèles et **stratégies de SLA**.
+T: L'activité des cas peut être auditée et conservée dans Log Analytics via la table **SecurityCaseEvent**. Les cas ne sont disponibles que dans le portail Defender (pas dans Sentinel sur le portail Azure). Le référentiel cite « Gérer les incidents de sécurité à l'aide de la gestion des cas ».
+!: Travail SecOps hors incident = cas générique ; incidents = cas d'incident (préversion).
+
+### Rapport d'incident pour la direction
+@ niveau=D ref=xdr-copilot-summary
+?: La direction demande un rapport sur un incident clos. Quel contenu est le plus adapté à ce public ?
++: Un résumé non technique : ce qui s'est passé, l'impact métier, les mesures prises, le risque résiduel et les actions recommandées avec leurs responsables et échéances.
+-: L'export brut de toutes les requêtes KQL exécutées. || Inadapté à un public non technique.
+-: La liste des hachages de fichiers observés uniquement. || Détails techniques sans valeur décisionnelle pour la direction.
+-: Un rapport rédigé avant la fin de l'analyse, sans vérification. || Risque d'informations erronées.
+=: Le rapport de direction traduit l'incident en **impact métier** et en **décisions** : chronologie simplifiée, périmètre, données concernées, mesures de réponse, coûts éventuels, **risque résiduel**, **plan d'actions**. Les détails techniques sont placés en annexe pour les équipes concernées.
+T: Copilot dans Defender peut générer un premier rapport d'incident à partir des données de l'incident ; l'analyste le relit, le complète et le valide.
+!: Rapport de direction = impact métier, mesures, risque résiduel, actions — détails techniques en annexe.
+
+@@ section=Hameçonnage et compromission de messagerie
+
+### Première action sur un hameçonnage signalé
+@ niveau=D ref=ir-phishing
+?: Un utilisateur signale un e-mail d'hameçonnage reçu il y a 10 minutes ; il n'a pas cliqué. Quelle est la première action d'investigation la plus efficace ?
++: Déterminer la portée de la campagne : rechercher les autres destinataires du même message (expéditeur, objet, URL) et vérifier les clics éventuels.
+-: Réinitialiser le mot de passe de l'utilisateur qui a signalé. || Il n'a pas cliqué ; l'action ne traite pas les autres destinataires.
+-: Isoler le poste de l'utilisateur. || Aucun indice de compromission du poste.
+-: Ignorer : l'utilisateur n'a pas cliqué. || D'autres destinataires ont pu cliquer.
+=: Le guide Microsoft de réponse à l'hameçonnage commence par **évaluer la portée** : qui a reçu le message, qui l'a ouvert, qui a cliqué ou saisi des identifiants (Threat Explorer, EmailEvents, UrlClickEvents). Ensuite viennent la purge, le blocage des indicateurs et le traitement des utilisateurs touchés.
+T: Indicateurs à extraire : expéditeur (et domaine), IP d'envoi, objet, URL, pièces jointes (hachages), NetworkMessageId. Les messages similaires peuvent être regroupés par cluster (EmailClusterId) ou via les campagnes MDO.
+!: Hameçonnage signalé : d'abord la portée (destinataires, clics), puis purge et blocage.
+
+### Analyse des en-têtes d'authentification
+@ niveau=I ref=mdo-anti-phishing,xdr-t-EmailEvents
+?: Un e-mail prétendant provenir de « support@contoso.com » arrive dans la boîte de réception. L'en-tête indique `spf=fail`, `dkim=none`, `dmarc=fail` et un expéditeur d'enveloppe (MAIL FROM) appartenant à un domaine inconnu. Que conclure ?
++: Il s'agit très probablement d'une usurpation (spoofing) du domaine contoso.com ; il faut vérifier pourquoi le message a été remis (stratégie DMARC, exceptions ou règles de transport).
+-: Le message est authentique car l'adresse affichée est correcte. || L'adresse affichée (From) est facile à falsifier ; les contrôles d'authentification ont échoué.
+-: Un échec SPF signifie uniquement que le message est trop volumineux. || SPF vérifie l'autorisation de l'IP d'envoi pour le domaine.
+-: DMARC « fail » indique que le message a été chiffré. || DMARC vérifie l'alignement SPF/DKIM avec le domaine affiché.
+=: **SPF** vérifie que l'IP émettrice est autorisée par le domaine de l'enveloppe ; **DKIM** vérifie une signature cryptographique ; **DMARC** exige l'alignement de l'un des deux avec le domaine affiché et définit la politique (none/quarantine/reject). Un triple échec avec un domaine d'enveloppe étranger signe une **usurpation**.
+T: Dans EmailEvents, la colonne **AuthenticationDetails** contient les résultats SPF/DKIM/DMARC/CompAuth. Une politique DMARC `p=reject` sur le domaine de l'organisation et une stratégie anti-usurpation correctement configurée réduisent ces remises. Les exceptions (listes d'autorisation, règles de transport contournant le filtrage) sont des causes fréquentes.
+!: SPF/DKIM/DMARC en échec + domaine d'enveloppe étranger = usurpation ; vérifier les exceptions qui ont permis la remise.
+
+### Identifiants saisis sur une page d'hameçonnage
+@ niveau=I ref=ir-phishing,entra-revoke
+?: Un utilisateur a cliqué sur un lien d'hameçonnage et saisi ses identifiants sur une fausse page Microsoft 365 il y a 30 minutes. Quelle séquence de réponse est la plus appropriée ?
++: Réinitialiser le mot de passe, révoquer les sessions, vérifier les connexions récentes et les méthodes MFA ajoutées, rechercher les règles de boîte de réception et les accès réalisés depuis des IP suspectes.
+-: Attendre une alerte d'Entra ID Protection avant d'agir. || Les identifiants sont connus de l'attaquant : il faut agir immédiatement.
+-: Supprimer le compte de l'utilisateur. || Disproportionné et destructeur.
+-: Analyser le poste avec l'antivirus et clore l'incident si rien n'est trouvé. || La compromission porte sur l'identité cloud, pas sur le poste.
+=: La saisie d'identifiants impose un **confinement immédiat de l'identité** : nouveau mot de passe, **révocation des sessions** (jetons d'actualisation), vérification des **connexions** (SigninLogs, AADNonInteractiveUserSignInLogs) depuis l'IP de l'attaquant, des **méthodes MFA** et **appareils** ajoutés, des **règles de messagerie** et des accès aux données.
+T: Si la page était de type AiTM, la MFA a pu être contournée (vol de cookie) : la révocation des sessions est essentielle. Bloquer le domaine d'hameçonnage (indicateurs, liste d'autorisation/blocage du locataire) et rechercher les autres victimes (UrlClickEvents).
+!: Identifiants saisis = mot de passe + révocation des sessions + vérification connexions/MFA/règles, sans attendre.
+
+### Compromission de messagerie professionnelle (BEC)
+@ niveau=A ref=mdo-compromised,xdr-disruption
+?: Un fournisseur signale avoir reçu, depuis la boîte d'un comptable de votre entreprise, une demande de modification de RIB. Le comptable n'a rien envoyé. Quelles investigations prioritaires mener ? (Sélectionnez deux réponses.)
+@ multi=2
++: Examiner les connexions au compte du comptable (IP, pays, appareils, agent utilisateur, sessions) et l'éventuelle présence d'une connexion AiTM ou d'un vol de jeton.
++: Rechercher les règles de boîte de réception, les e-mails envoyés et supprimés par l'attaquant (journaux d'audit, MailItemsAccessed, éléments envoyés) pour mesurer l'étendue de la fraude.
+-: Réinstaller le système d'exploitation du poste du comptable en priorité. || La compromission concerne la boîte cloud ; la réinstallation détruirait des preuves sans traiter l'accès de l'attaquant.
+-: Bloquer définitivement le domaine du fournisseur. || Le fournisseur est victime ; c'est le compte interne qui est compromis.
+-: Attendre que le fournisseur confirme le virement. || La réponse doit être immédiate pour bloquer la fraude.
+=: Un **BEC** (T1534 / T1114) implique typiquement : prise de contrôle du compte (hameçonnage, AiTM, pulvérisation), **règles de dissimulation** (déplacement des réponses), **lecture** des échanges financiers et **envoi** de messages frauduleux. On investigue l'identité (connexions) et la boîte (règles, messages envoyés/lus/supprimés).
+T: Defender XDR peut déclencher l'**interruption automatique d'attaque** sur des scénarios BEC (désactivation de l'utilisateur). Réponse : confinement de l'identité, suppression des règles, alerte aux destinataires externes, coordination avec la finance pour bloquer les paiements, préservation des preuves (Purview Audit, eDiscovery).
+!: BEC = enquêter sur l'identité (connexions) ET sur la boîte (règles, envoyés, lus) ; prévenir la finance.
+
+### QR codes d'hameçonnage
+@ niveau=I ref=mdo-overview,xdr-t-EmailUrlInfo
+?: Une campagne utilise des images de QR codes dans les e-mails pour diriger les victimes vers une page de vol d'identifiants depuis leur téléphone personnel. Pourquoi cette technique complique-t-elle la détection et la réponse ?
++: L'URL est dans une image et la navigation se fait souvent depuis un appareil non géré : les protections de clic (Safe Links) et la télémétrie des postes ne s'appliquent pas de la même façon.
+-: Les QR codes sont chiffrés et illisibles par Microsoft. || Defender for Office 365 sait extraire et analyser des URL de QR codes ; la difficulté tient surtout au parcours de l'utilisateur.
+-: Les QR codes ne peuvent contenir que des numéros de téléphone. || Ils peuvent encoder des URL.
+-: Les QR codes désactivent automatiquement la MFA. || Aucune relation.
+=: Le **quishing** déplace l'interaction vers un **appareil mobile personnel**, hors de la protection des clics et de la visibilité EDR. Defender for Office 365 détecte les URL dans les QR codes (EmailUrlInfo peut indiquer l'emplacement de l'URL, par exemple dans une image), mais les clics sur mobile ne sont pas protégés par Safe Links.
+T: Défense : accès conditionnel exigeant des appareils conformes ou une MFA résistante à l'hameçonnage, sensibilisation (simulations avec QR codes), surveillance des connexions depuis des appareils non gérés suivant la réception de tels e-mails.
+!: Quishing = URL dans une image + mobile non géré → s'appuyer sur l'accès conditionnel et la MFA résistante.
+
+### Purger et bloquer après une campagne
+@ niveau=I ref=mdo-remediate,mdo-tabl
+?: Après avoir identifié une campagne d'hameçonnage (même expéditeur, même URL), quelles actions combinées réduisent à la fois l'exposition actuelle et la réapparition ? (Sélectionnez deux réponses.)
+@ multi=2
++: Retirer les messages distribués (Threat Explorer / chasse avancée, action de remédiation suivie dans le Centre de notifications).
++: Bloquer l'expéditeur, le domaine et l'URL dans la liste d'autorisation/blocage du locataire (et via des indicateurs MDE pour l'URL).
+-: Désactiver la boîte de réception de tous les destinataires. || Disproportionné.
+-: Désactiver Safe Links pour accélérer la remise des messages. || Réduit la protection.
+-: Ajouter l'expéditeur à la liste des expéditeurs approuvés pour suivre la campagne. || Favorise la remise des futurs messages malveillants.
+=: La réponse combine **remédiation** des messages existants et **prévention** de nouveaux envois/clics : entrées « Bloquer » dans la **Tenant Allow/Block List** (expéditeurs, domaines, URL, fichiers), **indicateurs** Defender for Endpoint pour l'URL, et soumission à Microsoft.
+T: Le blocage d'URL dans la liste du locataire s'applique aussi aux clics Safe Links. Les indicateurs MDE couvrent la navigation sur les postes (avec protection réseau). Vérifier ensuite l'absence de nouveaux messages (EmailEvents) et de clics (UrlClickEvents).
+!: Campagne d'hameçonnage = purger les messages + bloquer expéditeur/domaine/URL (TABL + indicateurs).
+
+### Consentement illicite à une application
+@ niveau=A ref=ir-consent,mdca-investigate-oauth
+?: Plusieurs utilisateurs ont accordé à une application « PDF Converter Pro » l'accès à leur messagerie après un e-mail d'hameçonnage. Selon le guide Microsoft de réponse aux octrois de consentement d'application, quelles actions sont prioritaires ?
++: Identifier l'application et les utilisateurs ayant consenti, révoquer les autorisations (supprimer les octrois de consentement et désactiver ou supprimer le principal de service), puis restreindre le consentement des utilisateurs.
+-: Réinitialiser les mots de passe des utilisateurs et considérer l'incident clos. || Les jetons OAuth de l'application ne dépendent pas du mot de passe : l'accès continuerait.
+-: Bloquer le domaine de l'expéditeur uniquement. || L'application conserverait ses accès.
+-: Demander aux utilisateurs de désinstaller l'application de leur poste. || L'application est un service cloud, elle n'est pas installée sur le poste.
+=: Le **consentement illicite** (T1528) donne à l'application des **jetons** d'accès aux données. La réponse consiste à **révoquer les octrois** (OAuth2PermissionGrants), **désactiver/supprimer le principal de service**, examiner ce que l'application a fait (MicrosoftGraphActivityLogs, audit) et **restreindre le consentement** (éditeurs vérifiés, flux de demande de consentement administrateur).
+T: Dans AuditLogs, rechercher « Consent to application » et « Add OAuth2PermissionGrant ». Defender for Cloud Apps (gouvernance des applications) permet d'interdire l'application et de détecter les applications à risque.
+!: Consentement illicite : révoquer les octrois et le principal de service — changer le mot de passe ne suffit pas.
+
+### Pièce jointe malveillante ouverte
+@ niveau=I ref=mde-response-device,xdr-t-DeviceProcessEvents
+?: Un utilisateur a ouvert une pièce jointe Excel avec macro. MDE montre excel.exe lançant powershell.exe qui a établi une connexion vers une IP externe. Quelle est la mesure de confinement immédiate la plus appropriée ?
++: Isoler l'appareil (en conservant la connectivité avec Defender for Endpoint) puis collecter le package d'investigation avant toute remédiation.
+-: Éteindre brutalement le poste. || On perdrait la mémoire volatile et la capacité d'investigation à distance.
+-: Supprimer le compte de l'utilisateur. || Disproportionné ; c'est le poste qui est compromis.
+-: Attendre la fin de l'analyse complète avant toute action. || La connexion sortante indique une possible commande et contrôle : il faut contenir.
+=: L'**isolation** coupe la communication avec l'attaquant tout en gardant la télémétrie et les actions MDE (package d'investigation, Live Response, analyse). La collecte de preuves précède la remédiation (suppression, réinstallation).
+T: Ensuite : identifier la charge (ligne de commande décodée, fichiers déposés, persistance), rechercher le même hachage/la même IP dans le parc (chasse avancée), bloquer les IOC (indicateurs), vérifier l'identité de l'utilisateur (vol d'identifiants possible), purger l'e-mail des autres boîtes.
+!: Poste compromis actif = isoler (pas éteindre) puis collecter les preuves avant de remédier.
+
+### Ordre de volatilité des preuves
+@ niveau=A ref=mde-response-device,mde-live-response
+?: Lors d'une intervention sur un serveur compromis, dans quel ordre collecter idéalement les éléments de preuve, du plus volatil au moins volatil ?
+@ fixed
++: Mémoire vive et état des processus/connexions → fichiers temporaires et état du système → disque → journaux distants et sauvegardes.
+-: Sauvegardes → disque → mémoire vive → connexions réseau. || Les éléments volatils seraient perdus pendant la collecte des éléments stables.
+-: Disque → mémoire vive → connexions réseau → journaux. || La mémoire et les connexions doivent être collectées avant le disque.
+-: Journaux distants uniquement, le reste étant inutile. || Les journaux distants sont précieux mais ne contiennent pas l'état mémoire.
+=: Selon l'**ordre de volatilité** (RFC 3227), on collecte d'abord ce qui disparaît le plus vite : **mémoire**, processus, connexions réseau, puis fichiers temporaires, **disque**, et enfin les journaux distants et archives (plus stables).
+T: Avec MDE : Live Response (`processes`, `connections`, scripts de capture mémoire, `getfile`) et package d'investigation. Les journaux centralisés dans Sentinel et Defender XDR sont déjà préservés hors de la machine, ce qui limite l'impact d'un effacement local.
+!: Collecte du plus volatil au moins volatil : mémoire/processus/connexions → disque → journaux/archives.
+
+@@ section=Force brute, pulvérisation et compromission de comptes hybrides
+
+### Pulvérisation de mots de passe réussie
+@ niveau=I ref=entra-incident-pw
+?: Une enquête confirme qu'une pulvérisation de mots de passe a réussi sur 3 comptes cloud via l'authentification héritée (IMAP). Quelles mesures prioritaires appliquer ? (Sélectionnez deux réponses.)
+@ multi=2
++: Réinitialiser les mots de passe et révoquer les sessions des 3 comptes, puis examiner leurs activités depuis les IP d'attaque.
++: Bloquer l'authentification héritée par une stratégie d'accès conditionnel et exiger la MFA.
+-: Augmenter le seuil de verrouillage intelligent pour éviter de bloquer les utilisateurs. || Cela faciliterait au contraire les attaques.
+-: Désactiver la journalisation des connexions pour réduire le bruit. || Supprimerait la visibilité.
+-: Supprimer les 3 comptes. || Disproportionné et destructeur de preuves.
+=: La procédure Microsoft de réponse à la pulvérisation recommande : **confinement des comptes compromis** (mot de passe, sessions), **investigation** de leurs activités, et **mesures préventives** : blocage de l'**authentification héritée** (qui contourne la MFA), MFA pour tous, protection par mot de passe Entra (liste de mots de passe interdits), verrouillage intelligent.
+T: L'authentification héritée (IMAP, POP, SMTP AUTH, EWS basique) apparaît dans SigninLogs via `ClientAppUsed`. Les IP d'attaque peuvent être bloquées via des emplacements nommés de l'accès conditionnel.
+!: Spraying réussi : confiner les comptes + bloquer l'authentification héritée + MFA généralisée.
+
+### Compte hybride compromis
+@ niveau=A ref=mdi-remediation,entra-revoke
+?: Un compte Active Directory synchronisé vers Microsoft Entra ID est compromis. L'attaquant l'utilise à la fois sur le réseau interne et dans Microsoft 365. Quelle approche de confinement est correcte ?
++: Agir sur les deux plans : désactiver ou réinitialiser le compte dans Active Directory (source d'autorité), forcer la synchronisation ou agir aussi dans Entra ID, et révoquer les sessions cloud.
+-: Agir uniquement dans Entra ID, car le cloud est prioritaire. || Le compte AD resterait utilisable sur le réseau interne et la synchronisation pourrait annuler certaines modifications.
+-: Agir uniquement dans AD et attendre le cycle de synchronisation normal. || Les sessions et jetons cloud resteraient valides pendant ce temps.
+-: Supprimer le compte dans Entra ID uniquement. || Il serait recréé par la synchronisation et l'accès AD persisterait.
+=: Pour une identité **hybride**, AD est généralement la **source d'autorité** : on désactive/réinitialise dans AD (ou via les actions MDI), puis on s'assure que l'état est propagé (synchronisation accélérée, ou désactivation aussi dans Entra ID) et on **révoque les sessions** cloud.
+T: Penser aux tickets Kerberos déjà émis (durée de vie jusqu'à 10 heures par défaut) : la désactivation du compte n'invalide pas immédiatement les tickets ; une purge des tickets sur les machines concernées ou le redémarrage peut être nécessaire. L'interruption automatique d'attaque peut agir sur les deux plans.
+!: Compte hybride : agir dans AD (source) ET dans le cloud (sessions), sans attendre la synchronisation normale.
+
+### Verrouillages massifs de comptes
+@ niveau=I ref=la-t-SecurityEvent
+?: Le centre de services signale des dizaines de verrouillages de comptes AD depuis 9 h. Quelle requête aide le plus vite à identifier la source ?
++: ```kql
+SecurityEvent
+| where TimeGenerated > ago(4h)
+| where EventID == 4740
+| summarize Verrouillages = count(), Comptes = dcount(TargetAccount) by CallerComputer = tostring(TargetDomainName)
+| order by Verrouillages desc
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(4h)
+| where EventID == 4624
+| summarize count() by Computer
+```
+|| Ouvertures de session réussies, sans lien avec les verrouillages.
+-: ```kql
+Syslog
+| where TimeGenerated > ago(4h)
+| where Facility == "kern"
+```
+|| Journaux noyau Linux.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(4h)
+| where EventID == 4720
+```
+|| Créations de comptes.
+=: L'événement **4740** (compte verrouillé), journalisé sur les contrôleurs de domaine (notamment l'émulateur PDC), indique le **nom de l'ordinateur appelant** (Caller Computer Name), qui apparaît dans le champ TargetDomainName de cet événement. Le regroupement par appelant révèle rapidement la source (attaque ou service mal configuré avec un ancien mot de passe).
+T: Dans le schéma de l'événement 4740, le champ « Caller Computer Name » est mappé sur TargetDomainName — une particularité souvent source d'erreurs. Compléter par 4625/4771/4776 (échecs) pour l'IP source. MDI fournit aussi des alertes de force brute.
+R: Les ordinateurs appelants classés par nombre de verrouillages et de comptes touchés.
+S: Hypothèse : collecte des événements 4740 des contrôleurs de domaine dans SecurityEvent.
+!: Verrouillages : 4740 sur les DC ; l'ordinateur appelant indique la source.
+
+### Bloquer une adresse IP d'attaque côté identité
+@ niveau=I ref=entra-ca
+?: Une IP étrangère mène une pulvérisation continue contre vos comptes Entra ID. Quelle mesure bloque ses tentatives d'authentification au niveau de l'identité cloud ?
++: Créer un emplacement nommé contenant l'IP (ou la plage) et une stratégie d'accès conditionnel bloquant l'accès depuis cet emplacement.
+-: Ajouter l'IP à une règle ASR. || Les règles ASR ne gèrent pas les IP ni l'authentification cloud.
+-: Ajouter l'IP à une watchlist Sentinel. || Une watchlist ne bloque rien par elle-même.
+-: Bloquer l'IP dans le pare-feu du siège uniquement. || L'attaque vise les services cloud, accessibles depuis Internet sans passer par le pare-feu du siège.
+=: L'**accès conditionnel** peut bloquer des **emplacements nommés** (plages IP ou pays). Les tentatives sont alors rejetées après l'évaluation de l'identité, ce qui protège même si le mot de passe est trouvé.
+T: Le verrouillage intelligent (Smart Lockout) limite aussi les essais. Les attaquants changent souvent d'IP : combiner avec le blocage de l'authentification héritée, la MFA et la protection par mot de passe. Un playbook Sentinel peut automatiser l'ajout d'IP à un emplacement nommé.
+!: Bloquer une IP pour l'identité cloud = emplacement nommé + accès conditionnel (blocage).
+
+### Investiguer un utilisateur à risque élevé
+@ niveau=I ref=entra-investigate
+?: Entra ID Protection signale un utilisateur à risque élevé avec la détection « Leaked credentials ». Quelle démarche d'investigation est la plus appropriée ?
++: Vérifier les connexions récentes de l'utilisateur (succès depuis des IP/pays inhabituels), les autres détections de risque, puis forcer une modification sécurisée du mot de passe et confirmer ou rejeter la compromission.
+-: Ignorer la détection car le mot de passe a probablement été changé depuis. || Il faut le vérifier ; l'utilisateur peut avoir réutilisé le même mot de passe.
+-: Supprimer immédiatement tous les appareils de l'utilisateur. || Mesure disproportionnée sans analyse.
+-: Désactiver Entra ID Protection pour cet utilisateur. || Réduirait la protection.
+=: **Leaked credentials** indique que les identifiants ont été trouvés dans des fuites publiques ou le dark web. Même sans connexion malveillante observée, le mot de passe doit être **changé** (idéalement via la stratégie de risque utilisateur). On vérifie aussi l'absence d'usage frauduleux préalable.
+T: Les rapports « Utilisateurs à risque », « Connexions à risque » et « Détections de risque » d'Entra ID Protection, ainsi que les tables AADUserRiskEvents et AADRiskyUsers dans Sentinel, soutiennent l'investigation.
+!: Identifiants divulgués = changement de mot de passe obligatoire + vérification d'un usage frauduleux antérieur.
+
+### Création suspecte de compte cloud
+@ niveau=I ref=la-t-AuditLogs
+?: Un compte « support-it-temp » a été créé dans Entra ID à 3 h du matin puis ajouté au rôle Administrateur général. Quelle requête permet de retrouver qui l'a fait ?
++: ```kql
+AuditLogs
+| where TimeGenerated > ago(2d)
+| where OperationName in ("Add user", "Add member to role")
+| extend Cible = tostring(TargetResources[0].userPrincipalName), Auteur = coalesce(tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))
+| where Cible has "support-it-temp"
+| project TimeGenerated, OperationName, Auteur, Cible, Result
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(2d)
+| where UserPrincipalName has "support-it-temp"
+```
+|| Montre les connexions du nouveau compte, pas l'auteur de sa création.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(2d)
+| where EventID == 4720
+```
+|| 4720 concerne Active Directory local, pas Entra ID.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(2d)
+| where OperationNameValue has "roleAssignments"
+```
+|| Rôles Azure RBAC, pas rôles d'annuaire Entra ID.
+=: Les créations d'utilisateurs et les ajouts à des rôles **Entra ID** sont dans **AuditLogs** (« Add user », « Add member to role »). L'auteur est dans **InitiatedBy** (utilisateur ou application) et la cible dans **TargetResources**.
+T: Technique T1136.003 (Create Cloud Account) et T1098.003 (Additional Cloud Roles). Si l'auteur est une application, investiguer ses identifiants et ses permissions. Les rôles à privilèges devraient être gérés par **PIM** (attributions éligibles, approbation, audit).
+R: Les opérations de création et d'attribution de rôle avec leur auteur.
+!: Comptes et rôles Entra = AuditLogs (InitiatedBy = auteur, TargetResources = cible).
+
+### Désactiver un utilisateur depuis un incident
+@ niveau=D ref=mdi-remediation,xdr-investigate-incidents
+?: Dans un incident Defender XDR, un compte cloud est confirmé compromis. Quelle action rapide est disponible depuis la page de l'utilisateur dans le portail Defender ?
++: Désactiver/suspendre l'utilisateur ou le marquer comme compromis (selon les intégrations Entra ID et Defender for Identity disponibles).
+-: Supprimer définitivement le locataire Microsoft 365. || Absurde et destructeur.
+-: Exécuter une analyse antivirus sur l'utilisateur. || Une analyse antivirus s'applique à un appareil, pas à une identité.
+-: Ajouter l'utilisateur à une règle ASR. || Les règles ASR ne ciblent pas les identités.
+=: La page d'**utilisateur** du portail Defender propose des actions de réponse : **désactiver l'utilisateur** (AD via MDI, Entra ID), **marquer comme compromis** (risque élevé Entra ID Protection), **exiger une nouvelle connexion**, **réinitialiser le mot de passe** selon les intégrations.
+T: Les actions sont journalisées dans le Centre de notifications. Les mêmes actions peuvent être automatisées par l'interruption automatique d'attaque, des détections personnalisées ou des playbooks.
+!: Page utilisateur Defender = actions d'identité (désactiver, marquer compromis, nouvelle connexion, mot de passe).

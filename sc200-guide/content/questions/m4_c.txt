@@ -1,0 +1,242 @@
+@@ module=4
+@@ section=Confinement, éradication, restauration et preuves
+
+### Confinement court terme et long terme
+@ niveau=I ref=ir-overview
+?: Un serveur web compromis héberge un service critique pour les clients. Quelle stratégie de confinement est la plus équilibrée ?
++: Un confinement court terme ciblé (isolation sélective, blocage des IOC, désactivation des comptes compromis) pendant que l'on prépare un confinement long terme (serveur de remplacement propre, correctifs) pour rétablir le service sans laisser l'attaquant agir.
+-: Ne rien faire tant que le service est critique. || L'attaquant pourrait poursuivre (exfiltration, propagation).
+-: Supprimer définitivement le serveur et ses disques immédiatement. || Destruction de preuves et interruption de service non planifiée.
+-: Redémarrer le serveur toutes les heures. || Sans effet sur la persistance et perte de preuves volatiles.
+=: Le **confinement** équilibre **sécurité** et **continuité** : mesures immédiates ciblées (couper les accès de l'attaquant), puis solution durable (reconstruction, bascule vers une instance saine). La décision implique les responsables métier.
+T: Options techniques : isolation MDE (sélective), règles NSG/pare-feu, blocage d'IP/URL (indicateurs), désactivation de comptes, accès juste-à-temps, Web Application Firewall. Documenter le risque résiduel accepté.
+!: Confinement = mesures immédiates ciblées + solution durable, décidées avec le métier.
+
+### Éradication complète
+@ niveau=I ref=ir-overview,mdi-alerts
+?: Après confinement d'une intrusion, quelles actions relèvent de l'éradication ? (Sélectionnez deux réponses.)
+@ multi=2
++: Supprimer tous les mécanismes de persistance identifiés (tâches, services, clés Run, abonnements WMI, applications cloud malveillantes) et les outils de l'attaquant.
++: Réinitialiser les identifiants compromis (y compris comptes de service et, si nécessaire, krbtgt) et corriger la vulnérabilité exploitée.
+-: Restaurer immédiatement toutes les sauvegardes. || La restauration relève de la phase suivante et ne doit intervenir qu'après éradication.
+-: Communiquer publiquement les IOC avant de supprimer la persistance. || Risque d'alerter l'attaquant ; ce n'est pas une mesure d'éradication.
+-: Fermer l'incident dès que l'antivirus ne détecte plus rien. || L'absence de détection antivirus ne garantit pas l'absence de persistance.
+=: L'**éradication** retire la présence de l'attaquant : persistance, outils, comptes créés, identifiants volés (réinitialisation), vulnérabilités et mauvaises configurations exploitées. Une éradication partielle conduit à une réinfection.
+T: Préparer l'éradication de façon coordonnée (« big bang ») pour éviter que l'attaquant, alerté, ne déploie de nouvelles persistances. S'appuyer sur la chronologie complète de l'attaque reconstituée pendant l'analyse.
+!: Éradication = supprimer persistances et outils + réinitialiser les identifiants + corriger la cause, de façon coordonnée.
+
+### Préserver les preuves Microsoft 365
+@ niveau=A ref=purview-ediscovery,purview-audit
+?: Le service juridique demande de préserver toutes les données de messagerie et OneDrive de trois utilisateurs impliqués dans un incident, en vue d'une éventuelle procédure. Quelle fonctionnalité utiliser ?
++: Une conservation (hold) dans un dossier Microsoft Purview eDiscovery, appliquée aux boîtes aux lettres et sites OneDrive concernés.
+-: Une watchlist Sentinel listant les trois utilisateurs. || Une watchlist ne préserve aucune donnée.
+-: L'isolation de leurs postes avec MDE. || L'isolation ne préserve pas les données cloud contre la suppression.
+-: Une exportation manuelle des e-mails en PST par les utilisateurs eux-mêmes. || Procédé non fiable et contestable (intégrité, exhaustivité).
+=: Les **conservations eDiscovery** (Purview) préservent le contenu (y compris les éléments supprimés ou modifiés) des emplacements désignés tant que la conservation est active, ce qui garantit l'**intégrité des preuves** pour une procédure.
+T: Compléter par l'export des journaux d'audit pertinents (Purview Audit) avant expiration de leur rétention, et par la préservation des journaux Sentinel (rétention ou export). Documenter la **chaîne de custode** (qui a collecté quoi, quand, comment, empreintes).
+!: Préserver les données Microsoft 365 pour le juridique = conservation eDiscovery (Purview).
+
+### Chaîne de custode
+@ niveau=D ref=ir-planning
+?: Pourquoi documenter la chaîne de custode des éléments de preuve collectés (package d'investigation, images mémoire, exports de journaux) ?
++: Pour démontrer qui a collecté, manipulé et conservé chaque élément, quand et comment, et prouver son intégrité (empreintes), afin qu'il reste recevable et fiable.
+-: Pour réduire la taille des fichiers collectés. || Sans rapport.
+-: Pour accélérer la restauration des serveurs. || Sans rapport.
+-: Pour éviter d'avoir à analyser les preuves. || Les preuves doivent être analysées ; la chaîne de custode garantit leur fiabilité.
+=: La **chaîne de custode** consigne la vie de chaque preuve : collecte (date, outil, auteur), empreinte cryptographique (SHA-256), stockage sécurisé, transferts et accès. Elle conditionne la recevabilité juridique et la confiance dans les conclusions.
+T: Travailler sur des copies, calculer les empreintes au moment de la collecte, stocker les preuves dans un emplacement à accès restreint et journalisé. Les actions MDE (Live Response, package) sont elles-mêmes journalisées dans le Centre de notifications.
+!: Chaîne de custode = traçabilité complète + empreintes d'intégrité de chaque preuve.
+
+### Libérer un appareil de l'isolement
+@ niveau=I ref=mde-response-device
+?: Un poste a été isolé il y a deux jours. L'analyse est terminée, les persistances supprimées et le poste réimagé. Quelles vérifications précèdent la libération de l'isolement ?
++: Vérifier qu'aucune activité malveillante ne persiste (analyse antivirus complète, chasse sur les IOC de l'incident, état de l'enquête automatisée), que les identifiants de l'utilisateur ont été réinitialisés si nécessaire, puis libérer et surveiller.
+-: Libérer immédiatement sans vérification puisque le poste a été réimagé. || Un réimage depuis une image compromise ou des identifiants non changés peuvent entraîner une réinfection.
+-: Laisser le poste isolé indéfiniment par précaution. || L'utilisateur doit retrouver un poste fonctionnel une fois le risque traité.
+-: Désintégrer (offboard) le poste de MDE avant de le libérer. || On perdrait la surveillance au moment le plus sensible.
+=: La **libération** est une décision de **restauration** : confirmer l'absence de menace (analyse, chasse, AIR), traiter les identifiants associés, puis rétablir la connectivité avec une **surveillance renforcée** (règles ou balises de suivi).
+T: L'action « Libérer de l'isolement » est journalisée. Ajouter une balise d'appareil temporaire (par exemple « Post-incident ») facilite la surveillance ciblée dans les requêtes et la file d'alertes.
+!: Libérer après vérification (AV, chasse IOC, identifiants) puis surveiller de près.
+
+### Réimager ou nettoyer
+@ niveau=A ref=ir-overview
+?: Un serveur a été compromis avec accès SYSTEM par l'attaquant pendant plusieurs jours. L'équipe hésite entre nettoyer les artefacts connus et reconstruire le serveur. Quelle recommandation est la plus sûre ?
++: Reconstruire (réinstaller) le serveur à partir d'une source fiable et restaurer les données vérifiées, car un accès SYSTEM prolongé ne permet pas de garantir que toutes les modifications ont été identifiées.
+-: Nettoyer uniquement les fichiers détectés par l'antivirus. || Des persistances non détectées (rootkits, comptes, configurations) peuvent subsister.
+-: Ne rien faire puisque l'attaquant n'est plus actif. || Rien ne garantit l'absence de porte dérobée.
+-: Changer seulement le nom du serveur. || Sans effet sur la compromission.
+=: Après une compromission avec **privilèges élevés prolongés**, la **reconstruction** est la seule option offrant une confiance raisonnable. Le nettoyage ciblé convient aux infections limitées et bien comprises (par exemple un malware de base bloqué rapidement).
+T: Avant reconstruction : collecter les preuves (package d'investigation, image disque/mémoire si nécessaire). Après : appliquer les correctifs, réinitialiser les secrets stockés sur le serveur (comptes de service, certificats, clés d'API) et surveiller.
+!: Accès SYSTEM prolongé = reconstruire depuis une source fiable plutôt que nettoyer.
+
+### Analyse d'un faux positif MDE
+@ niveau=I ref=mde-alert-suppression,mdo-submissions
+?: Une alerte MDE signale comme malveillant un outil interne développé par l'entreprise, signé avec son propre certificat. Après vérification, il est légitime. Quelles actions sont appropriées ? (Sélectionnez deux réponses.)
+@ multi=2
++: Classer l'alerte comme faux positif et soumettre le fichier à Microsoft pour réanalyse.
++: Créer un indicateur « Autoriser » ciblé (certificat de l'entreprise ou hachage du fichier) pour les groupes d'appareils concernés.
+-: Ajouter une exclusion antivirus sur tout le disque C:. || Exclusion beaucoup trop large, qui crée une faille majeure.
+-: Désactiver la protection en temps réel sur les postes des développeurs. || Expose ces postes à des menaces réelles.
+-: Supprimer l'outil interne de l'entreprise. || L'outil est légitime ; le problème est la détection.
+=: Pour un **faux positif** : classer, **soumettre** à Microsoft (Microsoft Security Intelligence) pour corriger la détection, et créer une **autorisation ciblée** (indicateur de certificat ou de fichier) plutôt qu'une exclusion large.
+T: Les indicateurs « Autoriser » par **certificat** couvrent toutes les versions signées de l'outil interne. Préférer les indicateurs aux exclusions antivirus (qui désactivent l'analyse). Revoir périodiquement les autorisations.
+!: Faux positif sur un fichier légitime : soumission à Microsoft + indicateur Autoriser ciblé (certificat/hachage).
+
+### Dernière étape avant clôture
+@ niveau=D ref=xdr-manage-incidents
+?: Toutes les actions de remédiation d'un incident ont été réalisées. Que doit faire l'analyste avant de clôturer l'incident dans le portail ?
++: Vérifier que toutes les alertes et entités ont été traitées, documenter les conclusions (cause, périmètre, actions), choisir la classification et la détermination appropriées, puis résoudre l'incident.
+-: Supprimer les commentaires pour garder l'incident lisible. || Les commentaires constituent la trace de l'investigation.
+-: Clôturer sans classification pour gagner du temps. || La classification alimente les statistiques et le réglage des détections.
+-: Réouvrir toutes les alertes résolues. || Sans objet.
+=: La **clôture** formalise la fin de la réponse : toutes les alertes résolues, documentation complète, **classification** (vrai positif, informationnel/activité attendue, faux positif) avec **détermination**, puis passage à l'état Résolu/Fermé.
+T: Une liste de contrôle (tâches d'incident ou de cas) assure l'homogénéité. Les incidents peuvent être rouverts si de nouvelles alertes correspondantes arrivent (selon la configuration du regroupement).
+!: Avant clôture : alertes traitées, conclusions documentées, classification + détermination.
+
+### Surveillance post-incident
+@ niveau=I ref=sent-scheduled,xdr-custom-det
+?: Après un incident de compromission, l'équipe craint le retour de l'attaquant via les mêmes infrastructures. Quelle mesure de surveillance est la plus efficace ?
++: Créer des détections ciblées temporaires (règles analytiques ou détections personnalisées) sur les IOC et TTP observés (IP, domaines, hachages, comptes, techniques) avec une gravité élevée, et une liste de surveillance des actifs touchés.
+-: Augmenter la rétention de toutes les tables à 12 ans. || Améliore l'investigation a posteriori, pas la détection d'un retour.
+-: Désactiver les alertes de faible gravité. || Sans rapport avec la détection du retour de l'attaquant.
+-: Relancer un audit de conformité. || Utile mais ne détecte pas un retour en temps réel.
+=: Les **détections post-incident** s'appuient sur les **IOC** (souvent éphémères) et surtout sur les **TTP** (plus durables) observés. Les actifs et comptes touchés font l'objet d'une surveillance renforcée (watchlist « Actifs post-incident »).
+T: Fixer une date de revue de ces règles temporaires. Les indicateurs de menace (TI) peuvent être importés dans Sentinel et appliqués par les règles « TI map », et dans MDE comme indicateurs de blocage.
+!: Après incident : détections ciblées sur IOC et surtout TTP + surveillance des actifs touchés.
+
+### Coordination avec un prestataire de réponse
+@ niveau=D ref=ir-planning
+?: Une organisation fait appel à un prestataire externe de réponse aux incidents pendant une crise. Quel principe d'accès est le plus approprié ?
++: Accorder des accès nominatifs, limités dans le temps et au strict nécessaire (rôles en lecture ou de réponse ciblés), tracés et révoqués à la fin de la mission.
+-: Partager le mot de passe d'un compte Administrateur général. || Pas de traçabilité, privilèges excessifs.
+-: Désactiver la MFA pour faciliter l'accès du prestataire. || Affaiblit la sécurité pendant une crise.
+-: Donner un accès permanent pour les futurs incidents. || Les accès doivent être révoqués en fin de mission.
+=: Les accès des tiers suivent le **moindre privilège** et le **juste-à-temps** : comptes **nominatifs** (B2B ou dédiés), rôles adaptés (Microsoft Sentinel Reader/Responder, rôles Defender de réponse), MFA, journalisation et **révocation** à la fin.
+T: Privileged Identity Management (PIM) permet des attributions éligibles et limitées dans le temps avec approbation. Le plan de réponse prévoit ces modalités à l'avance (contrat, contacts, accès pré-provisionnés désactivés).
+!: Prestataire IR : accès nominatifs, minimaux, temporaires, tracés et révoqués.
+
+@@ section=Réponse en environnement hybride
+
+### Incident traversant le local et le cloud
+@ niveau=A ref=xdr-correlation,sent-defender-portal
+?: Un attaquant compromet un poste local, vole les identifiants d'un administrateur synchronisé, puis crée une application dans Entra ID et accède à des abonnements Azure. Quelle combinaison d'outils offre la vue la plus complète de l'attaque ?
++: Defender XDR (MDE, MDI, MDCA, Entra ID Protection) pour la corrélation des alertes en un incident, et Microsoft Sentinel pour les journaux Entra ID (AuditLogs), Azure (AzureActivity) et les corrélations personnalisées, dans le portail Defender unifié.
+-: Uniquement l'antivirus Microsoft Defender du poste. || Il ne voit ni l'annuaire, ni le cloud.
+-: Uniquement Defender for Cloud. || Il couvre les ressources cloud mais pas le poste ni l'identité de bout en bout.
+-: Uniquement les journaux du pare-feu. || Visibilité réseau partielle.
+=: Une attaque **hybride** traverse terminaux, identités locales et cloud, et ressources Azure. **Defender XDR** corrèle les signaux de ses produits ; **Sentinel** apporte les journaux de plateforme (AuditLogs, AzureActivity, journaux de ressources) et des corrélations sur mesure. Le portail Defender unifie incidents et chasse.
+T: Chronologie type : MDE (exécution, vol de LSASS), MDI (pass-the-hash, DCSync), Entra ID (connexion, création d'application, consentement), Azure (attribution de rôle, accès aux clés). Defender for Cloud ajoute les alertes des charges de travail Azure.
+!: Attaque hybride = Defender XDR (corrélation) + Sentinel (journaux de plateforme), unifiés dans le portail Defender.
+
+### Synchronisation et réinitialisation de mot de passe
+@ niveau=I ref=entra-remediate
+?: Un utilisateur hybride à risque élevé doit changer son mot de passe via la stratégie de risque utilisateur (libre-service). Quelle fonctionnalité doit être activée pour que le nouveau mot de passe soit appliqué aussi dans Active Directory ?
++: La réécriture du mot de passe (password writeback) de Microsoft Entra Connect / Cloud Sync.
+-: La synchronisation des appareils hybrides. || Sans rapport avec les mots de passe.
+-: Le capteur Defender for Identity. || Il détecte des menaces, il ne réécrit pas les mots de passe.
+-: Le connecteur Syslog. || Sans rapport.
+=: Pour les identités **hybrides**, la **réécriture du mot de passe** permet aux changements effectués dans le cloud (SSPR, remédiation de risque) d'être appliqués dans **AD local**, sinon le mot de passe cloud et AD divergent.
+T: Sans réécriture, la remédiation en libre-service du risque utilisateur n'est pas possible pour ces comptes : un administrateur doit réinitialiser dans AD. Microsoft recommande aussi la synchronisation du hachage de mot de passe pour permettre la détection des identifiants divulgués.
+!: Remédiation cloud d'un compte hybride = réécriture du mot de passe nécessaire.
+
+### Détection des identifiants divulgués pour les comptes hybrides
+@ niveau=A ref=entra-risks
+?: Une organisation utilise l'authentification fédérée (AD FS) sans synchronisation du hachage de mot de passe. Pourquoi la détection « Leaked credentials » d'Entra ID Protection est-elle limitée pour ses comptes ?
++: Parce que la comparaison avec des identifiants divulgués nécessite que les hachages de mots de passe soient synchronisés dans Entra ID (synchronisation du hachage de mot de passe).
+-: Parce que AD FS chiffre les adresses e-mail. || Sans rapport.
+-: Parce que Entra ID Protection ne fonctionne qu'avec des comptes cloud uniquement. || Il fonctionne aussi pour les comptes synchronisés, avec certaines dépendances.
+-: Parce que la MFA désactive la détection. || La MFA n'affecte pas cette détection.
+=: La détection des **identifiants divulgués** compare les paires identifiant/mot de passe trouvées dans des fuites aux **hachages** connus d'Entra ID. Sans **synchronisation du hachage de mot de passe** (PHS), Entra ID ne connaît pas ces hachages pour les comptes fédérés.
+T: Microsoft recommande d'activer PHS même avec la fédération (comme solution de secours et pour la protection des identités). Les comptes fédérés peuvent aussi bénéficier d'autres détections (connexions à risque).
+!: Leaked credentials pour comptes hybrides = synchronisation du hachage de mot de passe requise.
+
+### Accès conditionnel et appareils compromis
+@ niveau=I ref=entra-ca,mde-overview
+?: Vous voulez empêcher automatiquement l'accès aux applications Microsoft 365 depuis des appareils que Defender for Endpoint juge à risque élevé. Quelle intégration utiliser ?
++: Le niveau de risque machine de MDE transmis à Intune (conformité des appareils), utilisé par une stratégie d'accès conditionnel exigeant un appareil conforme.
+-: Une règle ASR bloquant Outlook. || Les règles ASR ne gèrent pas l'accès aux applications cloud.
+-: Une watchlist Sentinel des appareils à risque. || Une watchlist ne bloque pas l'accès.
+-: Le filtrage de contenu web. || Il bloque des catégories de sites, pas l'accès à Microsoft 365 selon le risque de l'appareil.
+=: MDE calcule un **niveau de risque de l'appareil** ; la connexion **MDE ↔ Intune** l'intègre aux stratégies de **conformité** ; l'**accès conditionnel** « Exiger un appareil conforme » bloque alors l'accès tant que le risque n'est pas remédié.
+T: Ce mécanisme de « zero trust » contient automatiquement un appareil compromis côté accès aux données, en complément de l'isolation réseau. Il nécessite l'intégration Intune activée dans les fonctionnalités avancées de MDE.
+!: Appareil à risque (MDE) → non conforme (Intune) → accès bloqué (accès conditionnel).
+
+@@ section=Cartographie MITRE ATT&CK
+
+### Tactique d'une suppression de clichés instantanés
+@ niveau=D ref=sent-mitre
+?: À quelle tactique MITRE ATT&CK correspond la technique T1490 « Inhibit System Recovery » (suppression des clichés instantanés) ?
++: Impact (Impact).
+-: Accès initial (Initial Access). || T1490 n'est pas un moyen d'entrer dans l'environnement.
+-: Découverte (Discovery). || Il ne s'agit pas de collecte d'informations.
+-: Exfiltration. || Aucune donnée n'est sortie.
+=: **T1490 – Inhibit System Recovery** appartient à la tactique **Impact** : l'attaquant empêche la restauration pour maximiser l'effet du chiffrement (T1486, également Impact).
+T: Tactiques ATT&CK Enterprise : Reconnaissance, Resource Development, Initial Access, Execution, Persistence, Privilege Escalation, Defense Evasion, Credential Access, Discovery, Lateral Movement, Collection, Command and Control, Exfiltration, Impact. Les règles Sentinel et alertes Defender indiquent leurs tactiques/techniques.
+!: T1490 et T1486 = tactique Impact.
+
+### Technique d'un vidage de LSASS
+@ niveau=D ref=sent-mitre
+?: Un attaquant utilise procdump pour vider la mémoire de lsass.exe. Quelle technique ATT&CK correspond ?
++: T1003.001 – OS Credential Dumping : LSASS Memory (tactique Credential Access).
+-: T1566.001 – Spearphishing Attachment. || Technique d'accès initial par pièce jointe.
+-: T1486 – Data Encrypted for Impact. || Chiffrement par rançongiciel.
+-: T1071 – Application Layer Protocol. || Communication de commande et contrôle.
+=: Le vidage de la mémoire de **LSASS** pour en extraire des identifiants correspond à **T1003.001**, sous la tactique **Accès aux identifiants** (Credential Access).
+T: Autres sous-techniques T1003 : .002 (SAM), .003 (NTDS), .006 (DCSync). Défenses : ASR LSASS, Credential Guard, LSA Protection. Les détections MDE et MDI associées affichent ces techniques.
+!: Vidage LSASS = T1003.001 (Credential Access).
+
+### Enchaîner des techniques dans une chronologie
+@ niveau=A ref=sent-mitre,xdr-investigate-incidents
+?: Dans quel ordre logique de tactiques ATT&CK se situent les événements suivants : (a) e-mail avec pièce jointe piégée ouverte, (b) création d'une tâche planifiée, (c) requêtes LDAP d'énumération, (d) connexion SMB vers un serveur avec un compte volé, (e) chiffrement des fichiers ?
+@ fixed
++: Accès initial (a) → Persistance (b) → Découverte (c) → Mouvement latéral (d) → Impact (e).
+-: Découverte (a) → Impact (b) → Accès initial (c) → Persistance (d) → Mouvement latéral (e). || Les tactiques sont mal attribuées aux événements.
+-: Impact (a) → Mouvement latéral (b) → Persistance (c) → Découverte (d) → Accès initial (e). || Chronologie inversée et attributions erronées.
+-: Exfiltration (a) → Exécution (b) → Collecte (c) → Impact (d) → Persistance (e). || Attributions erronées.
+=: (a) **T1566.001** Accès initial ; (b) **T1053.005** Persistance (et exécution) ; (c) **T1087.002** Découverte ; (d) **T1021.002** Mouvement latéral (SMB/partages d'administration) avec **T1078** comptes valides ; (e) **T1486** Impact.
+T: Reconstituer l'attaque selon ATT&CK aide à identifier les **lacunes de détection** (étapes non détectées) et à prioriser les nouvelles règles. La page MITRE ATT&CK de Sentinel montre la couverture des règles.
+!: Lire une attaque avec ATT&CK : accès initial → persistance → découverte → mouvement latéral → impact.
+
+### Technique de la pulvérisation de mots de passe
+@ niveau=D ref=sent-mitre,entra-incident-pw
+?: Quelle technique ATT&CK correspond à une pulvérisation de mots de passe contre Microsoft Entra ID ?
++: T1110.003 – Brute Force : Password Spraying.
+-: T1110.004 – Credential Stuffing. || Le credential stuffing réutilise des couples identifiant/mot de passe issus de fuites.
+-: T1110.001 – Password Guessing. || Essais multiples sur un même compte.
+-: T1558.003 – Kerberoasting. || Attaque sur les tickets de service Kerberos.
+=: La **pulvérisation** (T1110.003) teste un petit nombre de mots de passe courants sur **de nombreux comptes** pour éviter les verrouillages. Le **password guessing** (T1110.001) cible un compte ; le **credential stuffing** (T1110.004) réutilise des identifiants divulgués.
+T: Les trois relèvent de la tactique Credential Access. Leurs signatures de détection diffèrent (dcount des comptes, échecs par compte, succès sur des couples connus).
+!: Spraying = T1110.003 ; guessing = .001 ; stuffing = .004.
+
+### Technique d'une règle de transfert de messagerie
+@ niveau=I ref=sent-mitre
+?: Un attaquant crée une règle de boîte de réception qui transfère automatiquement les e-mails vers une adresse externe. Quelle technique ATT&CK correspond ?
++: T1114.003 – Email Collection : Email Forwarding Rule (tactique Collection).
+-: T1566.002 – Spearphishing Link. || Technique d'accès initial par lien.
+-: T1490 – Inhibit System Recovery. || Technique d'impact.
+-: T1059.001 – PowerShell. || Technique d'exécution.
+=: Les **règles de transfert** permettent de collecter en continu les e-mails de la victime : **T1114.003** (Collection). Les règles de dissimulation (déplacement/suppression) relèvent de **T1564.008** (Defense Evasion).
+T: Détection : OfficeActivity / CloudAppEvents (New-InboxRule, Set-InboxRule, Set-Mailbox -ForwardingSmtpAddress), alertes MDCA, stratégie de blocage du transfert externe.
+!: Règle de transfert = T1114.003 ; règle de dissimulation = T1564.008.
+
+### Technique de tunnel DNS
+@ niveau=I ref=sent-mitre
+?: Un implant encode ses communications dans des requêtes DNS vers un domaine contrôlé par l'attaquant. Quelle technique ATT&CK correspond principalement ?
++: T1071.004 – Application Layer Protocol : DNS (Command and Control).
+-: T1046 – Network Service Discovery. || Balayage de services réseau.
+-: T1003.006 – DCSync. || Vol d'identifiants via réplication.
+-: T1543.003 – Windows Service. || Persistance par service.
+=: L'utilisation du **DNS comme canal** de commande et contrôle correspond à **T1071.004**. Si le canal sert à sortir des données, **T1048** (Exfiltration Over Alternative Protocol) s'applique aussi.
+T: Détection : longueur/entropie des sous-domaines, volume de requêtes uniques vers un domaine, requêtes TXT inhabituelles, résolveurs non autorisés (DNS direct vers Internet). Sources : DnsEvents, journaux DNS d'Azure Firewall, DeviceEvents.
+!: C2 par DNS = T1071.004 ; exfiltration par protocole alternatif = T1048.
+
+### Couverture ATT&CK et lacunes
+@ niveau=I ref=sent-mitre,sent-soc-optimization
+?: Après un incident, l'équipe constate qu'aucune règle active ne couvre la technique utilisée pour le mouvement latéral (T1021.006 – WinRM). Comment exploiter les outils de Sentinel pour combler cette lacune ?
++: Consulter la page MITRE ATT&CK (couverture simulée) et le hub de contenu pour trouver des modèles de règles ou requêtes de chasse couvrant T1021.006, puis activer et adapter une règle ; vérifier aussi les recommandations d'optimisation SOC basées sur les menaces.
+-: Désactiver WinRM dans toute l'organisation sans analyse. || Peut casser l'administration ; la question porte sur la détection.
+-: Attendre une mise à jour automatique de Fusion. || Fusion ne remplace pas une couverture explicite des techniques.
+-: Créer une watchlist contenant « T1021.006 ». || Une watchlist ne détecte rien.
+=: La page **MITRE ATT&CK** de Sentinel affiche la couverture actuelle et **simulée** (modèles disponibles). Le **hub de contenu** fournit des modèles de règles par technique ; les **optimisations SOC** proposent des recommandations de couverture par scénario de menace.
+T: Pour WinRM : processus wsmprovhost.exe lançant des commandes, connexions sur 5985/5986, événements PowerShell Remoting. Tester la règle avec un exercice (purple team) pour valider la détection.
+!: Lacune ATT&CK → page MITRE (simulée) + hub de contenu + optimisations SOC, puis test de la règle.

