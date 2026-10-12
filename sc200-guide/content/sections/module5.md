@@ -1,0 +1,3 @@
+Ce module porte sur **Microsoft Defender for Cloud** : CSPM (gratuit et Defender CSPM), Secure Score, conformité réglementaire, chemins d'attaque, plans de protection des charges de travail (Servers, Storage, SQL, Containers, App Service, Key Vault, Resource Manager, DNS, APIs, IA), alertes et incidents, investigation et réponse dans le cloud (Azure et multicloud), automatisation des workflows, export continu, intégration avec Defender XDR et Microsoft Sentinel, et distinction avec Defender XDR.
+
+Il correspond principalement à l'objectif officiel « Enquêter et corriger des alertes et des incidents identifiés par les protections de charge de travail Microsoft Defender pour le cloud » (domaine 2), avec des questions d'ingestion et d'automatisation (domaine 1).

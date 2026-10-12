@@ -26,7 +26,7 @@ T: La recommandation « Les ports de gestion doivent être fermés sur vos machi
 !: Force brute RDP réussie : contenir, invalider les identifiants, investiguer, puis fermer l'exposition (JIT/Bastion).
 
 ### Suppression des alertes Defender for Cloud
-@ niveau=I ref=mdc-suppression
+@ niveau=I ref=mdc-suppression obj=1
 ?: Une alerte de Defender for Cloud se déclenche à chaque test d'intrusion autorisé mené depuis l'adresse IP du prestataire. Comment réduire ce bruit sans masquer les attaques réelles ?
 +: Créer une règle de suppression d'alertes limitée au type d'alerte concerné, à l'IP du prestataire et éventuellement à une date d'expiration.
 -: Désactiver le plan Defender concerné sur l'abonnement. || Toutes les détections de ce plan seraient perdues.
@@ -37,7 +37,7 @@ T: Les alertes supprimées restent consultables (état « Ignoré »). Comme pou
 !: Faux positif connu = règle de suppression ciblée (type d'alerte + entités + expiration).
 
 ### Automatisation des workflows
-@ niveau=I ref=mdc-workflow
+@ niveau=I ref=mdc-workflow obj=1
 ?: Vous souhaitez qu'à chaque alerte Defender for Cloud de gravité élevée, un message soit publié dans Teams et un ticket créé, sans dépendre de Sentinel. Quelle fonctionnalité utiliser ?
 +: L'automatisation des workflows (workflow automation) de Defender for Cloud, qui déclenche une Logic App selon des conditions sur les alertes.
 -: Les règles d'automatisation de Microsoft Sentinel. || Elles nécessitent que les alertes soient dans Sentinel, alors que le besoin exclut cette dépendance.
@@ -48,7 +48,7 @@ T: Les Logic Apps utilisent l'identité managée et des connecteurs (Teams, Serv
 !: Automatisation native sur alertes/recommandations Defender for Cloud = workflow automation (Logic Apps).
 
 ### Export continu
-@ niveau=I ref=mdc-export
+@ niveau=I ref=mdc-export obj=1
 ?: L'équipe veut conserver l'historique des alertes et des recommandations de Defender for Cloud dans un espace Log Analytics, et les transmettre à un SIEM tiers via Event Hubs. Quelle fonctionnalité utiliser ?
 +: L'export continu (continuous export) vers Log Analytics et/ou Event Hubs.
 -: Les règles de gouvernance. || Elles assignent des propriétaires aux recommandations.
@@ -59,7 +59,7 @@ T: Pour Sentinel, le connecteur Defender for Cloud (de préférence basé sur le
 !: Historiser/transmettre alertes et recommandations = export continu (Log Analytics, Event Hubs).
 
 ### Connecteur Defender for Cloud dans Sentinel
-@ niveau=A ref=mdc-sentinel-connector,sent-onboard-defender
+@ niveau=A ref=mdc-sentinel-connector,sent-onboard-defender obj=1
 ?: Un client connecte Sentinel au portail Defender et utilise aussi Defender for Cloud sur 30 abonnements. Quelle configuration de connecteur est recommandée pour l'espace principal ?
 +: Le connecteur « Tenant-based Microsoft Defender for Cloud », qui ingère les incidents corrélés via Defender XDR pour tout le locataire, en déconnectant le connecteur par abonnement hérité.
 -: Le connecteur par abonnement sur chaque espace, en plus du connecteur basé sur le locataire. || Doublons d'alertes et d'incidents ; la documentation recommande de déconnecter le connecteur hérité si l'on utilise le connecteur basé sur le locataire.

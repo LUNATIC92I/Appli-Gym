@@ -1,1 +1,132 @@
-KQL
+# Termes de l'index (sensibles à la casse sauf s'ils sont en minuscules ou contiennent une espace)
+AADNonInteractiveUserSignInLogs
+AADServicePrincipalSignInLogs
+AADUserRiskEvents
+AlertEvidence
+AlertInfo
+AMA
+AMSI
+ASIM
+ASR
+AuditLogs
+AzureActivity
+AiTM
+BEC
+BehaviorAnalytics
+CEF
+CloudAppEvents
+CommonSecurityLog
+Credential Guard
+DCR
+DCSync
+DeviceEvents
+DeviceFileEvents
+DeviceInfo
+DeviceLogonEvents
+DeviceNetworkEvents
+DeviceProcessEvents
+DeviceRegistryEvents
+DeviceTvmSoftwareVulnerabilities
+EmailAttachmentInfo
+EmailEvents
+EmailPostDeliveryEvents
+EmailUrlInfo
+FileProfile
+Fusion
+Golden Ticket
+Heartbeat
+IdentityDirectoryEvents
+IdentityInfo
+IdentityLogonEvents
+IdentityQueryEvents
+JIT
+Kerberoasting
+LSASS
+Live Response
+Logic App
+MCP
+MITRE
+MailItemsAccessed
+MicrosoftGraphActivityLogs
+NRT
+NetworkMessageId
+OfficeActivity
+PIM
+PowerShell
+PsExec
+SecurityAlert
+SecurityEvent
+SecurityIncident
+SentinelHealth
+SigninLogs
+StorageBlobLogs
+Syslog
+ThreatIntelIndicators
+UEBA
+UrlClickEvents
+Usage
+WEF
+WindowsEvent
+ZAP
+_GetWatchlist
+arg_max
+base64_decode_tostring
+bin
+countif
+datatable
+dcount
+extend
+extract
+has_any
+ingestion_time
+join
+let
+lookup
+make-series
+make_set
+mv-expand
+parse
+prev
+project
+summarize
+tostring
+union
+accès conditionnel
+analyse des menaces
+attack disruption
+bookmarks
+chasse avancée
+chemin d'attaque
+classeur
+collecte de données personnalisée
+data lake
+détection personnalisée
+eDiscovery
+faux positif
+gestion des cas
+groupe d'appareils
+hameçonnage
+isolation
+job de recherche
+jobs KQL
+mouvement latéral
+niveau d'automatisation
+optimisations SOC
+package d'investigation
+playbook
+pulvérisation
+rançongiciel
+règle d'automatisation
+règles de synthèse
+regroupement d'alertes
+Security Copilot
+Threat Explorer
+watchlist
+Defender for Cloud Apps
+Defender for Identity
+Defender for Office 365
+Defender for Servers
+Defender for Storage
+Defender CSPM
+Entra ID Protection
+Purview

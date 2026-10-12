@@ -1,0 +1,3 @@
+Ce module couvre la **plateforme Microsoft Sentinel** : architecture et portail Defender, rôles et contrôle d'accès, connecteurs et ingestion (AMA, DCR, WEF, Syslog/CEF, journaux Azure, renseignement sur les menaces, tables personnalisées), niveaux de données et rétention (Analytics, data lake, XDR), optimisation des coûts et recommandations SOC, règles d'analyse (planifiées, NRT, Fusion, TI, anomalies, ATT&CK), automatisation (règles d'automatisation et playbooks), classeurs, chasse, UEBA, watchlists, notebooks, serveur MCP et graphe Sentinel.
+
+Il correspond principalement au domaine officiel **« Gérer un environnement d'opérations de sécurité »**, et pour sa partie chasse au domaine **« Effectuer la chasse aux menaces »**.

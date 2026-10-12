@@ -101,7 +101,7 @@ T: Les trois piliers de MDCA : découverte (Cloud Discovery), protection via API
 !: Connecteur API = visibilité + gouvernance a posteriori ; proxy de session = contrôle en temps réel ; Cloud Discovery = Shadow IT.
 
 ### Chasse dans CloudAppEvents
-@ niveau=A ref=xdr-t-CloudAppEvents
+@ niveau=A ref=xdr-t-CloudAppEvents obj=3
 ?: Vous voulez identifier les comptes qui ont téléchargé plus de 500 fichiers SharePoint ou OneDrive en une heure. Quelle requête de chasse avancée est la plus adaptée ?
 +: ```kqlx
 CloudAppEvents

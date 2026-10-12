@@ -2,7 +2,7 @@
 @@ section=Defender for Endpoint : configuration et politiques
 
 ### Filtrage du contenu web
-@ niveau=D ref=mde-web-content
+@ niveau=D ref=mde-web-content obj=1
 ?: La direction veut empêcher l'accès aux sites de jeux d'argent et de partage de fichiers peer-to-peer depuis les postes gérés, quel que soit le navigateur. Quelle fonctionnalité de Defender for Endpoint utiliser ?
 +: Le filtrage du contenu web (web content filtering), qui s'appuie sur la protection réseau et SmartScreen.
 -: Les règles ASR. || Elles bloquent des comportements de processus, pas des catégories de sites.
@@ -13,7 +13,7 @@ T: Dans Edge, l'application passe par SmartScreen ; pour les autres navigateurs,
 !: Bloquer des catégories de sites = filtrage du contenu web (protection réseau requise hors Edge).
 
 ### Rôles personnalisés et Live Response avancé
-@ niveau=A ref=mde-rbac,mde-live-response
+@ niveau=A ref=mde-rbac,mde-live-response obj=1
 ?: Un analyste N1 doit pouvoir consulter les processus et connexions d'un appareil via Live Response, mais ne doit jamais télécharger de fichiers ni exécuter de scripts. Comment configurer ses droits ?
 +: Lui attribuer un rôle personnalisé n'autorisant que les commandes Live Response de base (sans la permission « advanced »).
 -: Lui attribuer le rôle Administrateur général Entra. || Rôle bien trop privilégié.
@@ -130,7 +130,7 @@ T: Chaque nœud propose des actions (ouvrir la page du fichier, chercher en chas
 !: Comprendre l'origine d'un processus = arborescence de processus de l'alerte (colonnes InitiatingProcess* en KQL).
 
 ### Rechercher l'exécution d'un hachage sur le parc
-@ niveau=I ref=xdr-t-DeviceProcessEvents,xdr-ah-overview
+@ niveau=I ref=xdr-t-DeviceProcessEvents,xdr-ah-overview obj=3
 ?: Un rapport de renseignement fournit le SHA256 d'un outil d'accès à distance malveillant. Quelle requête de chasse avancée liste les appareils où il a été exécuté au cours des 30 derniers jours ?
 +: ```kqlx
 DeviceProcessEvents
@@ -163,7 +163,7 @@ S: Requête de chasse avancée Defender XDR (colonne temporelle `Timestamp`). Da
 !: Exécution d'un hachage = DeviceProcessEvents.SHA256 ; présence sur disque = DeviceFileEvents.
 
 ### Investigation d'un compte utilisateur sur les appareils
-@ niveau=I ref=xdr-t-DeviceLogonEvents
+@ niveau=I ref=xdr-t-DeviceLogonEvents obj=3
 ?: Vous devez savoir sur quels appareils le compte « svc_backup » s'est connecté de manière interactive ou via RDP au cours des 7 derniers jours. Quelle requête est la plus appropriée ?
 +: ```kqlx
 DeviceLogonEvents
@@ -198,7 +198,7 @@ R: Une ligne par appareil, type d'ouverture de session et IP distante, avec le n
 !: DeviceLogonEvents.LogonType est textuel (RemoteInteractive = RDP) ; SecurityEvent.LogonType est numérique (10 = RDP).
 
 ### Évaluer la prévalence d'un fichier
-@ niveau=A ref=xdr-ah-fileprofile
+@ niveau=A ref=xdr-ah-fileprofile obj=3
 ?: Pendant la chasse, vous voulez enrichir une liste de fichiers exécutés récemment avec leur prévalence mondiale, leur signataire et leur réputation, afin d'identifier les binaires rares. Quelle fonction de chasse avancée utiliser ?
 +: La fonction `FileProfile()`, appelée avec `invoke` sur les colonnes de hachage.
 -: La fonction `ago()`. || Elle calcule une date relative.
@@ -252,7 +252,7 @@ T: Une enquête peut s'étendre à d'autres appareils (« entités associées »
 !: AIR = collecte de preuves → verdicts → remédiations automatiques ou en attente (Action center).
 
 ### Prérequis de l'interruption automatique d'attaque
-@ niveau=A ref=xdr-disruption-config,xdr-disruption
+@ niveau=A ref=xdr-disruption-config,xdr-disruption obj=1
 ?: Vous voulez maximiser l'efficacité de l'interruption automatique d'attaque contre les rançongiciels opérés par des humains. Quelles configurations sont recommandées ? (Sélectionnez deux réponses.)
 @ multi=2
 +: Déployer Defender for Endpoint avec la découverte des appareils et le mode bloc EDR / la protection contre les falsifications, sur un maximum d'appareils.
@@ -276,7 +276,7 @@ T: Ces incidents sont à haute fidélité : les traiter en priorité. Communique
 !: « Attack Disruption » = attaque contenue, pas terminée : enquêter, éradiquer, puis lever le confinement.
 
 ### Résolution automatique des alertes
-@ niveau=I ref=mde-advanced-features,mde-air
+@ niveau=I ref=mde-advanced-features,mde-air obj=1
 ?: Après une enquête automatisée concluant à « aucune menace trouvée », les alertes associées restent ouvertes et encombrent la file. Quelle fonctionnalité avancée de MDE permet de les résoudre automatiquement ?
 +: « Automatically resolve alerts » (résoudre automatiquement les alertes).
 -: « Allow or block file ». || Permet les indicateurs de fichiers.
@@ -298,7 +298,7 @@ T: Les enquêtes manuelles suivent le niveau d'automatisation du groupe d'appare
 !: Enquête AIR sans alerte = Initiate automated investigation.
 
 ### Désactiver l'interruption pour un compte de service critique
-@ niveau=A ref=xdr-disruption-config
+@ niveau=A ref=xdr-disruption-config obj=1
 ?: Un compte de service critique pour la production a été désactivé à tort par l'interruption automatique d'attaque à cause d'un comportement atypique mais légitime. Comment éviter que cela se reproduise, sans désactiver la fonctionnalité pour le reste du locataire ?
 +: Ajouter le compte aux exclusions de l'interruption automatique d'attaque (exclusion d'identité), après validation que son comportement est légitime.
 -: Désactiver Defender for Identity. || On perdrait les détections et la protection des identités.

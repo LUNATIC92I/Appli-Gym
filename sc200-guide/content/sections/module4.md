@@ -1,0 +1,3 @@
+Ce module traite de la **réponse aux incidents** de bout en bout : cycle de vie, triage et priorisation, documentation, escalade et communication, gestion des cas ; hameçonnage et compromission de messagerie (BEC, consentement illicite, AiTM) ; force brute, pulvérisation et comptes hybrides ; rançongiciels et précurseurs ; exfiltration, scripts, persistance et mouvement latéral ; confinement, éradication, restauration et préservation des preuves ; faux positifs ; cartographie MITRE ATT&CK.
+
+Il correspond au domaine officiel **« Répondre aux incidents de sécurité »**, avec quelques questions de détection (domaine 1).

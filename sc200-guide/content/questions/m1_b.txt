@@ -35,7 +35,7 @@ T: La prolongation a un coût (ingestion/stockage) ; il faut cibler les tables u
 !: Chasse avancée XDR = 30 jours par défaut ; pour plus, prolonger la rétention des tables XDR via Sentinel (Analytics ou data lake), à anticiper.
 
 ### Choisir entre job KQL, règle de synthèse et job de recherche
-@ niveau=A ref=sent-lake-compare,sent-lake-jobs,sent-summary-rules
+@ niveau=A ref=sent-lake-compare,sent-lake-jobs,sent-summary-rules obj=3
 ?: Pendant une réponse à incident, vous devez exécuter, sur 2 ans d'historique stocké dans le data lake, une requête qui joint DeviceNetworkEvents et une table de journaux de proxy, puis rendre le résultat disponible dans le niveau Analytics pour la chasse avancée. Quelle fonctionnalité choisir ?
 +: Un job KQL (KQL job) sur le data lake, qui promeut le résultat vers une table du niveau Analytics.
 -: Une règle de synthèse (summary rule). || Les règles de synthèse s'exécutent fréquemment (20 minutes à 24 heures) avec une fenêtre de recherche limitée à 1 jour : elles ne conviennent pas à une analyse sur 2 ans.
@@ -46,7 +46,7 @@ T: Repères : règles de synthèse = agrégation fréquente (20 min à 24 h), fe
 !: Historique long + jointures + promotion vers Analytics = job KQL ; agrégation fréquente = règle de synthèse ; une table archivée volumineuse = job de recherche.
 
 ### Règles de synthèse pour des journaux verbeux
-@ niveau=I ref=sent-summary-rules,sent-lake-compare
+@ niveau=I ref=sent-summary-rules,sent-lake-compare obj=3
 ?: Les journaux de flux réseau (plusieurs To/mois) sont stockés dans un niveau peu coûteux. Le SOC veut un tableau de bord mis à jour toutes les heures avec le volume d'octets par adresse IP source, interrogeable rapidement. Quelle fonctionnalité est la plus adaptée ?
 +: Une règle de synthèse (summary rule) qui agrège les données chaque heure dans une table personnalisée du niveau Analytics.
 -: Un job de recherche planifié chaque heure. || Les jobs de recherche sont ponctuels et longs ; ils ne sont pas conçus pour une agrégation périodique.

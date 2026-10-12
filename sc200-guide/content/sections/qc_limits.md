@@ -1,1 +1,19 @@
-À rédiger {{MATRICE}}
+### Méthode de contrôle
+
+Les contrôles ci-dessus sont produits **automatiquement** à chaque génération par `scripts/build.py` ; ils ne sont pas déclaratifs. Les vérifications réalisées :
+
+1. **Structure** : chaque question possède un énoncé, 4 ou 5 propositions, le bon nombre de réponses correctes, une justification pour chaque proposition incorrecte, une correction détaillée, une explication technique, un point à retenir et au moins une référence connue et valide. Les corrections ne citent jamais de lettre, car les propositions sont mélangées par un algorithme d'équilibrage déterministe.
+2. **KQL** : les requêtes sont analysées (syntaxe **et** sémantique : tables, colonnes, types, fonctions) par la bibliothèque officielle Kusto.Language (paquet npm `@kusto/language-service-next`), avec les schémas de 82 tables téléchargés depuis les pages de référence Microsoft Learn (`scripts/fetch_schemas.py`). Les requêtes des propositions incorrectes qui sont volontairement invalides sont marquées et exclues de la validation.
+3. **Liens** : chaque URL Microsoft Learn (version fr-fr) est téléchargée ; le code HTTP, l'absence de redirection vers une autre page et le titre réel de la page sont enregistrés (`scripts/verify_refs.py`, fichier `content/refs.json`).
+4. **Doublons** : comparaison de similarité (trigrammes de mots) entre toutes les paires de questions et contrôle des titres en double.
+5. **Relecture technique** : les faits sensibles et récents (data lake, gestion des cas, collecte personnalisée MDE, détections personnalisées, plans Defender for Servers, prérequis de connexion au portail Defender, référentiel SC-200 du 21 octobre 2026) ont été vérifiés sur les pages Microsoft Learn correspondantes pendant la rédaction ; les résultats attendus des 20 exercices de chasse sur journaux simulés ont été recalculés manuellement (une erreur de jour de semaine a ainsi été corrigée).
+
+### Limites connues
+
+- **Exécution des requêtes** : l'analyse Kusto.Language valide la syntaxe, les noms et les types, mais **n'exécute pas** les requêtes. Les résultats annoncés pour les journaux simulés ont été vérifiés à la main ; le comportement exact de certaines fonctions (par exemple `series_decompose_anomalies`) peut varier légèrement selon la version du moteur.
+- **Hypothèses de schéma** : quelques requêtes s'appuient sur des propriétés de colonnes dynamiques (par exemple `Properties_d.resourceLocation`, `RawEventData.SiteUrl`, `AdditionalFields`) ou sur des valeurs de colonnes (libellés d'`ActionType`, de `ProductName`, de `SentinelResourceType`) qui dépendent des sources et des versions ; elles sont signalées dans la rubrique « Hypothèses liées au schéma ». Les fonctions propres à un environnement (`workspace()`, `FileProfile()`) sont marquées comme non validables hors ligne.
+- **Évolution des produits** : les fonctionnalités Microsoft Security évoluent très vite (renommages, préversions, migrations vers le portail Defender). Les informations sont exactes à la date de vérification indiquée ; plusieurs fonctionnalités citées sont en **préversion** (cas d'incident, collecte personnalisée MDE, certaines capacités du data lake et du graphe Sentinel) et peuvent changer.
+- **Pondération** : la répartition par module imposée par le cahier des charges ne reproduit pas exactement la pondération officielle (voir la matrice de la présentation) ; les examens blancs, eux, la respectent.
+- **Langue de l'examen** : la version française de l'examen peut être mise à jour environ huit semaines après la version anglaise ; le guide suit le référentiel du 21 octobre 2026.
+- **Questions officielles** : aucune question réelle de l'examen n'a été consultée ni reproduite ; le style des questions est indicatif.
+- **Version DOCX** : si elle est fournie, elle est convertie automatiquement depuis le HTML par Pandoc ; sa mise en page est plus simple que celle du PDF, qui reste la version de référence.

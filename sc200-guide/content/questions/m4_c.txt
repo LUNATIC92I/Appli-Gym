@@ -94,7 +94,7 @@ T: Une liste de contrôle (tâches d'incident ou de cas) assure l'homogénéité
 !: Avant clôture : alertes traitées, conclusions documentées, classification + détermination.
 
 ### Surveillance post-incident
-@ niveau=I ref=sent-scheduled,xdr-custom-det
+@ niveau=I ref=sent-scheduled,xdr-custom-det obj=1
 ?: Après un incident de compromission, l'équipe craint le retour de l'attaquant via les mêmes infrastructures. Quelle mesure de surveillance est la plus efficace ?
 +: Créer des détections ciblées temporaires (règles analytiques ou détections personnalisées) sur les IOC et TTP observés (IP, domaines, hachages, comptes, techniques) avec une gravité élevée, et une liste de surveillance des actifs touchés.
 -: Augmenter la rétention de toutes les tables à 12 ans. || Améliore l'investigation a posteriori, pas la détection d'un retour.
@@ -231,7 +231,7 @@ T: Détection : longueur/entropie des sous-domaines, volume de requêtes uniques
 !: C2 par DNS = T1071.004 ; exfiltration par protocole alternatif = T1048.
 
 ### Couverture ATT&CK et lacunes
-@ niveau=I ref=sent-mitre,sent-soc-optimization
+@ niveau=I ref=sent-mitre,sent-soc-optimization obj=1
 ?: Après un incident, l'équipe constate qu'aucune règle active ne couvre la technique utilisée pour le mouvement latéral (T1021.006 – WinRM). Comment exploiter les outils de Sentinel pour combler cette lacune ?
 +: Consulter la page MITRE ATT&CK (couverture simulée) et le hub de contenu pour trouver des modèles de règles ou requêtes de chasse couvrant T1021.006, puis activer et adapter une règle ; vérifier aussi les recommandations d'optimisation SOC basées sur les menaces.
 -: Désactiver WinRM dans toute l'organisation sans analyse. || Peut casser l'administration ; la question porte sur la détection.

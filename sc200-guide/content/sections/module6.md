@@ -1,0 +1,3 @@
+Ce module rassemble **dix scénarios transversaux** de cinq questions chacun, inspirés de situations réelles de SOC : compte Entra ID compromis, hameçonnage suivi d'une exécution de processus, rançongiciel multi-terminaux, connexion depuis une localisation inhabituelle, règle analytique bruyante, activité détectée par plusieurs produits Defender, exfiltration de données, requête KQL aux résultats incomplets, incident cloud nécessitant une investigation croisée et automatisation mal configurée.
+
+Chaque scénario se lit dans l'ordre : les questions suivantes s'appuient sur les informations des précédentes. Il s'agit d'identifier la meilleure action, la source de données pertinente, la requête adaptée ou la procédure d'investigation appropriée.

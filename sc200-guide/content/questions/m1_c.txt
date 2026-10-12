@@ -147,7 +147,7 @@ T: Les paramètres peuvent être chaînés (une liste d'utilisateurs alimentée 
 !: Classeur interactif = paramètres `{NomParametre}` ; période = Time range picker.
 
 ### Requêtes de chasse et bookmarks
-@ niveau=D ref=sent-hunting,sent-bookmarks
+@ niveau=D ref=sent-hunting,sent-bookmarks obj=3
 ?: Lors d'une chasse, un analyste trouve trois événements suspects qu'il souhaite conserver comme preuves, annoter, puis éventuellement rattacher à un incident. Quelle fonctionnalité utiliser ?
 +: Les signets (bookmarks) de chasse.
 -: Les watchlists. || Elles stockent des listes de référence, pas des résultats de requête annotés.
@@ -158,7 +158,7 @@ T: Les signets sont stockés dans la table HuntingBookmark. Les **requêtes de c
 !: Conserver et annoter des preuves de chasse = signets (bookmarks), rattachables à un incident.
 
 ### Mener une campagne de chasse structurée
-@ niveau=I ref=sent-hunts,sent-hunting
+@ niveau=I ref=sent-hunts,sent-hunting obj=3
 ?: Suite à un rapport d'analyse des menaces sur un nouvel acteur, le SOC veut organiser une chasse : formuler une hypothèse, regrouper les requêtes, suivre l'état et documenter les conclusions. Quelle fonctionnalité Sentinel est conçue pour cela ?
 +: Les chasses (Hunts) de Microsoft Sentinel.
 -: Les classeurs uniquement. || Un classeur peut visualiser des données mais ne gère pas le cycle de vie d'une chasse.
@@ -180,7 +180,7 @@ T: Résultats : tables **BehaviorAnalytics** (activités enrichies avec **Invest
 !: UEBA = paramètre à activer + synchronisation d'annuaire + sources ; résultats dans BehaviorAnalytics et IdentityInfo.
 
 ### Exploiter BehaviorAnalytics
-@ niveau=A ref=sent-ueba-ref,la-t-BehaviorAnalytics
+@ niveau=A ref=sent-ueba-ref,la-t-BehaviorAnalytics obj=3
 ?: Vous voulez lister, sur 7 jours, les activités utilisateur que l'UEBA juge les plus inhabituelles, avec une priorité d'investigation d'au moins 7. Quelle requête est correcte ?
 +: ```kql
 BehaviorAnalytics
@@ -233,7 +233,7 @@ SecurityEvent
 !: Données de référence évolutives (VIP, actifs critiques, exclusions) = watchlist + `_GetWatchlist('alias')`.
 
 ### Jupyter notebooks et MSTICPy
-@ niveau=I ref=sent-notebooks,sent-lake-notebooks
+@ niveau=I ref=sent-notebooks,sent-lake-notebooks obj=3
 ?: Un chasseur souhaite appliquer un algorithme de clustering Python sur des données de connexion, enrichir les adresses IP par des sources externes et produire des visualisations avancées. Quel outil de Sentinel convient le mieux ?
 +: Les notebooks Jupyter (avec la bibliothèque MSTICPy, ou les notebooks du data lake Sentinel exécutés sur des pools Spark).
 -: Les règles d'automatisation. || Elles n'exécutent pas de code d'analyse de données.
@@ -244,7 +244,7 @@ T: Le référentiel cite « Chasser les menaces à l'aide de notebooks, y compri
 !: Analyses Python/ML et visualisations avancées = notebooks (MSTICPy ; notebooks du data lake sur Spark).
 
 ### Serveur MCP de Microsoft Sentinel
-@ niveau=I ref=sent-mcp,sent-mcp-tools
+@ niveau=I ref=sent-mcp,sent-mcp-tools obj=3
 ?: Une équipe veut interroger les données de sécurité de Sentinel en langage naturel depuis un client compatible (par exemple Visual Studio Code ou Security Copilot) et construire des agents d'automatisation. Quelle capacité de Sentinel répond à ce besoin ?
 +: Le serveur MCP (Model Context Protocol) de Microsoft Sentinel, hébergé et authentifié par Microsoft Entra, qui expose des collections d'outils (exploration de données, triage, création d'agents).
 -: L'API HTTP Data Collector. || API d'ingestion historique, sans rapport avec l'interrogation en langage naturel.
@@ -255,7 +255,7 @@ T: Le référentiel 2026 inclut la chasse via notebooks avec connexion au serveu
 !: Serveur MCP Sentinel = interface hébergée, authentifiée par Entra, exposant des outils de sécurité aux agents et clients IA.
 
 ### Graphe Microsoft Sentinel et rayon d'impact
-@ niveau=I ref=sent-graph,xdr-hunting-graph
+@ niveau=I ref=sent-graph,xdr-hunting-graph obj=3
 ?: Après la compromission d'un compte d'administrateur, le RSSI demande : « Quelles ressources cet attaquant pourrait-il atteindre ? ». Quelle capacité fournit cette analyse de rayon d'impact sous forme de relations entre entités ?
 +: Le graphe Microsoft Sentinel (et le graphe de chasse dans la chasse avancée), qui modélise utilisateurs, appareils, ressources et activités sous forme de nœuds et d'arêtes.
 -: Le tableau de bord du Secure Score. || Il mesure la posture globale sans calculer les chemins d'accès d'une entité.
@@ -266,7 +266,7 @@ T: Dans le portail Defender, le **graphe de chasse** (hunting graph) de la chass
 !: Rayon d'impact et relations entre entités = graphe Sentinel / graphe de chasse.
 
 ### Modèle d'information ASIM
-@ niveau=A ref=sent-asim
+@ niveau=A ref=sent-asim obj=3
 ?: Votre organisation collecte des authentifications depuis Entra ID, des serveurs Windows, des VPN Fortinet et des serveurs Linux. Vous voulez écrire une seule règle de détection de force brute applicable à toutes ces sources. Quelle approche utiliser ?
 +: Utiliser les analyseurs ASIM du schéma Authentication (par exemple `_Im_Authentication`), qui normalisent les champs (TargetUsername, SrcIpAddr, EventResult…) de toutes les sources.
 -: Écrire une règle par source et les fusionner avec Fusion. || Fusion ne fusionne pas des règles personnalisées ; cette approche multiplie la maintenance.

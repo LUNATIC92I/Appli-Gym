@@ -2,7 +2,7 @@
 @@ section=Compléments : déploiement et détections avancées
 
 ### Activer les plans à l'échelle
-@ niveau=I ref=mdc-overview,mdc-servers
+@ niveau=I ref=mdc-overview,mdc-servers obj=1
 ?: Une organisation possède 120 abonnements Azure et en crée régulièrement de nouveaux. Comment garantir que Defender for Servers et Defender for Storage sont activés partout, y compris sur les futurs abonnements ?
 +: Activer les plans au niveau des groupes d'administration via Azure Policy (stratégies d'activation des plans Defender) avec des tâches de correction pour l'existant.
 -: Activer manuellement chaque plan sur chaque abonnement une fois par an. || Les nouveaux abonnements resteraient non protégés jusqu'à la revue.

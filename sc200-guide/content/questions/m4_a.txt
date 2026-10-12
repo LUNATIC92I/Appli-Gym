@@ -127,7 +127,7 @@ R: Une ligne avec la moyenne et la médiane du délai de résolution (heures) et
 !: MTTR = SecurityIncident dédupliquée (arg_max) + ClosedTime − CreatedTime, avec médiane.
 
 ### Faux positif récurrent
-@ niveau=I ref=sent-create-automation-rules,xdr-tuning
+@ niveau=I ref=sent-create-automation-rules,xdr-tuning obj=1
 ?: Une règle analytique Sentinel détecte des « connexions depuis des IP Tor » mais génère chaque jour des incidents pour les adresses d'un fournisseur VPN d'entreprise mal classées comme Tor. Quelle est la meilleure correction durable ?
 +: Corriger la règle : exclure les plages IP du VPN d'entreprise via une watchlist référencée dans la requête, puis documenter la modification.
 -: Fermer manuellement chaque incident comme faux positif. || Le bruit persiste et consomme du temps.
