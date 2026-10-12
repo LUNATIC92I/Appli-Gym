@@ -1,0 +1,391 @@
+@@ module=6
+@@ section=Scénario F — Activité détectée simultanément par plusieurs produits Defender
+
+### Scénario F1 — Lecture de l'incident multi-produits
+@ niveau=I ref=xdr-correlation,xdr-investigate-incidents obj=2
+?: **Scénario F :** un incident Defender XDR regroupe : MDI « Suspected overpass-the-hash attack (Kerberos) » depuis PC-0712, MDE « Suspicious process injection » sur PC-0712, et MDCA « Activity from infrequent country » pour le compte adm.martin. **Question :** quelle lecture est la plus pertinente ?
++: Une même attaque observée sous trois angles : le poste PC-0712 est compromis, des identifiants (dont ceux d'adm.martin) ont été volés et réutilisés sur le réseau, puis dans le cloud.
+-: Trois incidents distincts que Defender XDR a regroupés par erreur. || Les entités communes (appareil, compte) et l'enchaînement logique justifient la corrélation.
+-: Un problème de licence Defender. || Sans rapport.
+-: Une simple mise à jour de Windows. || Aucun signal ne correspond à une mise à jour.
+=: La **corrélation XDR** relie les signaux par entités communes : **appareil** (PC-0712, MDE et MDI) et **compte** (adm.martin, MDI et MDCA). L'histoire de l'attaque se lit : compromission du poste → vol d'identifiants (overpass-the-hash, T1550.002) → usage cloud.
+T: L'onglet **Histoire de l'attaque** et le graphe de l'incident visualisent ces liens. Copilot peut résumer l'incident. Les réponses doivent couvrir les trois plans : poste, identité locale, identité cloud.
+!: Incident multi-produits = une attaque vue sous plusieurs angles ; répondre sur chaque plan (poste, AD, cloud).
+
+### Scénario F2 — Ordre des actions de réponse
+@ niveau=A ref=mde-response-device,mdi-remediation obj=2
+?: **Scénario F (suite) :** quelle séquence de réponse est la plus cohérente ?
+@ fixed
++: Isoler PC-0712 → désactiver/contenir le compte adm.martin (AD et Entra ID) et révoquer ses sessions → investiguer l'étendue (autres appareils et comptes) → éradiquer et réinitialiser les identifiants exposés.
+-: Réinitialiser le mot de passe d'adm.martin → attendre 24 heures → isoler PC-0712. || Le poste compromis continue de voler des identifiants pendant 24 heures.
+-: Réimager PC-0712 immédiatement → investiguer ensuite. || Les preuves sont détruites avant l'investigation.
+-: Fermer l'alerte MDCA → isoler PC-0712 dans une semaine. || Délai inacceptable.
+=: On **contient** d'abord les sources actives (poste compromis, compte volé), on **investigue** l'étendue (autres victimes du vol d'identifiants), puis on **éradique** (persistances, réinitialisations) et on **restaure**.
+T: Le vol d'identifiants sur un poste implique de réinitialiser **tous** les comptes ayant ouvert une session sur ce poste depuis la compromission (pas seulement adm.martin). DeviceLogonEvents permet de les lister.
+!: Contenir (poste + compte) → investiguer l'étendue → éradiquer (tous les identifiants exposés).
+
+### Scénario F3 — Comptes exposés sur le poste
+@ niveau=A ref=xdr-t-DeviceLogonEvents obj=3
+?: **Scénario F (suite) :** quels comptes ont ouvert une session sur PC-0712 depuis le début de la compromission (estimé au 3 octobre à 14 h) et doivent être considérés comme exposés ? **Question :** quelle requête utiliser ?
++: ```kqlx
+DeviceLogonEvents
+| where Timestamp > datetime(2026-10-03 14:00)
+| where DeviceName =~ "pc-0712"
+| where ActionType == "LogonSuccess"
+| summarize Sessions = count(), Types = make_set(LogonType), Derniere = max(Timestamp) by AccountDomain, AccountName
+| order by Derniere desc
+```
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(30d)
+| summarize count() by DeviceName
+```
+|| Volume de sessions par appareil, sans liste de comptes pour PC-0712.
+-: ```kqlx
+IdentityInfo
+| where Department == "IT"
+```
+|| Liste des comptes IT, sans lien avec le poste compromis.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > datetime(2026-10-03 14:00)
+| where FileName =~ "explorer.exe"
+```
+|| Exécutions de l'Explorateur, sans liste des comptes ayant ouvert une session.
+=: **DeviceLogonEvents** liste les ouvertures de session réussies sur l'appareil ; tous les comptes connectés après la compromission (interactifs, RDP, services, mais aussi réseau selon les techniques) peuvent avoir leurs identifiants en mémoire et doivent être réinitialisés.
+T: Les sessions de type Interactive, RemoteInteractive, CachedInteractive laissent des identifiants réutilisables en mémoire (LSASS). Les comptes de service et administrateurs sont prioritaires.
+R: Les comptes ayant ouvert une session sur PC-0712 depuis le 3 octobre 14 h, avec les types de session et la dernière session.
+!: Poste à vol d'identifiants : réinitialiser tous les comptes connectés depuis la compromission.
+
+### Scénario F4 — Visualiser le rayon d'impact
+@ niveau=I ref=xdr-hunting-graph,sent-graph obj=3
+?: **Scénario F (suite) :** le RSSI demande ce qu'adm.martin pouvait atteindre (serveurs, données, rôles cloud). **Question :** quel outil fournit le plus directement cette vue ?
++: Le graphe de chasse (hunting graph) / graphe Sentinel, qui représente les relations entre le compte, les appareils, les ressources et les permissions, et permet d'évaluer le rayon d'impact.
+-: Le rapport de filtrage web. || Il concerne la navigation des postes.
+-: La table Usage. || Elle mesure les volumes ingérés.
+-: Le tableau de bord de conformité réglementaire. || Il évalue la conformité de configuration.
+=: Le **graphe de chasse** et le **graphe Sentinel** modélisent les **relations** (sessions, droits d'administration, appartenances, accès aux ressources) et répondent aux questions de **rayon d'impact** (blast radius) d'un compte compromis.
+T: Le référentiel cite « Créer des graphes de chasse, y compris le rayon d'impact ». Les chemins de mouvement latéral (MDI) et les chemins d'attaque (Exposure Management, Defender CSPM) apportent des informations complémentaires.
+!: « Que pouvait atteindre ce compte ? » = graphe de chasse / graphe Sentinel (rayon d'impact).
+
+### Scénario F5 — Clôture et classification
+@ niveau=D ref=xdr-manage-incidents obj=2
+?: **Scénario F (suite) :** l'attaque est confirmée, contenue et éradiquée. **Question :** quelle classification attribuer à l'incident ?
++: Vrai positif – attaque multiétape (Multistage attack).
+-: Faux positif – non malveillant. || L'attaque est confirmée.
+-: Informationnel – activité attendue. || L'activité n'était pas autorisée.
+-: Vrai positif – logiciel indésirable. || Ne décrit pas une intrusion avec vol d'identifiants et mouvement latéral.
+=: Une intrusion enchaînant compromission d'appareil, vol d'identifiants, mouvement latéral et usage cloud correspond à la détermination **attaque multiétape** des vrais positifs.
+T: La classification précise alimente les rapports et l'apprentissage des détections. Joindre le rapport d'incident et les leçons apprises au cas.
+!: Intrusion en plusieurs étapes confirmée = Vrai positif – attaque multiétape.
+
+@@ section=Scénario G — Exfiltration potentielle de données
+
+### Scénario G1 — Signal initial
+@ niveau=I ref=purview-dlp-alerts,mdca-anomaly obj=2
+?: **Scénario G :** une alerte DLP Purview signale qu'un ingénieur a chargé 40 fichiers étiquetés « Confidentiel » vers un site de partage personnel ; MDCA signale un « Mass download » sur SharePoint pour le même utilisateur la veille. Il a démissionné la semaine précédente. **Question :** quelle approche est la plus appropriée ?
++: Traiter le cas comme un risque interne probable : préserver les preuves, impliquer RH/juridique selon la procédure, mesurer précisément les données concernées, puis limiter les accès de l'utilisateur.
+-: Supprimer immédiatement le compte et tous ses fichiers. || Destruction de preuves et action non conforme aux procédures RH/juridiques.
+-: Ignorer les alertes car l'utilisateur part bientôt. || C'est précisément un facteur de risque.
+-: Publier l'information auprès de toute l'équipe. || Contraire à la confidentialité de l'enquête.
+=: Les signaux **DLP** et **MDCA** combinés au **contexte RH** (départ) évoquent un **risque interne** (exfiltration T1567). La réponse implique la préservation des preuves (conservation eDiscovery, audit), l'implication **RH/juridique**, et des mesures proportionnées (restriction d'accès, révocation des sessions).
+T: Insider Risk Management (Purview) peut fournir des indicateurs supplémentaires (départ, téléchargements, impression, USB) avec pseudonymisation. Les alertes DLP et MDCA apparaissent dans les incidents Defender XDR.
+!: Exfiltration par un initié : preuves, RH/juridique, mesure précise des données, puis restriction des accès.
+
+### Scénario G2 — Mesurer l'exfiltration
+@ niveau=A ref=xdr-t-CloudAppEvents obj=3
+?: **Scénario G (suite) :** vous devez lister les fichiers téléchargés par l'utilisateur depuis SharePoint/OneDrive au cours des 14 derniers jours, avec les volumes par site. **Question :** quelle requête est la plus adaptée ?
++: ```kqlx
+CloudAppEvents
+| where Timestamp > ago(14d)
+| where AccountDisplayName == "Julien Fabre"
+| where ActionType in ("FileDownloaded", "FileSyncDownloadedFull")
+| extend Site = tostring(RawEventData.SiteUrl), Fichier = tostring(RawEventData.SourceFileName)
+| summarize Fichiers = dcount(Fichier), Liste = make_set(Fichier, 50) by Site, bin(Timestamp, 1d)
+```
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(14d)
+| where SenderFromAddress has "julien"
+```
+|| Messages envoyés, pas téléchargements depuis SharePoint.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(14d)
+| where AccountName == "jfabre"
+```
+|| Ouvertures de session sur les appareils.
+-: ```kqlx
+CloudAppEvents
+| where Timestamp > ago(14d)
+| summarize count() by Application
+```
+|| Statistiques globales par application.
+=: **CloudAppEvents** contient les activités Microsoft 365 ; les téléchargements (FileDownloaded, synchronisations) et les détails de l'objet sont dans **RawEventData** (dynamique), d'où l'extraction de SiteUrl et SourceFileName.
+T: Les noms de propriétés de RawEventData suivent le schéma du journal d'audit Microsoft 365 ; vérifier leur présence dans vos données. Compléter avec les étiquettes de confidentialité et les alertes DLP pour qualifier la sensibilité.
+R: Pour chaque site et chaque jour, le nombre de fichiers distincts téléchargés et leur liste (≤ 50).
+S: Hypothèse : RawEventData contient SiteUrl et SourceFileName (schéma d'audit SharePoint).
+!: Téléchargements Microsoft 365 = CloudAppEvents (RawEventData pour le détail des objets).
+
+### Scénario G3 — Canal d'exfiltration réseau
+@ niveau=I ref=xdr-t-DeviceNetworkEvents obj=3
+?: **Scénario G (suite) :** vous soupçonnez aussi un transfert depuis le poste de l'utilisateur vers un service de transfert de fichiers. **Question :** quelle source et quel indicateur examiner ?
++: DeviceNetworkEvents et Cloud Discovery (MDCA) : connexions du poste vers des services de partage de fichiers et volumes chargés par application cloud.
+-: La table Heartbeat. || Disponibilité des agents.
+-: Les recommandations de Defender for Cloud. || Configuration des ressources cloud.
+-: IdentityQueryEvents. || Requêtes de reconnaissance vers les contrôleurs de domaine.
+=: Les connexions sortantes du poste (DeviceNetworkEvents : RemoteUrl, InitiatingProcessFileName) et **Cloud Discovery** (applications cloud utilisées, octets chargés) révèlent les canaux d'exfiltration web.
+T: La DLP des terminaux peut bloquer ou auditer le chargement de fichiers étiquetés vers des domaines non autorisés. Les applications marquées non approuvées dans MDCA peuvent être bloquées via MDE.
+!: Exfiltration web depuis un poste = DeviceNetworkEvents + Cloud Discovery (volumes par application).
+
+### Scénario G4 — Mesures conservatoires
+@ niveau=I ref=purview-ediscovery,mdca-governance obj=2
+?: **Scénario G (suite) :** le juridique valide des mesures conservatoires. **Question :** lesquelles sont appropriées ? (Sélectionnez deux réponses.)
+@ multi=2
++: Placer la boîte aux lettres et le OneDrive de l'utilisateur sous conservation eDiscovery.
++: Révoquer ses sessions et restreindre ses accès (par exemple suspension du compte ou retrait des accès aux sites sensibles) selon la décision RH/juridique.
+-: Supprimer définitivement son OneDrive pour éviter d'autres fuites. || Destruction de preuves.
+-: Désactiver la journalisation d'audit pour ne pas l'alerter. || Supprime la traçabilité.
+-: Envoyer à l'utilisateur la liste des alertes le concernant. || Pourrait compromettre l'enquête ; la communication relève des RH/juridique.
+=: La **conservation eDiscovery** préserve les preuves ; la **révocation des sessions** et la **restriction des accès** stoppent l'exfiltration. Ces mesures doivent suivre la procédure validée par RH et juridique.
+T: MDCA permet de suspendre l'utilisateur ou d'exiger une nouvelle connexion ; les actions sont tracées. Documenter chaque décision.
+!: Risque interne : conservation eDiscovery + restriction/révocation des accès, sous contrôle RH/juridique.
+
+### Scénario G5 — Prévention
+@ niveau=I ref=purview-dlp,mdca-mde obj=1
+?: **Scénario G (suite) :** pour prévenir ce type de fuite, quelles mesures recommander ? (Sélectionnez deux réponses.)
+@ multi=2
++: Des stratégies DLP (Microsoft 365 et terminaux) bloquant le partage et le chargement de contenus étiquetés « Confidentiel » vers des destinations non autorisées.
++: Le blocage des applications de stockage personnel non approuvées via Defender for Cloud Apps et Defender for Endpoint.
+-: L'interdiction totale de SharePoint. || Disproportionné et nuisible à l'activité.
+-: La désactivation des étiquettes de confidentialité. || Supprimerait la base de la protection des données.
+-: L'augmentation de la taille maximale des pièces jointes. || Faciliterait au contraire les fuites par e-mail.
+=: La **DLP** (Purview, terminaux) applique des contrôles fondés sur la sensibilité ; le **blocage des applications non approuvées** coupe les canaux d'exfiltration vers le cloud personnel.
+T: Compléter par Insider Risk Management (stratégies « départ d'employé ») et des alertes Sentinel combinant téléchargement massif et indicateur de départ (watchlist alimentée par les RH).
+!: Prévention des fuites : DLP fondée sur les étiquettes + blocage des applications non approuvées.
+
+@@ section=Scénario H — Requête KQL aux résultats incomplets
+
+### Scénario H1 — Résultats manquants dans une jointure
+@ niveau=A ref=kql-join obj=3
+?: **Scénario H :** un analyste relie des alertes à des connexions avec `SecurityAlert | join (SigninLogs) on $left.Upn == $right.UserPrincipalName`. Plusieurs alertes du même utilisateur n'apparaissent qu'une seule fois dans les résultats. **Question :** quelle est la cause la plus probable ?
++: La jointure par défaut innerunique déduplique la table de gauche sur la clé : seules certaines alertes de chaque utilisateur sont conservées ; il faut préciser `kind=inner`.
+-: SigninLogs ne contient pas la colonne UserPrincipalName. || Elle existe.
+-: Les alertes sont supprimées par Sentinel après 24 heures. || Elles ne sont pas supprimées ainsi.
+-: Les jointures ne fonctionnent qu'entre tables de même type. || Les jointures sont possibles entre toutes tables.
+=: La saveur **innerunique** (par défaut) supprime les doublons de clé dans la table de **gauche** avant la jointure : plusieurs alertes d'un même utilisateur se réduisent à une seule. **kind=inner** conserve toutes les combinaisons.
+T: Toujours spécifier `kind` dans les requêtes de sécurité. Vérifier aussi la casse des clés (tolower) et le type (tostring pour les valeurs dynamiques).
+!: Lignes de gauche « disparues » dans une jointure = innerunique par défaut → `kind=inner`.
+
+### Scénario H2 — Période de requête trop courte
+@ niveau=D ref=kql-ago obj=3
+?: **Scénario H (suite) :** une requête de chasse avancée sur 90 jours (`where Timestamp > ago(90d)`) ne renvoie que des événements des 30 derniers jours pour DeviceProcessEvents. **Question :** quelle en est la cause ?
++: La rétention par défaut des données de chasse avancée Defender XDR est de 30 jours ; au-delà, il faut des données conservées dans Sentinel (niveau Analytics ou data lake).
+-: L'opérateur `ago()` est limité à 30 jours. || `ago()` accepte n'importe quelle durée.
+-: La requête contient une erreur de syntaxe. || La requête fonctionne : ce sont les données qui manquent.
+-: DeviceProcessEvents n'enregistre que les processus Microsoft. || Elle enregistre toutes les créations de processus.
+=: La chasse avancée conserve **30 jours** de données brutes XDR. Pour une profondeur plus grande, les tables doivent être **ingérées/conservées** dans Sentinel (rétention Analytics prolongée ou data lake, interrogeable par KQL ou jobs KQL).
+T: Dans le portail Defender avec Sentinel connecté, les tables XDR peuvent voir leur rétention étendue via la gestion des tables. Planifier cette rétention avant d'en avoir besoin.
+!: Chasse avancée = 30 jours ; au-delà → Sentinel (Analytics ou data lake).
+
+### Scénario H3 — Comparaison sensible à la casse
+@ niveau=I ref=kql-string-ops obj=3
+?: **Scénario H (suite) :** `DeviceProcessEvents | where FileName == "PowerShell.exe"` ne renvoie presque rien alors que PowerShell est très utilisé. **Question :** quelle correction appliquer ?
++: Utiliser une comparaison insensible à la casse : `where FileName =~ "powershell.exe"` (ou `in~` pour une liste).
+-: Utiliser `where FileName = "PowerShell.exe"`. || `=` n'est pas un opérateur de comparaison.
+-: Utiliser `where FileName has_cs "PowerShell"`. || Toujours sensible à la casse.
+-: Ajouter `| take 1000`. || Ne change rien au filtre.
+=: `==` est **sensible à la casse** ; les noms de fichiers sont généralement enregistrés en minuscules (powershell.exe). `=~` compare sans tenir compte de la casse.
+T: Bonnes pratiques : `=~`, `in~`, `has` (insensible) pour les chaînes de casse variable ; `==`/`has_cs` lorsque la casse est connue (plus performants).
+!: Résultats incomplets sur des chaînes = vérifier la casse (`=~`, `in~`).
+
+### Scénario H4 — Données dans une autre table
+@ niveau=I ref=la-t-AADNonInteractive obj=3
+?: **Scénario H (suite) :** une requête sur SigninLogs ne montre aucune activité de l'attaquant après 9 h, alors que l'attaquant a accédé à Exchange jusqu'à 11 h avec un jeton volé. **Question :** pourquoi ?
++: Les accès par renouvellement de jeton sont des connexions non interactives, enregistrées dans AADNonInteractiveUserSignInLogs, pas dans SigninLogs.
+-: SigninLogs est limité à 2 heures de données. || Sa rétention dépend de l'espace de travail.
+-: Exchange n'utilise pas Microsoft Entra ID. || Exchange Online s'appuie sur Entra ID.
+-: L'attaquant a supprimé les journaux de SigninLogs. || Un utilisateur ne peut pas supprimer les journaux de connexion d'Entra ID.
+=: Les connexions **non interactives** (jetons d'actualisation utilisés par un client) sont dans **AADNonInteractiveUserSignInLogs**. Une investigation de vol de jeton doit unir les deux tables (`union SigninLogs, AADNonInteractiveUserSignInLogs`).
+T: Les accès aux données eux-mêmes apparaissent aussi dans l'audit Microsoft 365 (MailItemsAccessed). Vérifier la collecte de AADNonInteractiveUserSignInLogs dans le connecteur Entra ID (souvent désactivée pour des raisons de coût).
+!: Activité par jeton absente de SigninLogs → AADNonInteractiveUserSignInLogs.
+
+### Scénario H5 — Délai d'ingestion
+@ niveau=A ref=sent-ingestion-delay,kql-ingestion-time obj=1
+?: **Scénario H (suite) :** une règle planifiée toutes les 5 minutes sur des journaux de proxy tiers rate régulièrement des événements que l'on retrouve plus tard en chasse manuelle. **Question :** quelle est la cause la plus probable et la correction ?
++: Un délai d'ingestion supérieur à la fenêtre de la règle ; élargir la fenêtre de recherche (fréquence + délai) et filtrer sur `ingestion_time()` pour éviter les doublons.
+-: Une erreur de l'opérateur `where`. || La requête fonctionne en chasse manuelle.
+-: Le proxy envoie des données chiffrées illisibles. || Les données sont lisibles en chasse.
+-: Les règles planifiées ignorent les tables personnalisées. || Elles peuvent les interroger.
+=: Les événements arrivés **après** l'exécution de la règle mais horodatés dans une fenêtre déjà analysée ne sont jamais évalués. La correction documentée : fenêtre = fréquence + délai, et `where ingestion_time() > ago(fréquence)`.
+T: Mesurer le délai : `extend Delai = ingestion_time() - TimeGenerated | summarize percentiles(Delai, 50, 95, 99)`. Les règles NRT gèrent nativement le délai d'ingestion.
+!: Événements manqués par une règle mais visibles plus tard = délai d'ingestion → lookback élargi + ingestion_time().
+
+@@ section=Scénario I — Incident cloud nécessitant une investigation croisée
+
+### Scénario I1 — Alerte de départ
+@ niveau=I ref=mdc-keyvault,mdc-xdr obj=2
+?: **Scénario I :** Defender for Key Vault signale « Unusual application accessed a key vault » : une application jamais vue a lu 300 secrets d'un coffre de production depuis une IP d'hébergement. **Question :** quelles sources croiser en priorité ? (Sélectionnez deux réponses.)
+@ multi=2
++: Les journaux de diagnostic du coffre (opérations SecretGet, identité appelante) et les connexions du principal de service (AADServicePrincipalSignInLogs).
++: Les journaux d'audit Entra ID (AuditLogs) pour l'ajout récent de secrets ou de permissions à l'application.
+-: La table Heartbeat. || Disponibilité des agents.
+-: EmailUrlInfo. || URL des e-mails.
+-: Le rapport de filtrage web. || Navigation des postes.
+=: L'alerte Key Vault indique **quoi** (lecture massive de secrets) ; les **journaux du coffre** précisent les secrets lus ; les **connexions du principal de service** montrent comment l'application s'est authentifiée ; **AuditLogs** montre **comment** l'attaquant a obtenu cet accès (secret ajouté, permission accordée).
+T: Ce croisement relie Defender for Cloud (alerte), Entra ID (identité) et les journaux de ressources (données). Dans le portail Defender, l'alerte est corrélée à d'éventuelles autres alertes du locataire.
+!: Accès anormal à Key Vault : journaux du coffre + connexions du principal de service + AuditLogs.
+
+### Scénario I2 — Requête sur l'identité applicative
+@ niveau=A ref=la-t-AuditLogs obj=3
+?: **Scénario I (suite) :** vous recherchez qui a ajouté des identifiants à l'application « app-integration-prod » au cours des 14 derniers jours. **Question :** quelle requête convient ?
++: ```kql
+AuditLogs
+| where TimeGenerated > ago(14d)
+| where OperationName in ("Add service principal credentials", "Update application – Certificates and secrets management")
+| extend Application = tostring(TargetResources[0].displayName)
+| where Application =~ "app-integration-prod"
+| extend Auteur = coalesce(tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName)), IP = tostring(InitiatedBy.user.ipAddress)
+| project TimeGenerated, OperationName, Application, Auteur, IP, Result
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(14d)
+| where AppDisplayName =~ "app-integration-prod"
+```
+|| Connexions d'utilisateurs à l'application, pas gestion de ses identifiants.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(14d)
+| where OperationNameValue has "vaults/secrets/read"
+```
+|| Opérations Azure sur les secrets du coffre, pas ajout d'identifiants à l'application Entra.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(14d)
+| where EventID == 4720
+```
+|| Création de comptes AD locaux.
+=: L'ajout de secrets/certificats aux **applications** et **principaux de service** est tracé dans **AuditLogs**. L'auteur peut être un **utilisateur** ou une **application** (`InitiatedBy.user` / `InitiatedBy.app`), d'où `coalesce`.
+T: Si l'auteur est un compte d'utilisateur compromis, élargir l'enquête à ce compte (connexions, autres modifications). Si c'est une application, remonter sa propre chaîne de compromission.
+R: Les ajouts d'identifiants à l'application avec l'auteur, l'IP et le résultat.
+!: Identifiants ajoutés à une application = AuditLogs (InitiatedBy user/app, TargetResources).
+
+### Scénario I3 — Confinement cloud
+@ niveau=I ref=mdc-keyvault,ir-consent obj=2
+?: **Scénario I (suite) :** l'attaquant a ajouté un secret à l'application il y a 5 jours via un compte d'administrateur d'applications compromis. **Question :** quelles mesures de confinement sont prioritaires ? (Sélectionnez deux réponses.)
+@ multi=2
++: Supprimer le secret ajouté (et faire tourner les autres identifiants de l'application), et faire tourner les secrets du coffre qui ont été lus.
++: Confiner le compte administrateur compromis (mot de passe, révocation des sessions, retrait temporaire des rôles).
+-: Supprimer le coffre de clés de production. || Interruption majeure et perte de données.
+-: Désactiver Defender for Key Vault. || Supprime la détection.
+-: Attendre que les secrets expirent naturellement. || L'attaquant pourrait les utiliser pendant ce temps.
+=: Il faut couper **les deux accès** de l'attaquant : l'**identité applicative** (secret ajouté) et le **compte humain** compromis, puis neutraliser la valeur des **secrets exfiltrés** (rotation) puisqu'ils sont désormais connus de l'attaquant.
+T: Vérifier aussi les autres actions du compte administrateur (autres applications modifiées, consentements, rôles). Restreindre ensuite le rôle d'administrateur d'applications via PIM.
+!: Compromission applicative : retirer le secret ajouté, confiner le compte humain, faire tourner les secrets exfiltrés.
+
+### Scénario I4 — Impact sur les ressources
+@ niveau=A ref=la-t-AzureActivity obj=3
+?: **Scénario I (suite) :** parmi les secrets lus figurait une clé de compte de stockage. **Question :** comment vérifier si elle a été utilisée par l'attaquant ?
++: Examiner les journaux de ressources du compte de stockage (StorageBlobLogs) pour les accès authentifiés par clé de compte depuis des IP inhabituelles après l'heure de lecture du secret.
+-: Examiner uniquement SigninLogs, car tout accès au stockage passe par une connexion Entra ID. || Les accès par clé de compte ou SAS n'apparaissent pas dans les connexions Entra.
+-: Vérifier le Secure Score. || Indicateur de posture.
+-: Consulter Heartbeat. || Disponibilité des agents.
+=: L'usage d'une **clé de compte** ne génère pas de connexion Entra ID : seuls les **journaux de ressources** du stockage (StorageBlobLogs, `AuthenticationType` = AccountKey, `CallerIpAddress`) le révèlent. Defender for Storage peut aussi avoir généré des alertes d'accès anormal.
+T: Après rotation de la clé, vérifier que les applications légitimes ont été mises à jour. Envisager de désactiver l'accès par clé partagée (Entra ID uniquement) pour réduire ce risque.
+!: Usage d'une clé de stockage volée = StorageBlobLogs (AuthenticationType AccountKey), invisible dans SigninLogs.
+
+### Scénario I5 — Leçon d'architecture
+@ niveau=I ref=mdc-cspm,mdc-attack-path obj=1
+?: **Scénario I (suite) :** le retour d'expérience montre que l'application disposait d'un accès en lecture à tous les secrets du coffre alors qu'elle n'en utilisait que deux. **Question :** quelles améliorations prioriser ? (Sélectionnez deux réponses.)
+@ multi=2
++: Appliquer le moindre privilège (RBAC Key Vault par secret ou coffres séparés) et préférer les identités managées aux secrets d'application.
++: Utiliser Defender CSPM (chemins d'attaque, explorateur de sécurité cloud) pour identifier les identités sur-privilégiées ayant accès à des données sensibles.
+-: Donner à toutes les applications l'accès à tous les coffres pour simplifier. || Aggrave le risque.
+-: Désactiver la journalisation des coffres. || Supprime la traçabilité.
+-: Stocker les secrets dans le code source. || Pratique dangereuse.
+=: Le **moindre privilège** limite le rayon d'impact d'une identité compromise ; les **identités managées** suppriment les secrets à protéger ; **Defender CSPM** révèle les combinaisons « identité sur-privilégiée + données sensibles » avant qu'elles ne soient exploitées.
+T: Ces enseignements alimentent la gouvernance (propriétaires, échéances) et des contrôles Azure Policy. Suivre la correction comme une recommandation prioritaire.
+!: Réduire le rayon d'impact cloud : moindre privilège + identités managées + CSPM.
+
+@@ section=Scénario J — Automatisation de réponse mal configurée
+
+### Scénario J1 — Playbook qui ne se déclenche pas
+@ niveau=I ref=sent-automation-rules,sent-roles obj=1
+?: **Scénario J :** une règle d'automatisation doit lancer le playbook « Notifier-Teams » à la création d'incidents de gravité élevée. Les incidents sont bien créés mais aucun message n'arrive ; l'historique de la Logic App ne montre aucune exécution. **Question :** quelle cause vérifier en premier ?
++: Les autorisations du compte de service Microsoft Sentinel (Microsoft Sentinel Automation Contributor) sur le groupe de ressources du playbook, et le type de déclencheur du playbook (incident).
+-: Le connecteur Teams de la Logic App. || Si la Logic App ne s'exécute jamais, le problème se situe avant l'action Teams.
+-: La rétention de la table SecurityIncident. || Sans rapport avec le déclenchement.
+-: Le Secure Score du locataire. || Sans rapport.
+=: Aucune exécution dans l'historique signifie que le playbook **n'a jamais été appelé** : autorisations manquantes du service Sentinel sur le groupe de ressources, playbook avec un **déclencheur incompatible** (alerte au lieu d'incident), règle d'automatisation avec des **conditions** trop restrictives ou expirée.
+T: La surveillance de l'intégrité (SentinelHealth) enregistre les exécutions des règles d'automatisation et les échecs de déclenchement de playbooks, ce qui accélère le diagnostic.
+!: Playbook jamais exécuté = autorisations du service Sentinel, déclencheur, conditions/expiration de la règle.
+
+### Scénario J2 — Diagnostic avec SentinelHealth
+@ niveau=A ref=la-t-SentinelHealth,sent-health obj=3
+?: **Scénario J (suite) :** vous voulez lister les échecs des règles d'automatisation et des playbooks sur 7 jours. **Question :** quelle requête convient ?
++: ```kql
+SentinelHealth
+| where TimeGenerated > ago(7d)
+| where SentinelResourceType in ("Automation rule", "Playbook")
+| where Status != "Success"
+| project TimeGenerated, SentinelResourceType, SentinelResourceName, Status, Description, ExtendedProperties
+| order by TimeGenerated desc
+```
+-: ```kql
+SecurityIncident
+| where TimeGenerated > ago(7d)
+| where Severity == "High"
+```
+|| Liste des incidents, pas de l'état des automatisations.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(7d)
+| where OperationNameValue has "logic"
+```
+|| Opérations de gestion sur les ressources Logic Apps, pas exécutions déclenchées par Sentinel.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(7d)
+```
+|| Disponibilité des agents.
+=: **SentinelHealth** (après activation de l'audit et de la surveillance de l'intégrité) enregistre les événements d'exécution des **règles d'automatisation**, **playbooks**, **règles d'analyse** et **connecteurs**, avec l'état et la description de l'erreur.
+T: Les valeurs exactes de SentinelResourceType et Status sont à vérifier dans vos données (`summarize count() by SentinelResourceType, Status`). Une règle d'analyse sur cette table peut alerter en cas d'échec d'automatisation critique.
+R: La liste des échecs d'automatisation avec la ressource concernée et la description.
+S: Hypothèse sur les libellés de SentinelResourceType (« Automation rule », « Playbook ») ; ils peuvent différer selon la version.
+!: Échecs d'automatisation = SentinelHealth (à activer), filtrée par type de ressource et statut.
+
+### Scénario J3 — Boucle d'automatisation
+@ niveau=A ref=sent-automation-rules obj=1
+?: **Scénario J (suite) :** une règle d'automatisation « lors de la mise à jour d'un incident » ajoute une balise ; une autre, déclenchée aussi à la mise à jour, change la gravité. Les incidents subissent des dizaines de modifications. **Question :** quelle correction est la plus appropriée ?
++: Restreindre les conditions des règles déclenchées à la mise à jour (par exemple « Statut modifié en Actif » ou « Alertes ajoutées ») pour qu'une modification faite par une règle ne déclenche pas l'autre en boucle.
+-: Supprimer toutes les règles d'automatisation. || Perte de l'automatisation utile.
+-: Augmenter le nombre de règles pour compenser. || Aggraverait le problème.
+-: Passer les incidents en gravité Informationnelle. || Ne traite pas la cause et fausse la priorisation.
+=: Les déclencheurs « à la mise à jour » peuvent réagir aux changements effectués par d'autres règles. Des **conditions précises** sur le type de mise à jour (champ modifié, valeur) évitent les **boucles**.
+T: Documenter l'ordre et l'intention de chaque règle ; tester sur un espace de développement ; surveiller SentinelHealth. Préférer consolider des actions dans une seule règle quand c'est possible.
+!: Boucles d'automatisation = conditions de mise à jour trop larges ; cibler le champ modifié.
+
+### Scénario J4 — Action automatique trop agressive
+@ niveau=A ref=xdr-custom-det,mde-response-device obj=1
+?: **Scénario J (suite) :** une détection personnalisée Defender XDR isole automatiquement tout appareil exécutant `psexec.exe`. Un matin, 60 serveurs sont isolés lors d'un déploiement légitime de l'équipe d'exploitation. **Question :** quelle correction est la plus adaptée ?
++: Affiner la requête (exclure les comptes et serveurs de déploiement légitimes, cibler des combinaisons suspectes), et réserver l'isolation automatique aux détections à très haute confiance ; libérer les serveurs après vérification.
+-: Garder la règle telle quelle, la sécurité prime sur la production. || Une automatisation qui interrompt régulièrement la production finira désactivée ou contournée.
+-: Supprimer définitivement toutes les détections personnalisées. || Perte de détections utiles.
+-: Désactiver Defender for Endpoint sur les serveurs. || Supprime la protection.
+=: Les **actions automatiques** (isolation, quarantaine) doivent reposer sur des détections à **très faible taux de faux positifs**. PsExec est un outil d'administration légitime : la détection doit cibler un contexte suspect (compte inhabituel, source inconnue, binaire renommé, cible sensible).
+T: Une approche graduée : alerte seule pour les détections moyennes, action automatique pour les détections à haute confiance, coordination avec l'exploitation (fenêtres de changement, comptes dédiés). Les actions sont réversibles via le Centre de notifications.
+!: Action automatique = détection à très haute confiance ; affiner avant d'automatiser l'isolation.
+
+### Scénario J5 — Bonnes pratiques d'automatisation
+@ niveau=I ref=sent-playbooks,sent-roles obj=1
+?: **Scénario J (suite) :** le SOC formalise ses règles pour les playbooks. **Question :** quelles pratiques recommander ? (Sélectionnez deux réponses.)
+@ multi=2
++: Utiliser des identités managées avec le moindre privilège et journaliser les actions des playbooks (commentaires dans l'incident).
++: Versionner et déployer les playbooks et règles d'automatisation via un dépôt (Repositories / CI-CD), avec tests sur un environnement de développement.
+-: Partager un compte d'administrateur général dans toutes les connexions des playbooks. || Privilèges excessifs, secret partagé, pas de traçabilité.
+-: Donner le rôle Logic App Contributor à tous les analystes N1. || Les N1 n'ont besoin que de lancer des playbooks (Playbook Operator).
+-: Désactiver la surveillance de l'intégrité pour réduire les coûts. || On perdrait la détection des échecs d'automatisation.
+=: Les playbooks doivent suivre le **moindre privilège** (identité managée, permissions minimales), être **traçables** (commentaires, SentinelHealth) et **gérés comme du code** (versionnement, revue, tests, déploiement automatisé).
+T: Rôles : Playbook Operator pour exécuter, Logic App Contributor pour éditer, Automation Contributor pour le compte de service Sentinel. Revoir régulièrement les playbooks et leurs connexions.
+!: Automatisation fiable = identités managées à moindre privilège + traçabilité + gestion « as code ».

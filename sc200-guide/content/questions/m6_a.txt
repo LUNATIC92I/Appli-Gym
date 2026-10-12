@@ -1,0 +1,447 @@
+@@ module=6
+@@ section=Scénario A — Compte Microsoft Entra ID compromis
+
+### Scénario A1 — Premier signal
+@ niveau=I ref=entra-risks,xdr-incidents obj=2
+?: **Scénario A :** chez Fabrikam, l'incident Defender XDR n° 4512 regroupe : une détection Entra ID Protection « Unfamiliar sign-in properties » pour la comptable l.benoit, une alerte MDCA « Suspicious inbox manipulation rule » et une alerte « Mass download » sur SharePoint, en 40 minutes. **Question :** quelle est l'évaluation initiale la plus juste ?
++: Il s'agit très probablement d'une compromission de compte cloud avec actions post-compromission (persistance dans la boîte et collecte de données) : priorité élevée, confinement de l'identité nécessaire.
+-: Trois faux positifs indépendants, à fermer séparément. || La corrélation de trois signaux de natures différentes sur le même compte en 40 minutes est un indicateur fort.
+-: Un problème de performances SharePoint. || Les signaux décrivent des comportements de sécurité, pas de performance.
+-: Une simple erreur de saisie de mot de passe. || Aucun des signaux ne correspond à un simple échec d'authentification.
+=: La **combinaison** connexion inhabituelle + règle de boîte de réception suspecte + téléchargement massif suit la chaîne typique d'une **compromission de compte** (accès initial → persistance/dissimulation → collecte/exfiltration). La corrélation XDR en un incident permet cette lecture globale.
+T: Le score de priorité et la diversité des sources (Entra ID Protection, MDCA) justifient un traitement immédiat. L'interruption automatique d'attaque peut déjà avoir agi (vérifier l'étiquette « Attack Disruption »).
+!: Plusieurs produits signalant le même compte en peu de temps = compromission probable, priorité élevée.
+
+### Scénario A2 — Confinement de l'identité
+@ niveau=I ref=entra-revoke,mdca-governance obj=2
+?: **Scénario A (suite) :** la compromission de l.benoit est confirmée (connexion depuis une IP d'hébergement étrangère, MFA satisfaite via un jeton). **Question :** quelle combinaison d'actions de confinement est la plus efficace ?
++: Désactiver temporairement le compte ou réinitialiser le mot de passe, révoquer toutes les sessions, marquer l'utilisateur comme compromis et supprimer la règle de boîte de réception malveillante.
+-: Réinitialiser le mot de passe uniquement. || Les sessions et jetons déjà émis restent valides et la règle malveillante continue d'agir.
+-: Bloquer l'IP de l'attaquant dans le pare-feu du siège. || L'accès se fait aux services cloud, sans passer par le pare-feu du siège.
+-: Isoler le poste de l'utilisatrice avec MDE. || Le poste n'est pas impliqué (accès cloud par jeton) ; l'isolation ne coupe pas l'accès de l'attaquant.
+=: Le **confinement d'identité** combine : invalidation des identifiants, **révocation des sessions** (jetons d'actualisation ; CAE pour les applications compatibles), **marquage compromis** (risque élevé → stratégies de risque), et suppression des **persistances** (règles, méthodes MFA ajoutées, applications consenties).
+T: « MFA satisfaite via un jeton » suggère un vol de session (AiTM) : la révocation est indispensable. Les actions peuvent être lancées depuis le portail Defender (page utilisateur), Entra ID ou MDCA (actions de gouvernance).
+!: Compte cloud compromis : identifiants + révocation des sessions + marquage compromis + suppression des persistances.
+
+### Scénario A3 — Source de données pour les accès
+@ niveau=I ref=purview-audit,xdr-t-CloudAppEvents obj=3
+?: **Scénario A (suite) :** la direction demande quels documents et e-mails l'attaquant a consultés. **Question :** quelles sources de données utiliser en priorité ?
++: Les journaux d'audit Microsoft 365 (Purview Audit / CloudAppEvents), filtrés sur la fenêtre de compromission et l'IP ou la session de l'attaquant, notamment FileAccessed/FileDownloaded et MailItemsAccessed.
+-: DeviceProcessEvents du poste de l'utilisatrice. || L'attaquant a agi depuis le cloud, pas depuis le poste.
+-: La table Heartbeat. || Disponibilité des agents.
+-: Le Secure Score. || Indicateur de posture.
+=: Les accès aux données Microsoft 365 sont dans **Purview Audit** et **CloudAppEvents** (chasse avancée), ou **OfficeActivity** dans Sentinel. Filtrer par **IP**/**SessionId**/agent utilisateur de l'attaquant distingue ses actions de celles de l'utilisatrice.
+T: MailItemsAccessed (Bind/Sync) indique les messages consultés ; FileDownloaded/FileAccessed les fichiers. Ces éléments déterminent les obligations de notification (données personnelles, secrets d'affaires).
+X: ```kqlx
+CloudAppEvents
+| where Timestamp between (datetime(2026-10-05 08:00) .. datetime(2026-10-05 12:00))
+| where AccountDisplayName == "Laure Benoit" and IPAddress == "203.0.113.150"
+| summarize Actions = count() by ActionType, Application
+| order by Actions desc
+```
+!: Ce que l'attaquant a consulté = audit Microsoft 365 (CloudAppEvents/OfficeActivity) filtré sur sa session/IP.
+
+### Scénario A4 — Persistance résiduelle
+@ niveau=A ref=la-t-AuditLogs,ir-consent obj=2
+?: **Scénario A (suite) :** après le confinement, une nouvelle alerte signale l'accès à la boîte de l.benoit par une application inconnue. **Question :** quelle vérification aurait dû faire partie de l'éradication ?
++: L'inventaire des applications ayant reçu un consentement de l'utilisatrice (et des secrets/identifiants d'application ajoutés) pendant la compromission, avec révocation des octrois illégitimes.
+-: La réinstallation du poste de l'utilisatrice. || L'accès passe par une application cloud.
+-: La désactivation de Safe Links. || Sans rapport et contre-productif.
+-: La suppression de toutes les applications d'entreprise du locataire. || Disproportionné.
+=: Les attaquants créent des **persistances** indépendantes du mot de passe : **consentements OAuth** (T1528), **méthodes MFA** ajoutées, **appareils** enregistrés, **règles** de boîte. L'éradication doit les inventorier (AuditLogs : « Consent to application », « Add OAuth2PermissionGrant », « User registered security info »…) et les supprimer.
+T: Defender for Cloud Apps (gouvernance des applications) aide à repérer et désactiver les applications OAuth à risque ; MicrosoftGraphActivityLogs montre leurs appels.
+!: Éradication d'un compte cloud : vérifier consentements OAuth, méthodes MFA, appareils et règles ajoutés.
+
+### Scénario A5 — Amélioration après incident
+@ niveau=I ref=entra-ca,entra-risk-policies obj=1
+?: **Scénario A (suite) :** le retour d'expérience montre que le jeton a été volé via une page AiTM et qu'aucune stratégie de risque n'était active. **Question :** quelles améliorations prioriser ? (Sélectionnez deux réponses.)
+@ multi=2
++: Activer les stratégies d'accès conditionnel basées sur le risque (connexion → MFA, utilisateur → changement de mot de passe sécurisé).
++: Exiger une authentification résistante à l'hameçonnage (FIDO2/passkeys, Windows Hello) et des appareils conformes pour les rôles sensibles comme la comptabilité.
+-: Supprimer la MFA, inefficace contre l'AiTM. || La MFA reste indispensable ; il faut la renforcer, pas la supprimer.
+-: Désactiver Entra ID Protection. || Supprimerait des détections clés.
+-: Augmenter la durée de vie des sessions pour limiter les invites. || Augmente la fenêtre d'exploitation d'un jeton volé.
+=: Les **stratégies de risque** automatisent la remédiation ; la **MFA résistante à l'hameçonnage** et l'exigence d'**appareils conformes** empêchent la réutilisation d'un cookie volé par un proxy AiTM.
+T: Compléter par une règle Sentinel/détection personnalisée sur les connexions depuis des hébergeurs suivies d'une création de règle de boîte (corrélation testée dans ce scénario), et par la formation des utilisateurs.
+!: Après un AiTM : stratégies de risque + MFA résistante à l'hameçonnage + appareils conformes.
+
+@@ section=Scénario B — Hameçonnage suivi d'une exécution de processus
+
+### Scénario B1 — Portée de la campagne
+@ niveau=I ref=mdo-explorer-hunting,xdr-t-EmailEvents obj=2
+?: **Scénario B :** chez Contoso, MDE alerte sur `winword.exe → powershell.exe -enc ...` sur le poste PC-0423 de m.henry, 6 minutes après la réception d'un e-mail « Facture_Octobre.docm ». **Question :** quelle requête permet d'identifier les autres destinataires du même message ?
++: ```kqlx
+EmailAttachmentInfo
+| where Timestamp > ago(2d)
+| where FileName =~ "Facture_Octobre.docm"
+| join kind=inner (EmailEvents | where Timestamp > ago(2d)) on NetworkMessageId, RecipientEmailAddress
+| project Timestamp, RecipientEmailAddress, SenderFromAddress, Subject, DeliveryAction, LatestDeliveryLocation, SHA256
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(2d)
+| where FileName =~ "powershell.exe"
+```
+|| Liste toutes les exécutions PowerShell du parc, sans lien avec les destinataires du message.
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(2d)
+| where RecipientEmailAddress =~ "m.henry@contoso.com"
+```
+|| Limité à la seule victime connue.
+-: ```kqlx
+IdentityLogonEvents
+| where Timestamp > ago(2d)
+| where AccountUpn =~ "m.henry@contoso.com"
+```
+|| Authentifications de la victime, pas destinataires du message.
+=: Le nom (ou mieux, le **SHA256**) de la pièce jointe dans **EmailAttachmentInfo**, joint à **EmailEvents** (NetworkMessageId + RecipientEmailAddress), donne tous les **destinataires** et l'état de remise actuel (**LatestDeliveryLocation**).
+T: Étapes suivantes : purger les messages (Threat Explorer/Take action), vérifier l'ouverture sur les autres postes (DeviceFileEvents/DeviceProcessEvents avec le SHA256), bloquer l'expéditeur et le hachage.
+R: Les destinataires du message piégé, l'expéditeur, l'état de remise et le hachage.
+!: Portée d'un hameçonnage = EmailAttachmentInfo/EmailUrlInfo ⨝ EmailEvents.
+
+### Scénario B2 — Action immédiate sur le poste
+@ niveau=I ref=mde-response-device obj=2
+?: **Scénario B (suite) :** PowerShell sur PC-0423 a établi une connexion HTTPS vers 198.51.100.23 et créé une tâche planifiée. **Question :** quelle action immédiate privilégier ?
++: Isoler PC-0423 via MDE (isolation complète), puis collecter le package d'investigation.
+-: Supprimer la tâche planifiée et laisser le poste connecté. || L'implant reste actif et en communication.
+-: Éteindre le poste. || Perte de la mémoire volatile et de la capacité d'agir à distance.
+-: Désinstaller Office sur le poste. || Ne traite pas la compromission en cours.
+=: Une **communication sortante** et une **persistance** indiquent une compromission active : l'**isolation** coupe le canal de commande et contrôle tout en préservant la gestion MDE et les preuves.
+T: L'isolation peut être déclenchée automatiquement par une règle de détection personnalisée (macro → PowerShell encodé → réseau). Vérifier si l'interruption automatique d'attaque a déjà agi.
+!: Implant actif (C2 + persistance) = isoler d'abord, collecter ensuite.
+
+### Scénario B3 — Décoder la charge
+@ niveau=A ref=kql-base64,xdr-t-DeviceProcessEvents obj=3
+?: **Scénario B (suite) :** la ligne de commande contient une longue chaîne Base64 après `-enc`. **Question :** quelle approche permet de lire la commande et d'en extraire d'autres IOC ?
++: Extraire la chaîne avec `extract()` puis la décoder avec `base64_decode_tostring()` (en tenant compte de l'encodage UTF-16LE), ou utiliser l'analyse de script de Copilot dans Defender.
+-: Rechercher la chaîne Base64 sur Internet. || Peut divulguer des informations sensibles et ne décode rien de façon fiable.
+-: Supprimer la ligne de commande des journaux. || Destruction de preuves.
+-: Convertir la chaîne en majuscules. || Sans effet sur le décodage.
+=: La commande encodée se décode en KQL (`extract` + `base64_decode_tostring`) ou avec l'**analyse de script** de Copilot. Elle révèle souvent l'URL de téléchargement de la seconde charge, des domaines et des techniques (contournement d'AMSI, désactivation de la journalisation).
+T: Les nouveaux IOC (URL, domaine, IP) alimentent la chasse sur tout le parc et les indicateurs de blocage (MDE, liste d'autorisation/blocage du locataire).
+!: Décoder la commande (`base64_decode_tostring` ou Copilot) pour obtenir de nouveaux IOC.
+
+### Scénario B4 — Propagation éventuelle
+@ niveau=A ref=xdr-t-DeviceNetworkEvents obj=3
+?: **Scénario B (suite) :** vous voulez savoir si d'autres appareils ont contacté 198.51.100.23 ou exécuté le même script. **Question :** quelle requête est la plus utile ?
++: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemoteIP == "198.51.100.23"
+| summarize Connexions = count(), Premiere = min(Timestamp), Processus = make_set(InitiatingProcessFileName) by DeviceName
+| order by Premiere asc
+```
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where DeviceName == "PC-0423"
+```
+|| Ne concerne que l'appareil déjà connu.
+-: ```kqlx
+DeviceInfo
+| where Timestamp > ago(7d)
+| summarize count() by OSPlatform
+```
+|| Inventaire des systèmes, sans lien avec l'IP de C2.
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(7d)
+| where SenderIPv4 == "198.51.100.23"
+```
+|| Cherche l'IP comme émetteur d'e-mails, pas comme destination des connexions des postes.
+=: La recherche de l'**IP de commande et contrôle** dans **DeviceNetworkEvents** sur tout le parc identifie les appareils touchés, l'ordre d'apparition (patient zéro) et les processus responsables.
+T: Compléter avec le hachage du script (DeviceProcessEvents/DeviceFileEvents) et les domaines associés (RemoteUrl). Les appareils trouvés doivent être isolés et analysés.
+R: La liste des appareils ayant contacté l'IP avec la première connexion et les processus.
+!: Après un premier poste compromis, chercher l'IOC réseau sur tout le parc (DeviceNetworkEvents).
+
+### Scénario B5 — Prévention future
+@ niveau=I ref=mde-asr,mdo-safe-attachments obj=1
+?: **Scénario B (suite) :** pour éviter que ce scénario se reproduise, quelles mesures préventives sont les plus efficaces ? (Sélectionnez deux réponses.)
+@ multi=2
++: Activer en mode Bloquer la règle ASR « Bloquer toutes les applications Office pour créer des processus enfants » (après audit).
++: Renforcer la protection de la messagerie : pièces jointes sécurisées, blocage des macros provenant d'Internet et stratégies prédéfinies Standard/Strict.
+-: Désactiver PowerShell pour tous les administrateurs. || Gêne l'administration et ne cible pas le vecteur.
+-: Autoriser les macros pour tous les documents afin de réduire les alertes. || Augmente le risque.
+-: Supprimer les alertes MDE de type PowerShell. || Masque la détection.
+=: La chaîne **document Office → interpréteur** est coupée par la **règle ASR** dédiée ; la **protection de la messagerie** réduit la remise des documents piégés. Les deux couches sont complémentaires (défense en profondeur).
+T: Mesures additionnelles : blocage des macros VBA des fichiers marqués Internet (Mark of the Web), simulation d'attaques pour la sensibilisation, détection personnalisée avec isolation automatique.
+!: Office → PowerShell : règle ASR en Bloquer + protection de la messagerie.
+
+@@ section=Scénario C — Activité de type rançongiciel sur plusieurs terminaux
+
+### Scénario C1 — Signaux simultanés
+@ niveau=I ref=ir-ransomware obj=2
+?: **Scénario C :** à 23 h 10, MDE signale sur 12 serveurs : arrêt de services de sauvegarde, `vssadmin delete shadows`, puis renommages massifs vers `.lockx`. Les alertes portent l'étiquette « Attack Disruption ». **Question :** quelle est la priorité de l'analyste d'astreinte ?
++: Vérifier les actions de confinement déjà appliquées (appareils et comptes contenus), étendre le confinement aux systèmes non couverts, et déclencher la procédure d'escalade de crise rançongiciel.
+-: Lancer immédiatement la restauration des serveurs. || La propagation n'est pas encore stoppée et les sauvegardes pourraient être chiffrées.
+-: Fermer les alertes, l'interruption automatique ayant tout réglé. || L'interruption contient mais n'éradique pas.
+-: Attendre le matin pour avoir toute l'équipe. || Un rançongiciel actif impose une réponse immédiate.
+=: Face à un **rançongiciel actif**, la priorité est de **stopper la propagation** : vérifier et compléter les confinements (appareils non gérés, comptes utilisés), escalader (cellule de crise), protéger les sauvegardes. L'étiquette « Attack Disruption » indique des actions automatiques à vérifier dans le Centre de notifications.
+T: Identifier le compte utilisé pour le déploiement (souvent un administrateur de domaine) et le mécanisme (GPO, PsExec, tâches) pour les neutraliser rapidement.
+!: Rançongiciel actif : vérifier/étendre le confinement et escalader immédiatement.
+
+### Scénario C2 — Compte de déploiement
+@ niveau=A ref=xdr-t-DeviceProcessEvents obj=3
+?: **Scénario C (suite) :** vous devez identifier le compte et le mécanisme utilisés pour lancer le chiffreur sur les 12 serveurs. **Question :** quelle requête est la plus pertinente ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where ProcessCommandLine has_all ("vssadmin", "delete", "shadows")
+| summarize Serveurs = dcount(DeviceId), Premier = min(Timestamp) by AccountName, AccountDomain, InitiatingProcessFileName, InitiatingProcessParentFileName
+| order by Premier asc
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| summarize count() by FileName
+| top 10 by count_
+```
+|| Les processus les plus fréquents du parc, sans lien avec l'attaque.
+-: ```kqlx
+DeviceInfo
+| where Timestamp > ago(1d)
+| where DeviceName startswith "SRV"
+```
+|| Inventaire des serveurs, sans le compte ni le mécanisme.
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(1d)
+| where ThreatTypes has "Malware"
+```
+|| Messages malveillants, sans lien direct avec le déploiement sur les serveurs.
+=: Les commandes de suppression des clichés, exécutées sur chaque serveur, portent le **compte** utilisé et le **processus parent** (par exemple PSEXESVC.exe, wmiprvse.exe, svchost.exe pour une tâche planifiée, gpscript.exe pour une GPO), ce qui révèle le **mécanisme de déploiement**.
+T: Désactiver immédiatement ce compte (et contenir l'utilisateur), neutraliser le mécanisme (GPO, tâches), puis rechercher son origine (vol d'identifiants, DCSync).
+R: Le ou les comptes et processus parents ayant exécuté la commande, avec le nombre de serveurs et la première occurrence.
+!: Commande précurseur → compte + processus parent = mécanisme de déploiement à neutraliser.
+
+### Scénario C3 — Serveurs non gérés
+@ niveau=I ref=mde-response-device,mde-device-discovery obj=2
+?: **Scénario C (suite) :** la découverte des appareils montre deux anciens serveurs non intégrés à MDE qui communiquent avec les serveurs chiffrés. **Question :** quelle action est disponible immédiatement ?
++: Contenir ces appareils (Contain device) afin que les appareils intégrés bloquent toute communication avec eux, en attendant une intervention physique ou réseau.
+-: Les isoler avec l'action d'isolation MDE. || L'isolation nécessite que l'appareil soit intégré.
+-: Lancer une analyse antivirus à distance. || Impossible sans agent.
+-: Les ignorer car ils ne sont pas gérés. || Ils peuvent être des relais de propagation.
+=: **Contain device** s'applique aux appareils **non intégrés** : les appareils gérés bloquent les communications avec eux, ce qui limite leur rôle dans la propagation.
+T: Compléter par une coupure réseau (VLAN, ACL) et prévoir leur intégration ou leur remplacement. La découverte des appareils aide à réduire ces angles morts avant un incident.
+!: Appareil non géré impliqué dans une attaque = Contain device + mesure réseau.
+
+### Scénario C4 — Communication de crise
+@ niveau=D ref=ir-planning obj=2
+?: **Scénario C (suite) :** la messagerie et Teams fonctionnent encore, mais le contrôleur de domaine est compromis. **Question :** comment organiser la communication de la cellule de crise ?
++: Utiliser le canal hors bande prévu (téléphonie, outil de collaboration indépendant, comptes de secours) pour éviter que l'attaquant, qui contrôle l'annuaire, n'observe les échanges.
+-: Créer une équipe Teams « Crise rançongiciel » dans le locataire de production. || L'attaquant pourrait y accéder via l'annuaire compromis.
+-: Envoyer un e-mail à tous les employés détaillant les mesures techniques. || Divulgation des mesures à l'attaquant et diffusion excessive.
+-: Suspendre toute communication jusqu'à la fin de l'incident. || La coordination est indispensable.
+=: Un **domaine compromis** peut donner à l'attaquant l'accès aux comptes et outils de communication liés à l'annuaire. Le plan de réponse doit prévoir un **canal hors bande** et des comptes de secours.
+T: Communiquer aux employés des consignes simples (ne pas éteindre les postes, signaler les anomalies) via un canal sûr, et réserver les détails techniques à la cellule de crise.
+!: Annuaire compromis = communication de crise hors bande.
+
+### Scénario C5 — Retour à la normale
+@ niveau=A ref=ir-ransomware,mdi-alerts obj=2
+?: **Scénario C (suite) :** l'enquête montre un DCSync réalisé trois semaines avant le chiffrement. **Question :** quelles actions sont indispensables avant de remettre l'environnement en production ? (Sélectionnez deux réponses.)
+@ multi=2
++: Réinitialiser deux fois le mot de passe du compte krbtgt et tous les comptes à privilèges et de service potentiellement exposés.
++: Restaurer à partir de sauvegardes vérifiées antérieures à l'intrusion (ou reconstruire) et supprimer toutes les persistances identifiées.
+-: Restaurer la sauvegarde de la veille du chiffrement sans contrôle. || Elle contient très probablement la persistance de l'attaquant (intrusion trois semaines avant).
+-: Payer la rançon pour obtenir l'outil de déchiffrement et reprendre l'activité. || Ne traite ni l'accès de l'attaquant ni la persistance ; décision qui ne relève pas du SOC.
+-: Désactiver Defender for Identity pour accélérer la remise en service. || Supprimerait la surveillance de l'annuaire au moment le plus sensible.
+=: Un **DCSync** signifie que l'attaquant possède potentiellement les **hachages de tous les comptes**, y compris **krbtgt** (Golden Ticket). La remise en production exige la **réinitialisation des secrets** (double réinitialisation de krbtgt, comptes à privilèges et de service) et une **restauration propre** sans persistance.
+T: Surveillance renforcée après la reprise : détections ciblées sur les TTP observés, alertes MDI, chasse régulière. Le retour d'expérience doit traiter le délai de trois semaines entre l'intrusion et le chiffrement (détection tardive).
+!: Après DCSync : double reset krbtgt + comptes sensibles, restauration propre ; sinon l'attaquant revient.
+
+@@ section=Scénario D — Connexion depuis une localisation inhabituelle
+
+### Scénario D1 — Qualifier l'alerte
+@ niveau=I ref=entra-risks,mdca-anomaly obj=2
+?: **Scénario D :** une alerte « Atypical travel » signale p.durand connecté depuis Lyon puis, 50 minutes plus tard, depuis Montréal. **Question :** quelle première vérification permet souvent de qualifier rapidement l'alerte ?
++: Vérifier si l'une des IP appartient à un VPN, un proxy cloud ou un service d'accès sécurisé utilisé par l'entreprise, et comparer appareils et agents utilisateur des deux connexions.
+-: Désactiver immédiatement le compte sans autre vérification. || Mesure possible en cas de doute fort, mais une vérification rapide évite de bloquer un utilisateur légitime.
+-: Ignorer l'alerte car les deux villes sont francophones. || Argument sans valeur technique.
+-: Réinitialiser tous les mots de passe de l'entreprise. || Disproportionné.
+=: Les détections de **voyage atypique/impossible** sont sensibles aux **VPN** et **proxys**. La comparaison des **IP** (ASN, fournisseur), des **appareils** (ID, conformité), des **agents utilisateur** et des **applications** distingue un faux positif d'une session volée.
+T: Sources : SigninLogs (DeviceDetail, UserAgent, NetworkLocationDetails, AutonomousSystemNumber), Entra ID Protection, MDCA. Déclarer les plages IP de confiance (emplacements nommés) réduit ces alertes.
+!: Voyage atypique : vérifier VPN/proxy, appareil et agent utilisateur avant de conclure.
+
+### Scénario D2 — Requête de contexte
+@ niveau=I ref=la-t-SigninLogs obj=3
+?: **Scénario D (suite) :** vous voulez comparer en détail les connexions de p.durand sur 24 heures. **Question :** quelle requête Sentinel est la plus utile ?
++: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where UserPrincipalName =~ "p.durand@contoso.com"
+| extend Ville = tostring(LocationDetails.city), Appareil = tostring(DeviceDetail.displayName), Conforme = tostring(DeviceDetail.isCompliant)
+| project TimeGenerated, IPAddress, Ville, AppDisplayName, Appareil, Conforme, UserAgent, ResultType, RiskLevelDuringSignIn
+| order by TimeGenerated asc
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| summarize count() by Location
+```
+|| Statistiques globales par pays, sans détail sur l'utilisateur.
+-: ```kql
+AuditLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "Update user"
+```
+|| Modifications d'utilisateurs, pas connexions.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where Account has "p.durand"
+```
+|| Événements Windows locaux, pas connexions cloud.
+=: La chronologie détaillée des connexions (IP, ville, application, appareil, conformité, agent utilisateur, risque) permet de vérifier si les deux connexions proviennent du même appareil géré (VPN probable) ou d'un appareil inconnu (compromission probable).
+T: Ajouter AADNonInteractiveUserSignInLogs pour les renouvellements de jetons. Un appareil conforme identique pour les deux villes oriente vers un VPN ; un appareil absent et un agent utilisateur différent orientent vers une session volée.
+R: La chronologie détaillée des connexions de l'utilisateur sur 24 heures.
+!: Qualifier une localisation inhabituelle = comparer IP, appareil, conformité, agent utilisateur, application.
+
+### Scénario D3 — Session volée confirmée
+@ niveau=I ref=entra-revoke obj=2
+?: **Scénario D (suite) :** la connexion de Montréal provient d'un appareil inconnu, sans conformité, avec un agent utilisateur de script, et a accédé à OneDrive. **Question :** quelle est la meilleure réponse ?
++: Confirmer la compromission (marquer l'utilisateur compromis), révoquer les sessions, réinitialiser les identifiants et examiner les accès OneDrive depuis cette IP.
+-: Fermer l'alerte comme faux positif lié au VPN. || Les indices pointent vers une session illégitime.
+-: Isoler le poste de p.durand à Lyon. || L'attaquant n'utilise pas ce poste.
+-: Bloquer OneDrive pour toute l'entreprise. || Disproportionné.
+=: Les indices (appareil inconnu, non conforme, agent de script) confirment une **session illégitime**. La réponse cible l'**identité** (marquage, révocation, identifiants) et l'**impact** (accès OneDrive).
+T: Une stratégie d'accès conditionnel exigeant un appareil conforme pour accéder aux données aurait limité l'impact. Vérifier aussi l'origine du vol (hameçonnage, malware voleur d'informations sur un appareil personnel).
+!: Session illégitime confirmée : marquer compromis, révoquer, réinitialiser, mesurer l'impact.
+
+### Scénario D4 — Détection future
+@ niveau=A ref=sent-scheduled,la-t-SigninLogs obj=1
+?: **Scénario D (suite) :** le SOC veut une règle Sentinel détectant les connexions réussies depuis un appareil non conforme et un pays jamais vu pour l'utilisateur. **Question :** quel paramétrage de la règle est le plus approprié ?
++: Une règle planifiée (par exemple toutes les heures, avec une référence de 14 jours dans la requête), avec mappage des entités Account et IP et regroupement des alertes par utilisateur.
+-: Une règle NRT sans référence historique. || Les règles NRT ne conviennent pas aux comparaisons avec un historique de 14 jours.
+-: Une règle Fusion personnalisée. || La logique de Fusion n'est pas modifiable.
+-: Une règle d'anomalie en mode Production sans test. || Les anomalies ne créent pas d'alertes et ne se paramètrent pas par requête.
+=: Une **règle planifiée** permet une logique de **référence** (pays connus sur 14 jours, via une fenêtre de recherche adaptée) et le filtrage sur `DeviceDetail.isCompliant`. Le **mappage d'entités** permet la corrélation et l'automatisation.
+T: La fenêtre de recherche d'une règle planifiée peut aller jusqu'à 14 jours : la référence doit tenir dans cette limite (ou s'appuyer sur une table de synthèse/watchlist mise à jour périodiquement). L'UEBA fournit aussi des indicateurs « première connexion depuis ce pays ».
+!: Logique de référence historique = règle planifiée (lookback ≤ 14 jours) avec entités mappées.
+
+### Scénario D5 — Faux positif récurrent de voyage
+@ niveau=I ref=entra-ca,mdca-anomaly obj=1
+?: **Scénario D (suite) :** l'équipe commerciale utilise un VPN d'entreprise sortant par plusieurs pays, ce qui génère chaque semaine des alertes de voyage atypique. **Question :** quelle correction est la plus adaptée ?
++: Déclarer les plages IP de sortie du VPN comme emplacements nommés de confiance (Entra ID) et comme plages d'entreprise dans Defender for Cloud Apps.
+-: Désactiver Entra ID Protection pour l'équipe commerciale. || Supprimerait toute détection de risque pour ces utilisateurs exposés.
+-: Exclure les commerciaux de toute stratégie d'accès conditionnel. || Affaiblit fortement leur sécurité.
+-: Fermer automatiquement toutes les alertes de voyage. || Les vraies compromissions seraient aussi fermées.
+=: Les **emplacements nommés de confiance** et les **plages IP d'entreprise** sont pris en compte par les détections de risque et les anomalies MDCA, ce qui réduit les faux positifs liés aux VPN sans désactiver la détection.
+T: Revoir la liste périodiquement (nouveaux points de sortie, changement de fournisseur). Documenter la décision dans le registre des exceptions.
+!: Faux positifs VPN = déclarer les IP de sortie comme emplacements de confiance (Entra) / plages d'entreprise (MDCA).
+
+@@ section=Scénario E — Règle analytique Sentinel générant trop de faux positifs
+
+### Scénario E1 — Diagnostic
+@ niveau=I ref=sent-scheduled-details,la-t-SecurityIncident obj=1
+?: **Scénario E :** la règle « Exécution de PowerShell encodé » génère 300 incidents par semaine, dont 95 % classés faux positifs. **Question :** quelle première étape d'analyse est la plus utile ?
++: Analyser les incidents classés faux positifs pour identifier les sources communes (comptes, processus parents, appareils, outils légitimes) à l'aide des données de la règle et de SecurityIncident/SecurityAlert.
+-: Supprimer la règle. || On perdrait la détection d'une technique fréquemment utilisée par les attaquants.
+-: Augmenter la gravité de la règle. || Ne réduit pas le bruit.
+-: Réduire la fréquence d'exécution à 14 jours. || Retarde la détection sans réduire les faux positifs.
+=: Avant de modifier une règle, on **mesure** : quelles entités et quels contextes produisent les faux positifs (outil de déploiement, agent de supervision, script d'administration signé). Les classifications des incidents fournissent la base de cette analyse.
+T: Requête utile : joindre SecurityIncident (Classification == "FalsePositive" ou "BenignPositive") à SecurityAlert (Entities, ExtendedProperties) pour compter les entités récurrentes. Les optimisations SOC peuvent aussi signaler les règles bruyantes.
+!: Règle bruyante : d'abord analyser les faux positifs (entités récurrentes), ensuite ajuster.
+
+### Scénario E2 — Ajuster la logique
+@ niveau=A ref=sent-watchlists,kql-lookup obj=3
+?: **Scénario E (suite) :** 90 % des faux positifs proviennent de l'agent de déploiement « DeployAgent.exe » (processus parent) sur des serveurs listés dans la watchlist « ServeursDeploiement ». **Question :** quelle modification de requête est la plus appropriée ?
++: ```kql
+let Serveurs = _GetWatchlist("ServeursDeploiement") | project DeviceName = tolower(SearchKey);
+DeviceProcessEvents
+| where TimeGenerated > ago(1h)
+| where FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has_any ("-enc", "-encodedcommand")
+| extend DeviceName = tolower(DeviceName)
+| join kind=leftanti (Serveurs) on DeviceName
+| union (
+    DeviceProcessEvents
+    | where TimeGenerated > ago(1h)
+    | where FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has_any ("-enc", "-encodedcommand")
+    | where InitiatingProcessFileName !~ "DeployAgent.exe"
+  )
+| distinct TimeGenerated, DeviceName, AccountName, InitiatingProcessFileName, ProcessCommandLine
+```
+-: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1h)
+| where FileName in~ ("powershell.exe", "pwsh.exe")
+| where InitiatingProcessFileName !~ "DeployAgent.exe"
+```
+|| Supprime aussi le filtre sur les commandes encodées : la règle remonterait toute exécution PowerShell.
+-: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1h)
+| where ProcessCommandLine has_any ("-enc", "-encodedcommand")
+| where DeviceName !startswith "SRV"
+```
+|| Exclut tous les serveurs (dont des serveurs critiques) au lieu de la seule combinaison légitime.
+-: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1h)
+| where FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has_any ("-enc", "-encodedcommand")
+| where AccountName == "inconnu"
+```
+|| Filtre arbitraire qui supprimerait presque toutes les détections.
+=: L'exclusion doit cibler **la combinaison** légitime (agent de déploiement **sur** les serveurs de déploiement). La requête conserve les exécutions encodées hors serveurs de déploiement (`leftanti` avec la watchlist) et, sur ces serveurs, celles qui ne proviennent pas de DeployAgent.exe (`union`), puis dédoublonne.
+T: Une formulation plus simple utilise `lookup` avec la watchlist puis un filtre `where not(isnotempty(Marque) and InitiatingProcessFileName =~ "DeployAgent.exe")`. L'essentiel : ne pas exclure trop large (tous les serveurs, tout l'agent partout).
+R: Les exécutions PowerShell encodées, à l'exception de celles lancées par DeployAgent.exe sur les serveurs de déploiement.
+M: Vérifier aussi la signature et le chemin de DeployAgent.exe (un attaquant pourrait usurper ce nom) avec `InitiatingProcessFolderPath`.
+!: Exclusion ciblée = combinaison précise (processus légitime + actifs listés), jamais une exclusion large.
+
+### Scénario E3 — Tester avant de déployer
+@ niveau=I ref=sent-scheduled obj=1
+?: **Scénario E (suite) :** avant de mettre en production la nouvelle version de la règle, comment évaluer son volume d'alertes ?
++: Utiliser la simulation de résultats de l'assistant de règle (« Test with current data ») et exécuter la requête sur une période représentative pour estimer le nombre d'alertes.
+-: Déployer directement en production et attendre une semaine. || On découvrirait le bruit trop tard.
+-: Désactiver toutes les autres règles pendant le test. || Inutile et dangereux.
+-: Ajouter une règle d'automatisation qui ferme tout. || Masquerait le problème.
+=: L'assistant de création de règles planifiées affiche une **simulation** du nombre de résultats sur les données actuelles. Exécuter la requête manuellement sur plusieurs jours confirme le volume et la pertinence.
+T: Les modifications de règles devraient passer par un dépôt (Repositories) avec revue. Une règle peut être créée **désactivée** puis activée après validation.
+!: Tester une règle = simulation de l'assistant + exécution sur une période représentative.
+
+### Scénario E4 — Regroupement et réduction des incidents
+@ niveau=I ref=sent-alert-grouping obj=1
+?: **Scénario E (suite) :** même après ajustement, un vrai positif génère une alerte par exécution PowerShell, créant 15 incidents pour une seule intrusion. **Question :** quel paramètre améliore la lisibilité sans perdre d'information ?
++: Le regroupement des alertes en incidents par entités correspondantes (Host et Account) sur une fenêtre de quelques heures.
+-: La suppression de la règle pendant 24 heures après la première alerte. || On perdrait les alertes suivantes de l'intrusion.
+-: Le passage en seuil « plus de 15 résultats ». || Retarderait la détection.
+-: La réduction de la gravité. || Ne regroupe rien.
+=: Le **regroupement d'alertes** (paramètres d'incident) rattache les alertes partageant des entités à un même incident, ce qui conserve toutes les alertes tout en réduisant le nombre d'incidents.
+T: Dans le portail Defender, la corrélation XDR peut aussi rattacher ces alertes à d'autres signaux de l'intrusion. Bien choisir les entités pour éviter les regroupements abusifs.
+!: Trop d'incidents pour une même attaque = regroupement d'alertes par entités.
+
+### Scénario E5 — Suivi de la qualité
+@ niveau=A ref=la-t-SecurityIncident,kql-argmax obj=3
+?: **Scénario E (suite) :** le responsable SOC veut suivre chaque semaine le taux de faux positifs par règle analytique. **Question :** quelle requête est la plus adaptée ?
++: ```kql
+SecurityIncident
+| where TimeGenerated > ago(30d)
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| where Status == "Closed"
+| mv-expand RegleId = RelatedAnalyticRuleIds to typeof(string)
+| summarize Total = count(), FauxPositifs = countif(Classification == "FalsePositive") by RegleId, Semaine = startofweek(CreatedTime)
+| extend TauxFP = round(100.0 * FauxPositifs / Total, 1)
+| order by Semaine desc, TauxFP desc
+```
+-: ```kql
+SecurityAlert
+| where TimeGenerated > ago(30d)
+| summarize count() by AlertName
+```
+|| Volume d'alertes sans notion de classification.
+-: ```kql
+SecurityIncident
+| where TimeGenerated > ago(30d)
+| summarize count() by Classification
+```
+|| Comptage global, sans déduplication ni répartition par règle.
+-: ```kql
+Usage
+| where TimeGenerated > ago(30d)
+| summarize sum(Quantity) by DataType
+```
+|| Volumes d'ingestion, sans lien avec la qualité des règles.
+=: Après déduplication (`arg_max`), on développe **RelatedAnalyticRuleIds** (règles ayant contribué à l'incident) puis on calcule, par règle et par semaine (`startofweek`), le nombre total d'incidents clos et la part de faux positifs (`countif`).
+T: Joindre ensuite l'identifiant de règle à son nom (via l'API ou SentinelHealth/SentinelAudit) pour le rapport. Un taux élevé et persistant déclenche une révision de la règle ; les classifications doivent être renseignées rigoureusement par les analystes.
+R: Pour chaque règle et chaque semaine, le nombre d'incidents clos, de faux positifs et le taux.
+!: Qualité des détections = SecurityIncident dédupliquée × RelatedAnalyticRuleIds × Classification.
