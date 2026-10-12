@@ -1,0 +1,333 @@
+@@ module=1
+@@ section=Automatisation : règles d'automatisation et playbooks
+
+### Déclencheurs des règles d'automatisation
+@ niveau=D ref=sent-automation-rules
+?: Quels événements peuvent déclencher une règle d'automatisation Microsoft Sentinel ?
++: La création d'un incident, la mise à jour d'un incident et la création d'une alerte.
+-: Uniquement la création d'un incident. || Les mises à jour d'incidents et la création d'alertes sont aussi des déclencheurs.
+-: L'ingestion de chaque nouvelle ligne dans une table. || Les règles d'automatisation réagissent aux incidents et alertes, pas à l'ingestion de données.
+-: La modification d'une règle d'analyse. || Ce n'est pas un déclencheur d'automatisation ; l'audit des modifications passe par SentinelAudit.
+=: Les **règles d'automatisation** se déclenchent **lors de la création d'un incident**, **lors de la mise à jour d'un incident** (changement de statut, de gravité, de propriétaire, ajout d'alertes, de commentaires, de balises…) et **lors de la création d'une alerte**.
+T: Actions disponibles : changer le statut, la gravité, le propriétaire, ajouter des balises, ajouter une tâche, exécuter un playbook (déclencheur incident ou alerte). Les règles sont exécutées selon leur **ordre** et peuvent avoir une **date d'expiration** (utile pour une suppression temporaire). Les conditions portent sur les propriétés de l'incident, les entités, les règles d'analyse sources, les détails personnalisés, etc.
+!: Déclencheurs : incident créé, incident mis à jour, alerte créée. Les règles s'exécutent par ordre et peuvent expirer.
+
+### Fermer automatiquement des faux positifs connus
+@ niveau=I ref=sent-create-automation-rules
+?: Pendant deux semaines, un scanner de vulnérabilités autorisé (10.10.5.20) déclenchera la règle « Balayage de ports interne ». Vous voulez fermer automatiquement les incidents correspondants comme « Benign Positive », sans modifier la règle d'analyse, et que ce comportement cesse de lui-même ensuite. Quelle solution choisir ?
++: Une règle d'automatisation déclenchée à la création d'un incident, conditionnée à la règle d'analyse concernée et à l'entité IP 10.10.5.20, qui ferme l'incident avec la classification adéquate, et dotée d'une date d'expiration.
+-: Désactiver la règle d'analyse pendant deux semaines. || Toutes les autres détections de balayage seraient perdues.
+-: Supprimer les journaux du scanner par une transformation d'ingestion. || Les journaux seraient définitivement perdus pour d'autres usages et l'exception ne serait pas temporaire.
+-: Créer un playbook planifié qui ferme chaque soir tous les incidents ouverts. || Fermerait aussi de vrais incidents : solution dangereuse.
+=: Les règles d'automatisation permettent une **suppression ciblée** : conditions sur la règle d'analyse et sur l'entité (IP), action « Changer le statut » → *Fermé* avec la classification **Benign Positive – Suspicious but expected**, et **date d'expiration** pour que l'exception disparaisse automatiquement.
+T: Préférez une condition précise (règle + entité) à une exclusion globale. Documentez l'exception (balise, commentaire). Pour une exclusion permanente, une **watchlist** d'actifs autorisés utilisée directement dans la requête de la règle est plus maintenable. Dans le portail Defender, l'**ajustement des alertes** (alert tuning) offre aussi des règles pour masquer/résoudre des alertes correspondant à des conditions.
+!: Exception temporaire et ciblée = règle d'automatisation (conditions précises + fermeture + expiration).
+
+### Ordre d'exécution des règles d'automatisation
+@ niveau=A ref=sent-automation-rules
+?: Deux règles d'automatisation se déclenchent à la création d'incidents de gravité élevée : la règle d'ordre 1 attribue l'incident à l'équipe N2 et ajoute la balise « VIP » ; la règle d'ordre 2 lance un playbook qui notifie le propriétaire de l'incident. Dans quel ordre les actions sont-elles réalisées ?
++: La règle d'ordre 1 est évaluée et exécutée avant la règle d'ordre 2 ; le playbook lancé par la règle 2 voit donc l'incident déjà attribué et balisé.
+-: Les deux règles s'exécutent en parallèle de façon aléatoire. || Les règles d'automatisation suivent leur ordre défini.
+-: Les playbooks s'exécutent toujours avant toutes les autres actions. || L'ordre défini prime ; les actions d'une règle s'exécutent dans l'ordre où elles sont listées.
+-: Seule la première règle correspondante s'exécute. || Toutes les règles dont les conditions correspondent s'exécutent, dans l'ordre.
+=: Les règles d'automatisation sont **exécutées séquentiellement selon leur numéro d'ordre** ; au sein d'une règle, les actions s'exécutent dans l'ordre de la liste. Une règle de rang supérieur peut donc préparer l'incident (propriétaire, balises, gravité) pour les suivantes.
+T: Attention aux interactions : une règle déclenchée « à la mise à jour » peut être activée par une modification faite par une autre règle. Les conditions sur la mise à jour (par exemple « Statut modifié en ») limitent les boucles. Les playbooks déclenchés sont exécutés de manière asynchrone par Logic Apps.
+!: Ordre des règles = ordre d'exécution ; une règle de rang inférieur prépare l'incident pour les suivantes.
+
+### Déclencheur de playbook recommandé
+@ niveau=I ref=sent-playbook-triggers,sent-playbooks
+?: Vous créez un playbook qui doit lire toutes les entités et alertes d'un incident, puis publier un résumé dans Microsoft Teams, et être lancé par une règle d'automatisation à la création d'incidents. Quel déclencheur Logic Apps utiliser ?
++: Le déclencheur Microsoft Sentinel « Microsoft Sentinel incident ».
+-: Le déclencheur « Recurrence » (planifié). || Un déclencheur planifié n'est pas lié à un incident et ne peut pas être lancé par une règle d'automatisation.
+-: Le déclencheur « When a HTTP request is received ». || Les règles d'automatisation exigent un déclencheur Microsoft Sentinel.
+-: Le déclencheur Microsoft Sentinel « entity ». || Le déclencheur d'entité est prévu pour un lancement manuel sur une entité, pas pour un traitement automatique de tout l'incident.
+=: Le déclencheur **Microsoft Sentinel incident** transmet l'objet incident complet (propriétés, alertes, entités) et peut être appelé par les règles d'automatisation ou manuellement depuis un incident. C'est le déclencheur recommandé dans la plupart des cas.
+T: Le déclencheur **alerte** sert aux alertes ne créant pas d'incident (ou pour des actions par alerte) ; le déclencheur **entité** permet à un analyste de lancer une action sur une entité précise (bloquer une IP, isoler un hôte) depuis l'investigation ou la chasse. Les playbooks s'authentifient auprès des connecteurs via identité managée (recommandé), principal de service ou compte utilisateur.
+!: Playbook automatique sur incident = déclencheur « Microsoft Sentinel incident ».
+
+### Identité managée pour un playbook
+@ niveau=A ref=sent-playbook-create,logic-apps
+?: Un playbook doit désactiver un utilisateur dans Microsoft Entra ID via Microsoft Graph. Quelle méthode d'authentification est recommandée pour l'action Graph du playbook ?
++: Activer l'identité managée de la Logic App et lui accorder uniquement l'autorisation Graph nécessaire (par exemple User.EnableDisableAccount.All ou un rôle Entra adapté).
+-: Enregistrer dans le playbook le mot de passe d'un compte Administrateur général. || Pratique dangereuse : secret exposé, privilèges excessifs, rotation difficile.
+-: Utiliser une connexion anonyme. || Microsoft Graph exige une authentification.
+-: Utiliser le compte personnel de l'analyste qui a créé le playbook. || La connexion cesserait de fonctionner au départ de l'analyste et les actions lui seraient attribuées.
+=: L'**identité managée** évite de gérer des secrets : Azure fournit et fait tourner automatiquement les informations d'identification. On lui accorde le **moindre privilège** nécessaire (permission d'application Graph ou rôle Entra restreint).
+T: L'identité managée peut aussi recevoir le rôle **Microsoft Sentinel Responder** sur l'espace pour mettre à jour l'incident (commentaires, statut). Les playbooks Logic Apps Standard et Consumption prennent en charge l'identité managée ; Sentinel prend en charge les deux plans pour certaines fonctionnalités, avec des différences documentées.
+!: Playbooks : identité managée + moindre privilège ; jamais de compte nominatif ou de mot de passe en clair.
+
+### Tâches d'incident
+@ niveau=I ref=sent-incident-tasks,sent-automation-rules
+?: Le SOC veut que chaque incident de type « Hameçonnage » affiche automatiquement une liste de contrôle d'investigation (vérifier les destinataires, rechercher les clics, purger les messages, réinitialiser les mots de passe). Quelle fonctionnalité utiliser ?
++: Une règle d'automatisation avec l'action « Ajouter une tâche », conditionnée aux incidents d'hameçonnage.
+-: Un classeur affiché dans chaque incident. || Un classeur visualise des données ; il ne crée pas de liste de contrôle suivie dans l'incident.
+-: Les détails personnalisés de la règle d'analyse. || Ils affichent des valeurs d'événements, pas des étapes de procédure.
+-: Une watchlist de procédures. || Une watchlist ne s'affiche pas comme liste de tâches dans l'incident.
+=: Les **tâches d'incident** standardisent la réponse : elles apparaissent dans l'incident, peuvent être cochées, et sont ajoutées automatiquement par une **règle d'automatisation** (action « Ajouter une tâche ») ou par un playbook, ou manuellement.
+T: Les tâches sont visibles dans la table SecurityIncident (champ Tasks) pour le suivi. Elles complètent les procédures documentées (runbooks) et facilitent l'audit de la réponse. Dans le portail Defender, la gestion des cas propose aussi des tâches de cas.
+!: Liste de contrôle par type d'incident = tâches d'incident ajoutées par règle d'automatisation.
+
+### Playbook sur une entité pendant la chasse
+@ niveau=I ref=sent-playbook-triggers,sent-hunting
+?: Pendant une chasse, un analyste identifie une adresse IP malveillante dans les résultats et veut la bloquer immédiatement sur le pare-feu via un playbook existant, sans créer d'incident. Quel déclencheur le playbook doit-il utiliser ?
++: Le déclencheur Microsoft Sentinel « entité » (entity trigger), exécutable manuellement sur une entité IP.
+-: Le déclencheur « incident ». || Il nécessite un incident, ce qui n'est pas le cas ici.
+-: Le déclencheur « Recurrence ». || Il ne reçoit aucune entité de l'analyste.
+-: Aucun : les playbooks ne peuvent être lancés que par des règles d'automatisation. || Les playbooks peuvent être exécutés manuellement sur un incident, une alerte ou une entité.
+=: Le **déclencheur d'entité** permet d'exécuter un playbook **à la demande** sur une entité (IP, compte, hôte, URL, hachage…) depuis la page d'investigation, la page d'entité ou les résultats de chasse.
+T: L'exécution manuelle requiert le rôle **Microsoft Sentinel Playbook Operator** (ou supérieur) sur le groupe de ressources du playbook. L'action de blocage elle-même dépend des connecteurs Logic Apps du pare-feu (API du fabricant).
+!: Action ponctuelle sur une entité sans incident = playbook à déclencheur « entité », exécuté manuellement.
+
+### Exécuter un playbook sur les alertes Defender for Cloud
+@ niveau=A ref=sent-automation-rules,mdc-workflow
+?: Vous souhaitez lancer automatiquement un playbook Sentinel pour chaque alerte Defender for Cloud ingérée, y compris lorsque l'alerte ne génère pas d'incident. Quelle configuration est appropriée dans Sentinel ?
++: Une règle d'automatisation avec le déclencheur « Lorsqu'une alerte est créée », filtrée sur le fournisseur d'alertes, qui exécute un playbook à déclencheur d'alerte.
+-: Une règle d'automatisation « Lorsqu'un incident est créé ». || Elle ne se déclenche pas si aucune alerte ne crée d'incident.
+-: Un classeur Defender for Cloud. || Un classeur ne déclenche pas d'actions.
+-: Une règle NRT qui appelle la Logic App par HTTP. || Les règles d'analyse n'appellent pas d'URL ; on passe par l'automatisation.
+=: Le déclencheur **« Lorsqu'une alerte est créée »** des règles d'automatisation exécute des playbooks à **déclencheur d'alerte**, indépendamment de la création d'incidents. On filtre sur le fournisseur (Defender for Cloud) ou sur des règles d'analyse.
+T: Côté Defender for Cloud, l'**automatisation des workflows** (workflow automation) peut aussi lancer une Logic App sur les alertes, recommandations ou changements de conformité réglementaire, sans passer par Sentinel. Le choix dépend de l'endroit où l'orchestration est centralisée.
+!: Action sur chaque alerte (même sans incident) = règle d'automatisation « alerte créée » + playbook à déclencheur d'alerte.
+
+### Automatisation des incidents dans le portail Defender
+@ niveau=A ref=sent-defender-portal,sent-automation-rules
+?: Après la connexion de Sentinel au portail Defender, une règle d'automatisation qui filtrait sur le titre exact des incidents (« Incident – Règle X ») ne se déclenche plus. Quelle est la cause la plus probable ?
++: Le moteur de corrélation Defender XDR peut renommer les incidents et en modifier la composition ; les conditions fondées sur le titre de l'incident ne sont plus fiables et doivent être remplacées par des conditions sur la règle d'analyse, les alertes ou les balises.
+-: Les règles d'automatisation sont désactivées dans le portail Defender. || Elles restent prises en charge.
+-: Les règles d'automatisation ne peuvent plus lancer de playbooks dans le portail Defender. || Les playbooks restent pris en charge.
+-: Les incidents Sentinel ne sont plus enregistrés dans SecurityIncident. || Les incidents restent synchronisés avec l'espace Sentinel.
+=: Dans le portail Defender, la création et le **nommage des incidents** sont gérés par la corrélation Defender XDR, qui peut fusionner des alertes et attribuer un titre décrivant l'attaque. Microsoft recommande de revoir les règles d'automatisation qui s'appuient sur le **titre** ou le **fournisseur d'incident**, et de privilégier des conditions sur le **nom de la règle d'analyse**, les **noms d'alertes**, les **balises** ou les entités.
+T: Vérifiez aussi les playbooks dont la logique dépend du nombre d'alertes d'un incident. La documentation « Automatisation Microsoft Sentinel dans le portail Defender » liste les différences de comportement.
+!: Portail Defender : ne pas baser l'automatisation sur le titre des incidents ; utiliser règle d'analyse, alertes, balises.
+
+### Synchronisation avec un outil ITSM
+@ niveau=I ref=sent-playbooks,logic-apps
+?: Le SOC doit créer automatiquement un ticket ServiceNow pour chaque incident de gravité élevée et inscrire le numéro de ticket dans un commentaire de l'incident Sentinel. Quelle solution est la plus adaptée ?
++: Un playbook Logic Apps (déclencheur incident) utilisant le connecteur ServiceNow, lancé par une règle d'automatisation filtrée sur la gravité élevée, qui ajoute ensuite un commentaire à l'incident.
+-: Un classeur qui exporte les incidents vers ServiceNow. || Les classeurs ne créent pas de tickets.
+-: Une règle d'analyse NRT sur la table SecurityIncident. || Une règle d'analyse génère des alertes ; elle ne crée pas de tickets externes.
+-: Exporter manuellement chaque incident en CSV. || Non automatisé et source d'erreurs.
+=: Les **playbooks** reposent sur **Azure Logic Apps** et ses centaines de connecteurs (ServiceNow, Jira, Teams, Outlook, pare-feu…). Lancés par une règle d'automatisation, ils créent le ticket puis utilisent l'action Sentinel « Ajouter un commentaire à l'incident ».
+T: Des solutions du hub de contenu fournissent des playbooks ITSM prêts à l'emploi, parfois bidirectionnels (fermeture du ticket → fermeture de l'incident). Pour la bidirectionnalité, un déclencheur côté ITSM ou un webhook est nécessaire.
+!: Intégration ITSM = playbook Logic Apps + règle d'automatisation ; Logic Apps fournit les connecteurs.
+
+### Interruption automatique d'attaque et automatisation Sentinel
+@ niveau=I ref=xdr-disruption,sent-playbooks
+?: Quelle différence fondamentale existe entre l'interruption automatique d'attaque (automatic attack disruption) de Defender XDR et un playbook Sentinel ?
++: L'interruption automatique est une capacité intégrée de Defender XDR qui contient automatiquement des actifs compromis (appareil, utilisateur) lors d'attaques à haute confiance, alors qu'un playbook est un workflow Logic Apps conçu et maintenu par le SOC.
+-: L'interruption automatique nécessite d'écrire un playbook Logic Apps pour chaque scénario. || Elle fonctionne nativement, sans playbook.
+-: Les playbooks sont toujours plus rapides car ils s'exécutent sur le terminal. || Les playbooks s'exécutent dans Azure, pas sur le terminal.
+-: L'interruption automatique ne concerne que Defender for Cloud. || Elle concerne Defender XDR (terminaux, identités, messagerie, applications cloud).
+=: L'**interruption automatique d'attaque** identifie, grâce à la corrélation XDR, des attaques en cours (rançongiciel opéré par l'humain, compromission de messagerie professionnelle, AiTM) et applique automatiquement des actions de confinement (par exemple **contenir l'appareil**, **désactiver/contenir l'utilisateur**). Les playbooks Sentinel sont des automatisations personnalisées.
+T: L'interruption requiert une configuration adéquate (MDE en mode bloc, MDI, niveaux d'automatisation adaptés, exclusions éventuelles). Les actions sont visibles dans le Centre de notifications (Action center) et l'incident porte une étiquette « Attack Disruption ». Le SOC doit ensuite investiguer et lever le confinement lorsque c'est sûr.
+!: Attack disruption = confinement natif automatique Defender XDR ; playbook = automatisation personnalisée Logic Apps.
+
+@@ section=Classeurs, chasse, UEBA, watchlists et data lake
+
+### Créer un classeur à partir d'un modèle
+@ niveau=D ref=sent-workbooks
+?: Un analyste ouvre le modèle de classeur « Microsoft Entra ID Sign-in logs » installé depuis le hub de contenu et souhaite le personnaliser. Quelle démarche est correcte ?
++: Enregistrer le modèle (« Save ») pour créer une copie dans l'espace de travail, puis modifier cette copie.
+-: Modifier directement le modèle ; les changements sont publiés pour tous les clients. || Un modèle n'est pas modifiable directement ; on travaille sur une copie enregistrée.
+-: Convertir le classeur en règle d'analyse. || Un classeur visualise des données, ce n'est pas une règle de détection.
+-: Exporter le classeur en PDF et le modifier hors ligne. || L'export PDF ne permet pas de modifier les requêtes.
+=: Les **classeurs** (workbooks) Sentinel reposent sur Azure Monitor Workbooks. Un **modèle** s'enregistre pour créer un classeur dans l'espace, que l'on peut ensuite modifier (requêtes KQL, paramètres, visualisations).
+T: Rôles : Microsoft Sentinel Contributor (ou Workbook Contributor) pour enregistrer/modifier ; Reader pour consulter. Les classeurs peuvent combiner des requêtes sur plusieurs espaces, des paramètres (période, abonnement) et des visualisations (tableaux, graphiques, cartes). Dans le portail Defender, des classeurs peuvent aussi être créés et édités avec l'aide de Copilot, et des classeurs existent pour le data lake.
+!: Modèle de classeur → « Save » pour obtenir une copie modifiable.
+
+### Paramètre de période dans un classeur
+@ niveau=I ref=sent-workbooks
+?: Dans un classeur, vous voulez que toutes les requêtes utilisent la période choisie par l'utilisateur dans un sélecteur placé en haut. Quelle approche est correcte ?
++: Créer un paramètre de type « Time range picker » (par exemple TimeRange) et utiliser ce paramètre dans les requêtes, par exemple `where TimeGenerated {TimeRange}` ou en le sélectionnant comme intervalle de la requête.
+-: Ajouter `ago(7d)` en dur dans chaque requête. || La période serait fixe et le sélecteur sans effet.
+-: Utiliser une watchlist contenant les dates. || Une watchlist n'est pas un contrôle d'interface de classeur.
+-: Créer une règle d'automatisation qui modifie les requêtes. || Les règles d'automatisation n'agissent pas sur les classeurs.
+=: Les **paramètres** de classeur (période, liste déroulante, texte, abonnement…) sont référencés dans les requêtes par `{NomParametre}`. Pour la période, la syntaxe `{TimeRange}` dans une clause `where` (ou le réglage de l'intervalle de la requête sur le paramètre) applique la sélection de l'utilisateur.
+T: Les paramètres peuvent être chaînés (une liste d'utilisateurs alimentée par une requête dépendant de la période). Les éléments du classeur peuvent être affichés conditionnellement selon la valeur d'un paramètre.
+!: Classeur interactif = paramètres `{NomParametre}` ; période = Time range picker.
+
+### Requêtes de chasse et bookmarks
+@ niveau=D ref=sent-hunting,sent-bookmarks
+?: Lors d'une chasse, un analyste trouve trois événements suspects qu'il souhaite conserver comme preuves, annoter, puis éventuellement rattacher à un incident. Quelle fonctionnalité utiliser ?
++: Les signets (bookmarks) de chasse.
+-: Les watchlists. || Elles stockent des listes de référence, pas des résultats de requête annotés.
+-: Les détails personnalisés. || Ils se configurent dans une règle d'analyse.
+-: Les tâches d'incident. || Ce sont des listes de contrôle de procédure.
+=: Les **signets** conservent des résultats de requête (lignes), avec notes, balises et **mappage d'entités**. Ils peuvent être **ajoutés à un incident existant** ou servir à **créer un incident**, et apparaissent dans le graphe d'investigation.
+T: Les signets sont stockés dans la table HuntingBookmark. Les **requêtes de chasse** (bibliothèque intégrée et personnalisées) affichent le nombre de résultats et les tactiques MITRE ; elles peuvent être exécutées en masse. La fonctionnalité **Hunts** organise une campagne de chasse (hypothèse, requêtes, signets, conclusions).
+!: Conserver et annoter des preuves de chasse = signets (bookmarks), rattachables à un incident.
+
+### Mener une campagne de chasse structurée
+@ niveau=I ref=sent-hunts,sent-hunting
+?: Suite à un rapport d'analyse des menaces sur un nouvel acteur, le SOC veut organiser une chasse : formuler une hypothèse, regrouper les requêtes, suivre l'état et documenter les conclusions. Quelle fonctionnalité Sentinel est conçue pour cela ?
++: Les chasses (Hunts) de Microsoft Sentinel.
+-: Les classeurs uniquement. || Un classeur peut visualiser des données mais ne gère pas le cycle de vie d'une chasse.
+-: Les règles d'automatisation. || Elles agissent sur les incidents et alertes, pas sur la chasse.
+-: Les optimisations SOC. || Elles recommandent des améliorations de données et de couverture, pas l'organisation d'une chasse.
+=: La fonctionnalité **Hunts** permet de créer une chasse avec une **hypothèse**, d'y associer des **requêtes**, des **signets** et des **entités**, de suivre son **statut** et de consigner les résultats (création d'incidents ou de règles d'analyse à partir des requêtes efficaces).
+T: Démarche recommandée : hypothèse → collecte des données → requêtes → analyse → conclusions → industrialisation (règle d'analyse, règle de détection personnalisée). Les **notebooks** complètent la chasse pour les analyses avancées (Python, ML, visualisations).
+!: Chasse structurée (hypothèse, requêtes, signets, conclusions) = Hunts.
+
+### Activer l'UEBA
+@ niveau=I ref=sent-ueba-enable,sent-ueba
+?: Le SOC veut bénéficier des scores de priorité d'investigation et des pages d'entités enrichies de l'analyse du comportement des utilisateurs et des entités (UEBA). Quelles étapes sont nécessaires ?
++: Activer l'UEBA dans les paramètres de Sentinel, synchroniser l'annuaire (Microsoft Entra ID et éventuellement Active Directory via Defender for Identity) et sélectionner les sources de données (par exemple journaux de connexion, journaux d'audit, Azure Activity, événements de sécurité).
+-: Installer un agent UEBA sur chaque poste. || L'UEBA de Sentinel est un service d'analyse des journaux, sans agent dédié.
+-: Créer une règle planifiée nommée « UEBA ». || L'UEBA s'active dans les paramètres, ce n'est pas une règle d'analyse.
+-: Acheter une licence Defender for Endpoint Plan 2. || L'UEBA de Sentinel ne dépend pas de MDE P2.
+=: L'**UEBA** s'active dans **Paramètres > Analyse du comportement des entités** : on choisit les **annuaires** à synchroniser (Entra ID, AD via MDI) et les **sources de données** analysées. Sentinel construit des profils de référence et calcule des anomalies.
+T: Résultats : tables **BehaviorAnalytics** (activités enrichies avec **InvestigationPriority** de 0 à 10, ActivityInsights, UsersInsights, DevicesInsights), **IdentityInfo** (informations d'identité), **UserPeerAnalytics**, et pages d'entités enrichies. Les anomalies UEBA nourrissent aussi Fusion.
+!: UEBA = paramètre à activer + synchronisation d'annuaire + sources ; résultats dans BehaviorAnalytics et IdentityInfo.
+
+### Exploiter BehaviorAnalytics
+@ niveau=A ref=sent-ueba-ref,la-t-BehaviorAnalytics
+?: Vous voulez lister, sur 7 jours, les activités utilisateur que l'UEBA juge les plus inhabituelles, avec une priorité d'investigation d'au moins 7. Quelle requête est correcte ?
++: ```kql
+BehaviorAnalytics
+| where TimeGenerated > ago(7d)
+| where InvestigationPriority >= 7
+| project TimeGenerated, UserPrincipalName, ActivityType, ActionType, SourceIPAddress, InvestigationPriority, ActivityInsights
+| order by InvestigationPriority desc
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where RiskLevelDuringSignIn == "high"
+| project TimeGenerated, UserPrincipalName, IPAddress
+```
+|| Cette requête utilise le risque Entra ID Protection, pas les priorités calculées par l'UEBA de Sentinel.
+-: ```kqlbad
+BehaviorAnalytics
+| where TimeGenerated > ago(7d)
+| where InvestigationPriority == "High"
+```
+|| InvestigationPriority est un score numérique (0 à 10), pas une chaîne « High ».
+-: ```kql
+IdentityInfo
+| where TimeGenerated > ago(7d)
+| summarize count() by AccountUPN
+```
+|| IdentityInfo décrit les identités (groupes, rôles, service) ; elle ne contient pas de priorité d'investigation.
+=: La table **BehaviorAnalytics** contient les activités enrichies par l'UEBA, avec **InvestigationPriority** (0–10) et des colonnes dynamiques d'analyse (**ActivityInsights**, UsersInsights, DevicesInsights) expliquant ce qui est inhabituel (première connexion depuis un pays, action rare dans le groupe de pairs…).
+T: Un score élevé n'est pas une alerte : c'est un signal pour prioriser l'investigation et la chasse. On peut combiner BehaviorAnalytics avec SecurityAlert pour enrichir les incidents, ou utiliser les insights (`ActivityInsights.FirstTimeUserConnectedFromCountry`) comme filtres.
+!: UEBA → BehaviorAnalytics.InvestigationPriority (0–10) et colonnes *Insights.
+
+### Watchlist d'actifs critiques
+@ niveau=I ref=sent-watchlists
+?: Vous gérez une liste de 200 serveurs critiques (nom et propriétaire) régulièrement mise à jour par l'équipe infrastructure. Vous voulez augmenter la gravité des détections qui concernent ces serveurs. Quelle approche est la plus adaptée ?
++: Importer la liste comme watchlist et l'utiliser dans les requêtes des règles via `_GetWatchlist('alias')`, par exemple pour joindre sur le nom d'hôte et ajuster la gravité.
+-: Saisir les 200 noms en dur dans chaque règle. || Maintenance lourde et sujette aux erreurs.
+-: Créer 200 règles d'automatisation. || Disproportionné et difficile à maintenir.
+-: Placer les serveurs dans un groupe de ressources dédié. || L'emplacement Azure n'est pas exploitable par les requêtes pour des serveurs locaux.
+=: Les **watchlists** importent des données de référence (CSV, jusqu'à une taille documentée ; Azure Storage pour les grands fichiers) consultables en KQL avec **`_GetWatchlist('alias')`**, qui renvoie notamment la colonne **SearchKey** (clé de recherche choisie à l'import).
+T: Cas d'usage : actifs critiques, comptes VIP, plages IP de confiance, comptes de service, listes d'exclusion (faux positifs connus), terminaux en fin de vie. Des modèles de watchlists existent (VIP Users, High Value Assets…). Les watchlists se mettent à jour par le portail ou l'API, ce qui rend les règles plus maintenables.
+X: ```kql
+let critiques = _GetWatchlist('ServeursCritiques') | project DeviceName = tolower(SearchKey);
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| where EventID == 4625
+| extend DeviceName = tolower(Computer)
+| join kind=inner critiques on DeviceName
+| summarize Echecs = count() by Computer, TargetUserName
+```
+!: Données de référence évolutives (VIP, actifs critiques, exclusions) = watchlist + `_GetWatchlist('alias')`.
+
+### Jupyter notebooks et MSTICPy
+@ niveau=I ref=sent-notebooks,sent-lake-notebooks
+?: Un chasseur souhaite appliquer un algorithme de clustering Python sur des données de connexion, enrichir les adresses IP par des sources externes et produire des visualisations avancées. Quel outil de Sentinel convient le mieux ?
++: Les notebooks Jupyter (avec la bibliothèque MSTICPy, ou les notebooks du data lake Sentinel exécutés sur des pools Spark).
+-: Les règles d'automatisation. || Elles n'exécutent pas de code d'analyse de données.
+-: Les watchlists. || Elles stockent des listes de référence.
+-: Les règles NRT. || Elles exécutent des requêtes KQL de détection, pas des analyses Python.
+=: Les **notebooks** offrent un environnement Python pour l'analyse avancée : machine learning, enrichissement (TI, géolocalisation, WHOIS), visualisations (chronologies, graphes). **MSTICPy** fournit des fonctions dédiées à la sécurité (requêtes Sentinel, pivots, enrichissement). Les **notebooks du data lake** s'exécutent sur la copie unique des données du lac et peuvent être planifiés (jobs de notebooks) pour promouvoir des résultats vers le niveau Analytics.
+T: Le référentiel cite « Chasser les menaces à l'aide de notebooks, y compris la connexion au serveur Sentinel MCP ». Les notebooks du data lake s'utilisent notamment depuis Visual Studio Code avec l'extension Microsoft Sentinel.
+!: Analyses Python/ML et visualisations avancées = notebooks (MSTICPy ; notebooks du data lake sur Spark).
+
+### Serveur MCP de Microsoft Sentinel
+@ niveau=I ref=sent-mcp,sent-mcp-tools
+?: Une équipe veut interroger les données de sécurité de Sentinel en langage naturel depuis un client compatible (par exemple Visual Studio Code ou Security Copilot) et construire des agents d'automatisation. Quelle capacité de Sentinel répond à ce besoin ?
++: Le serveur MCP (Model Context Protocol) de Microsoft Sentinel, hébergé et authentifié par Microsoft Entra, qui expose des collections d'outils (exploration de données, triage, création d'agents).
+-: L'API HTTP Data Collector. || API d'ingestion historique, sans rapport avec l'interrogation en langage naturel.
+-: Une watchlist contenant des questions types. || Une watchlist est une table de référence.
+-: Le connecteur Syslog via AMA. || Connecteur d'ingestion de journaux.
+=: Le **serveur MCP de Microsoft Sentinel** est une interface **entièrement hébergée** (aucune infrastructure à déployer) qui utilise **Microsoft Entra** pour l'identité. Il fournit des **collections d'outils orientées scénarios** (exploration des données, triage, création d'agents, outils personnalisés) utilisables depuis des clients compatibles MCP.
+T: Le référentiel 2026 inclut la chasse via notebooks avec connexion au serveur MCP et l'investigation à l'aide d'IA agentique. Les accès restent soumis aux autorisations de l'utilisateur ; les requêtes générées doivent être relues par l'analyste (validation humaine).
+!: Serveur MCP Sentinel = interface hébergée, authentifiée par Entra, exposant des outils de sécurité aux agents et clients IA.
+
+### Graphe Microsoft Sentinel et rayon d'impact
+@ niveau=I ref=sent-graph,xdr-hunting-graph
+?: Après la compromission d'un compte d'administrateur, le RSSI demande : « Quelles ressources cet attaquant pourrait-il atteindre ? ». Quelle capacité fournit cette analyse de rayon d'impact sous forme de relations entre entités ?
++: Le graphe Microsoft Sentinel (et le graphe de chasse dans la chasse avancée), qui modélise utilisateurs, appareils, ressources et activités sous forme de nœuds et d'arêtes.
+-: Le tableau de bord du Secure Score. || Il mesure la posture globale sans calculer les chemins d'accès d'une entité.
+-: Une règle NRT. || Une règle de détection produit des alertes, pas une cartographie de relations.
+-: La table Usage. || Elle mesure les volumes ingérés.
+=: Le **graphe Microsoft Sentinel** représente l'environnement sous forme de **nœuds et d'arêtes** (identités, appareils, ressources cloud, flux de données, actions des attaquants). Il répond à des questions difficiles à traiter avec des tables : que se passe-t-il si ce compte est compromis, quel est le **rayon d'impact** (blast radius) d'un document ou d'un utilisateur.
+T: Dans le portail Defender, le **graphe de chasse** (hunting graph) de la chasse avancée visualise ces relations de manière interactive (chemins, points d'étranglement) ; selon la documentation, il nécessite un accès au data lake Sentinel et au moins un accès en lecture à Microsoft Security Exposure Management. Le référentiel cite « Créer des graphes de chasse, y compris le rayon d'impact » et « Analyser les relations entre entités à l'aide de Sentinel Graph ».
+!: Rayon d'impact et relations entre entités = graphe Sentinel / graphe de chasse.
+
+### Modèle d'information ASIM
+@ niveau=A ref=sent-asim
+?: Votre organisation collecte des authentifications depuis Entra ID, des serveurs Windows, des VPN Fortinet et des serveurs Linux. Vous voulez écrire une seule règle de détection de force brute applicable à toutes ces sources. Quelle approche utiliser ?
++: Utiliser les analyseurs ASIM du schéma Authentication (par exemple `_Im_Authentication`), qui normalisent les champs (TargetUsername, SrcIpAddr, EventResult…) de toutes les sources.
+-: Écrire une règle par source et les fusionner avec Fusion. || Fusion ne fusionne pas des règles personnalisées ; cette approche multiplie la maintenance.
+-: Convertir toutes les sources en Syslog. || Impraticable et inutile : la normalisation se fait au moment de la requête ou de l'ingestion.
+-: Utiliser uniquement la table SigninLogs. || On perdrait les sources non Entra ID.
+=: L'**ASIM** (Advanced Security Information Model) définit des **schémas normalisés** (Authentication, NetworkSession, DNS, ProcessEvent, FileEvent, WebSession…) et des **analyseurs** (parsers) qui transforment les données de chaque source vers ces schémas. Une même requête s'applique alors à toutes les sources.
+T: Les analyseurs unificateurs intégrés s'appellent `_Im_<Schéma>` (par exemple `_Im_Authentication`, `_Im_NetworkSession`) et acceptent des paramètres de filtrage (starttime, endtime…) qui améliorent les performances. La normalisation peut aussi être faite à l'ingestion vers des tables ASim*. Les règles fondées sur ASIM sont indépendantes des sources.
+X: ```kql
+_Im_Authentication(starttime=ago(1h), endtime=now())
+| where EventResult == "Failure"
+| summarize Echecs = count(), Comptes = dcount(TargetUsername) by SrcIpAddr
+| where Echecs > 50
+```
+!: Une détection pour toutes les sources = ASIM (`_Im_Authentication`, `_Im_NetworkSession`…).
+
+### Surveiller l'intégrité des connecteurs
+@ niveau=I ref=sent-health,la-t-SentinelHealth
+?: Le SOC veut être alerté si un connecteur de données cesse d'envoyer des données ou si l'exécution des playbooks échoue. Quelle fonctionnalité activer ?
++: L'audit et la surveillance de l'intégrité de Microsoft Sentinel, qui alimentent les tables SentinelHealth et SentinelAudit, puis des règles d'analyse sur ces tables.
+-: Le Secure Score. || Sans rapport avec l'intégrité des connecteurs.
+-: Les signets de chasse. || Outils de chasse, pas de supervision.
+-: La table SecurityIncident. || Elle contient les incidents, pas l'état des connecteurs.
+=: La **surveillance de l'intégrité** de Sentinel enregistre dans **SentinelHealth** les événements de santé (connecteurs, règles d'analyse, règles d'automatisation, playbooks) et l'**audit** enregistre dans **SentinelAudit** les modifications de configuration. Des règles d'analyse ou des classeurs exploitent ces données.
+T: En complément, une requête de « dernier événement reçu par table » (`summarize max(TimeGenerated) by Type`) détecte un silence anormal. Dans le portail Defender, les **Table insights** signalent aussi des fluctuations d'ingestion par table.
+X: ```kql
+union withsource=TableName SecurityEvent, Syslog, CommonSecurityLog, SigninLogs
+| where TimeGenerated > ago(2d)
+| summarize DernierEvenement = max(TimeGenerated) by TableName
+| where DernierEvenement < ago(2h)
+```
+!: Santé de Sentinel = SentinelHealth (connecteurs, règles, playbooks) + SentinelAudit (changements).
+
+### Investigation dans le graphe d'un incident
+@ niveau=D ref=sent-incidents
+?: Dans un incident Sentinel, un analyste veut visualiser les entités (comptes, hôtes, IP) et leurs liens, puis explorer les activités associées à un hôte en un clic. Quelle fonctionnalité utiliser ?
++: Le graphe d'investigation de l'incident et ses requêtes d'exploration (« Related alerts », « Activities »…) sur chaque entité.
+-: La page des watchlists. || Elle gère des listes de référence.
+-: La page MITRE ATT&CK. || Elle montre la couverture de détection globale, pas les entités d'un incident.
+-: L'éditeur de règles d'automatisation. || Il configure des automatisations.
+=: Le **graphe d'investigation** affiche l'incident, ses alertes et ses entités ; chaque entité propose des **requêtes d'exploration** et donne accès à sa **page d'entité** (chronologie, informations UEBA, alertes associées). Les signets peuvent y être ajoutés.
+T: Dans le portail Defender, la page d'incident unifiée propose l'**histoire de l'attaque** (attack story), la liste des alertes, des ressources, des preuves et des enquêtes automatisées. Le **mappage des entités** dans les règles est indispensable pour que ces vues soient utiles.
+!: Explorer les liens entre entités d'un incident = graphe d'investigation / attack story, alimentés par le mappage d'entités.
+
+### Déployer le contenu Sentinel « as code »
+@ niveau=I ref=sent-repositories
+?: L'équipe d'ingénierie de détection veut versionner ses règles d'analyse, classeurs et playbooks dans GitHub, les faire relire par pull request et les déployer automatiquement dans les espaces de développement et de production. Quelle fonctionnalité Sentinel utiliser ?
++: Les référentiels (Repositories) de Microsoft Sentinel, connectés à GitHub ou Azure DevOps, qui déploient le contenu à chaque validation.
+-: Le hub de contenu uniquement. || Le hub distribue des solutions publiées ; il ne déploie pas votre propre dépôt Git.
+-: Les watchlists. || Elles stockent des données de référence, pas du contenu de détection.
+-: L'export manuel des règles en JSON chaque semaine. || Manuel, sans revue ni déploiement automatisé.
+=: Les **référentiels** (Repositories) connectent un espace Sentinel à un dépôt **GitHub** ou **Azure DevOps** : à chaque validation sur la branche choisie, un workflow déploie le contenu personnalisé (règles d'analyse, règles d'automatisation, classeurs, requêtes de chasse, analyseurs, playbooks) au format ARM/Bicep.
+T: Cette approche « détection-as-code » permet la revue par les pairs, l'historique des modifications, la promotion entre environnements et la reprise après sinistre. Des fichiers de configuration permettent d'ordonner les déploiements et d'éviter de redéployer le contenu inchangé.
+!: Détections versionnées et déployées automatiquement = Repositories (GitHub / Azure DevOps).
+
+### Plusieurs espaces Sentinel dans le portail Defender
+@ niveau=A ref=sent-onboard-defender,sent-defender-portal
+?: Une entreprise possède trois espaces Sentinel (Europe, Amériques, Asie) dans un même locataire et les connecte au portail Defender. Quelle affirmation est exacte ?
++: Un espace est désigné comme espace principal ; les autres sont connectés comme espaces secondaires, et les incidents et la chasse avancée tiennent compte de cette organisation.
+-: Le portail Defender n'accepte qu'un seul espace Sentinel par locataire. || Le portail prend en charge un espace principal et plusieurs espaces secondaires.
+-: Les trois espaces sont fusionnés en un seul espace de travail physique. || Les espaces restent distincts ; seule l'expérience d'exploitation est unifiée.
+-: Chaque espace nécessite un locataire Microsoft Entra distinct. || Le portail Defender prend en charge un seul locataire Entra avec plusieurs espaces.
+=: La documentation indique que le portail Defender prend en charge **un locataire Microsoft Entra** avec **un espace principal et plusieurs espaces secondaires**. Si un seul espace est connecté, il devient automatiquement principal.
+T: Certaines fonctionnalités dépendent de l'espace principal (par exemple, la corrélation avec les données Defender XDR, certains connecteurs comme Insider Risk Management ou le connecteur Defender for Cloud basé sur le locataire). Pour plusieurs locataires, on utilise la gestion multilocataire de Defender (Azure Lighthouse avec GDAP n'étant pas pris en charge pour les données Sentinel dans le portail Defender, selon la documentation actuelle).
+!: Portail Defender : un locataire, un espace principal, des espaces secondaires.

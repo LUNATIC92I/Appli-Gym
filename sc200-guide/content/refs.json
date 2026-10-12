@@ -1,0 +1,2261 @@
+{
+ "verified_on": "2026-10-12",
+ "refs": {
+  "sc200-cert": {
+   "url": "https://learn.microsoft.com/fr-fr/credentials/certifications/security-operations-analyst/",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/credentials/certifications/security-operations-analyst/",
+   "title": "Microsoft certifié : Analyste des opérations de sécurité associé"
+  },
+  "sc200-guide": {
+   "url": "https://learn.microsoft.com/fr-fr/credentials/certifications/resources/study-guides/sc-200",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/credentials/certifications/resources/study-guides/sc-200",
+   "title": "Guide d’étude de l’examen SC-200 : Analyste des opérations de sécurité Microsoft"
+  },
+  "sent-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/overview",
+   "title": "Qu’est-ce que Microsoft Sentinel gestion des informations et des événements de sécurité (SIEM) ?"
+  },
+  "sent-defender-portal": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/microsoft-sentinel-defender-portal",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/microsoft-sentinel-defender-portal",
+   "title": "Microsoft Sentinel dans le portail Microsoft Defender"
+  },
+  "sent-roles": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/roles",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/roles",
+   "title": "Rôles et autorisations dans la plateforme Microsoft Sentinel"
+  },
+  "sent-connectors": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-data-sources",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-data-sources",
+   "title": "connecteurs de données Microsoft Sentinel"
+  },
+  "sent-data-connectors-ref": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/data-connectors-reference",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/data-connectors-reference",
+   "title": "Rechercher votre connecteur de données Microsoft Sentinel"
+  },
+  "sent-ama-windows": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-services-windows-based",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-services-windows-based",
+   "title": "Se connecter Microsoft Sentinel à d’autres services Microsoft avec un connecteur de données basé sur un agent Windows"
+  },
+  "sent-cef-syslog-ama": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-cef-syslog-ama",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-cef-syslog-ama",
+   "title": "Ingérer des messages syslog et CEF pour Microsoft Sentinel avec l’agent Azure Monitor"
+  },
+  "sent-wef": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/data-connectors-reference",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/data-connectors-reference",
+   "title": "Rechercher votre connecteur de données Microsoft Sentinel"
+  },
+  "sent-scheduled": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/create-analytics-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/create-analytics-rules",
+   "title": "Créer une règle d’analyse planifiée à partir de zéro"
+  },
+  "sent-scheduled-details": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/scheduled-rules-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/scheduled-rules-overview",
+   "title": "Règles d’analyse planifiées dans Microsoft Sentinel"
+  },
+  "sent-nrt": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/near-real-time-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/near-real-time-rules",
+   "title": "Détection rapide des menaces avec des règles d’analyse en quasi-temps réel (NRT) dans Microsoft Sentinel"
+  },
+  "sent-detect-threats": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/threat-detection",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/threat-detection",
+   "title": "Détection des menaces dans Microsoft Sentinel"
+  },
+  "sent-fusion": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/fusion",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/fusion",
+   "title": "Détection avancée d’attaques à plusieurs niveaux dans Azure Sentinel"
+  },
+  "sent-ingestion-delay": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/ingestion-delay",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/ingestion-delay",
+   "title": "Gestion du délai d’ingestion dans les règles d’analytique planifiée"
+  },
+  "sent-entity-mapping": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/map-data-fields-to-entities",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/map-data-fields-to-entities",
+   "title": "Mapper des champs de données à des entités dans Microsoft Sentinel"
+  },
+  "sent-custom-details": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/surface-custom-details-in-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/surface-custom-details-in-alerts",
+   "title": "Faire apparaître des détails d'événements personnalisés dans les alertes de Microsoft Sentinel"
+  },
+  "sent-alert-details": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/customize-alert-details",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/customize-alert-details",
+   "title": "Personnaliser les détails de l’alerte dans Microsoft Sentinel"
+  },
+  "sent-alert-grouping": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/relate-alerts-to-incidents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/relate-alerts-to-incidents",
+   "title": "Associer des alertes à des incidents dans Microsoft Sentinel dans le Portail Azure"
+  },
+  "sent-automation-rules": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automate-incident-handling-with-automation-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automate-incident-handling-with-automation-rules",
+   "title": "Automatiser la réponse aux menaces dans Microsoft Sentinel avec des règles d’automatisation"
+  },
+  "sent-create-automation-rules": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/create-manage-use-automation-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/create-manage-use-automation-rules",
+   "title": "Créer et utiliser des règles d’automatisation Microsoft Sentinel pour gérer la réponse"
+  },
+  "sent-playbooks": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automation/automate-responses-with-playbooks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automation/automate-responses-with-playbooks",
+   "title": "Automatiser la réponse aux menaces avec des playbooks dans Microsoft Sentinel"
+  },
+  "sent-playbook-create": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automation/create-playbooks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automation/create-playbooks",
+   "title": "Créer et gérer les playbooks Microsoft Sentinel"
+  },
+  "sent-playbook-triggers": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automation/playbook-triggers-actions",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/automation/playbook-triggers-actions",
+   "title": "Déclencheurs et actions pris en charge dans les playbooks Microsoft Sentinel"
+  },
+  "sent-workbooks": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/monitor-your-data",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/monitor-your-data",
+   "title": "Visualiser et surveiller vos données à l’aide de classeurs dans Microsoft Sentinel"
+  },
+  "sent-ti": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/understand-threat-intelligence",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/understand-threat-intelligence",
+   "title": "Renseignement sur les menaces dans Microsoft Sentinel"
+  },
+  "sent-ti-connect": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-threat-intelligence-taxii",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-threat-intelligence-taxii",
+   "title": "Utiliser STIX/TAXII pour importer et exporter le renseignement sur les menaces dans Microsoft Sentinel"
+  },
+  "sent-ti-upload": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-threat-intelligence-upload-api",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-threat-intelligence-upload-api",
+   "title": "Connectez votre plateforme de veille sur les menaces à Microsoft Sentinel avec l’API de chargement (préversion)"
+  },
+  "sent-ti-matching": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/use-matching-analytics-to-detect-threats",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/use-matching-analytics-to-detect-threats",
+   "title": "Utiliser l’analytique correspondante dans Microsoft Sentinel pour détecter les menaces"
+  },
+  "sent-ti-work": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/work-with-threat-indicators",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/work-with-threat-indicators",
+   "title": "Utiliser le renseignement sur les menaces dans Microsoft Sentinel"
+  },
+  "sent-hunting": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/hunting",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/hunting",
+   "title": "Chasse aux menaces dans Microsoft Sentinel"
+  },
+  "sent-hunts": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/hunts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/hunts",
+   "title": "Mener une chasse proactive de bout en bout aux menaces dans Microsoft Sentinel"
+  },
+  "sent-bookmarks": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/bookmarks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/bookmarks",
+   "title": "Effectuer le suivi des données pendant la chasse avec Microsoft Sentinel"
+  },
+  "sent-notebooks": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/notebooks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/notebooks",
+   "title": "Notebooks Jupyter avec les fonctionnalités de repérage de Microsoft Sentinel"
+  },
+  "sent-ueba": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/identify-threats-with-entity-behavior-analytics",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/identify-threats-with-entity-behavior-analytics",
+   "title": "Détection avancée des menaces avec l’analyse du comportement des utilisateurs et des entités (UEBA) dans Microsoft Sentinel"
+  },
+  "sent-ueba-enable": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/enable-entity-behavior-analytics",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/enable-entity-behavior-analytics",
+   "title": "Activer l’analyse du comportement des utilisateurs et des entités (UEBA) dans Microsoft Sentinel"
+  },
+  "sent-ueba-ref": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/ueba-reference",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/ueba-reference",
+   "title": "sources de données et enrichissements de schémas Microsoft Sentinel user and Entity Behavior Analytics (UEBA)"
+  },
+  "sent-anomalies": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/soc-ml-anomalies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/soc-ml-anomalies",
+   "title": "Utiliser des anomalies personnalisables pour détecter les menaces dans Microsoft Sentinel"
+  },
+  "sent-watchlists": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/watchlists",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/watchlists",
+   "title": "Listes de surveillance dans Microsoft Sentinel"
+  },
+  "sent-asim": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/normalization",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/normalization",
+   "title": "Normalisation et modèle ASIM (Advanced Security Information Model)"
+  },
+  "sent-incidents": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/investigate-incidents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/investigate-incidents",
+   "title": "Examiner les incidents Microsoft Sentinel en profondeur dans le Portail Azure"
+  },
+  "sent-incident-tasks": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/incident-tasks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/incident-tasks",
+   "title": "Utiliser des tâches pour gérer les incidents dans Microsoft Sentinel dans le Portail Azure"
+  },
+  "sent-mitre": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/mitre-coverage",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/mitre-coverage",
+   "title": "Afficher la couverture de l’infrastructure MITRE ATT&CK dans Microsoft Sentinel"
+  },
+  "sent-soc-optimization": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/soc-optimization/soc-optimization-access",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/soc-optimization/soc-optimization-access",
+   "title": "Optimiser vos opérations de sécurité"
+  },
+  "sent-billing": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/billing",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/billing",
+   "title": "Planifier les coûts et comprendre Microsoft Sentinel tarification et facturation"
+  },
+  "sent-cost-reduce": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/billing-reduce-costs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/billing-reduce-costs",
+   "title": "Réduire les coûts de Microsoft Sentinel"
+  },
+  "sent-search-jobs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/investigate-large-datasets",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/investigate-large-datasets",
+   "title": "Démarrer une investigation en recherchant des événements dans des jeux de données volumineux"
+  },
+  "sent-summary-rules": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/summary-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/summary-rules",
+   "title": "Agréger des données Microsoft Sentinel avec des règles récapitulatives"
+  },
+  "sent-lake": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-lake-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-lake-overview",
+   "title": "Qu’est-ce que le lac de données Microsoft Sentinel ?"
+  },
+  "sent-lake-kql": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/kql-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/kql-overview",
+   "title": "KQL et le lac de données Microsoft Sentinel"
+  },
+  "sent-lake-jobs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/kql-jobs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/kql-jobs",
+   "title": "Créer des tâches KQL dans le lac de données de Microsoft Sentinel"
+  },
+  "sent-lake-notebooks": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/notebooks-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/notebooks-overview",
+   "title": "Notebooks Jupyter et lac de données Microsoft Sentinel"
+  },
+  "sent-graph": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-graph-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-graph-overview",
+   "title": "Qu’est-ce que le graphe Microsoft Sentinel ?"
+  },
+  "sent-mcp": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-mcp-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-mcp-overview",
+   "title": "Quelle est la prise en charge par Microsoft Sentinel du protocole MCP (Model Context Protocol) ?"
+  },
+  "sent-tiers": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/manage-data-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/manage-data-overview",
+   "title": "Gérer les niveaux de données et la rétention dans Microsoft Sentinel"
+  },
+  "sent-content-hub": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/sentinel-solutions-deploy",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/sentinel-solutions-deploy",
+   "title": "Découvrir et gérer le contenu prêt à l’emploi de Microsoft Sentinel"
+  },
+  "sent-repositories": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/ci-cd",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/ci-cd",
+   "title": "Déployer du contenu en tant que code à partir de votre référentiel"
+  },
+  "sent-health": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/enable-monitoring",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/enable-monitoring",
+   "title": "Activer l’audit et la surveillance de l’intégrité pour Microsoft Sentinel"
+  },
+  "sent-custom-logs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/data-transformation",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/data-transformation",
+   "title": "Ingestion et transformation de données personnalisées dans Microsoft Sentinel"
+  },
+  "la-table-plans": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/data-platform-logs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/data-platform-logs",
+   "title": "Vue d’ensemble de Journaux d’activité Azure Monitor"
+  },
+  "la-retention": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/data-retention-configure",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/data-retention-configure",
+   "title": "Gérer la conservation des données dans un espace de travail Log Analytics"
+  },
+  "la-dcr": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/data-collection/data-collection-rule-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/data-collection/data-collection-rule-overview",
+   "title": "Règles de collecte de données (DCR) dans Azure Monitor"
+  },
+  "la-transform": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/data-collection/data-collection-transformations",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/data-collection/data-collection-transformations",
+   "title": "Transformations dans Azure Monitor"
+  },
+  "la-workspace-design": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/workspace-design",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/workspace-design",
+   "title": "Concevoir une architecture d’espace de travail Log Analytics"
+  },
+  "la-activity-log": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/fundamentals/activity-log",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/fundamentals/activity-log",
+   "title": "Journal d’activité dans Azure Monitor"
+  },
+  "la-diag-settings": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/data-collection/diagnostic-settings",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/data-collection/diagnostic-settings",
+   "title": "Paramètres de diagnostic dans Azure Monitor"
+  },
+  "la-custom-table": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/create-custom-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/create-custom-table",
+   "title": "Ajouter ou supprimer des tables et des colonnes dans Azure Monitor Logs"
+  },
+  "la-commitment": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/cost-logs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/cost-logs",
+   "title": "Calculs et options des coûts des journaux Azure Monitor"
+  },
+  "la-ingestion-api": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/logs-ingestion-api-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/logs/logs-ingestion-api-overview",
+   "title": "API Ingestion des journaux dans Azure Monitor"
+  },
+  "xdr-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/microsoft-365-defender",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/microsoft-365-defender",
+   "title": "Qu’est-ce que Microsoft Defender XDR ?"
+  },
+  "xdr-incidents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/incidents-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/incidents-overview",
+   "title": "Incidents et alertes dans le portail Microsoft Defender"
+  },
+  "xdr-investigate-incidents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/investigate-incidents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/investigate-incidents",
+   "title": "Examiner les incidents dans le portail Microsoft Defender (ancienne version)"
+  },
+  "xdr-manage-incidents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/manage-incidents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/manage-incidents",
+   "title": "Gérer les incidents dans le portail Microsoft Defender (hérité)"
+  },
+  "xdr-correlation": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/alerts-incidents-correlation",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/alerts-incidents-correlation",
+   "title": "Corrélation des alertes et fusion des incidents dans le portail Microsoft Defender"
+  },
+  "xdr-alert-tuning": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/investigate-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/investigate-alerts",
+   "title": "Examiner les alertes dans Microsoft Defender XDR"
+  },
+  "xdr-tuning": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/investigate-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/investigate-alerts",
+   "title": "Examiner les alertes dans Microsoft Defender XDR"
+  },
+  "xdr-email-notif": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/configure-email-notifications",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/configure-email-notifications",
+   "title": "Configurer les notifications d’alerte dans Microsoft Defender XDR"
+  },
+  "xdr-notif-incidents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-notifications-incidents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-notifications-incidents",
+   "title": "Recevoir des notifications d’incident par e-mail dans Microsoft Defender XDR"
+  },
+  "xdr-ah-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-overview",
+   "title": "Chasser de manière proactive les menaces avec une chasse avancée dans Microsoft Defender"
+  },
+  "xdr-ah-schema": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-schema-tables",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-schema-tables",
+   "title": "Comprendre le schéma de repérage avancé"
+  },
+  "xdr-ah-best": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-best-practices",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-best-practices",
+   "title": "Bonnes pratiques relatives aux requêtes de chasse avancée"
+  },
+  "xdr-ah-limits": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-limits",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-limits",
+   "title": "Utiliser le rapport de ressources de la requête de chasse avancée"
+  },
+  "xdr-ah-sentinel": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-microsoft-defender",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-microsoft-defender",
+   "title": "Chasse avancée avec les données Microsoft Sentinel dans le portail Microsoft Defender"
+  },
+  "xdr-custom-det": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/custom-detection-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/custom-detection-rules",
+   "title": "Créer des règles de détection personnalisées dans Microsoft Defender XDR"
+  },
+  "xdr-custom-det-manage": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/custom-detections-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/custom-detections-overview",
+   "title": "Vue d’ensemble des détections personnalisées"
+  },
+  "xdr-air": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-autoir",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-autoir",
+   "title": "Investigation et réponse automatisées dans Microsoft Defender XDR"
+  },
+  "xdr-action-center": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-action-center",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-action-center",
+   "title": "Vue d’ensemble du centre de notifications dans Microsoft Defender XDR"
+  },
+  "xdr-disruption": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/automatic-attack-disruption",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/automatic-attack-disruption",
+   "title": "Interruption automatique des attaques dans Microsoft Defender"
+  },
+  "xdr-disruption-config": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/configure-attack-disruption",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/configure-attack-disruption",
+   "title": "Configurer l’interruption automatique des attaques dans Microsoft Defender XDR"
+  },
+  "xdr-threat-analytics": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/threat-analytics",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/threat-analytics",
+   "title": "Analyse des menaces dans Microsoft Defender"
+  },
+  "xdr-urbac": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/manage-rbac",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/manage-rbac",
+   "title": "Microsoft Defender contrôle d’accès basé sur les rôles (RBAC) unifié"
+  },
+  "xdr-copilot": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/security-copilot-in-microsoft-365-defender",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/security-copilot-in-microsoft-365-defender",
+   "title": "Microsoft Security Copilot et conversation instantanée dans Microsoft Defender"
+  },
+  "xdr-hunting-graph": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-graph",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-graph",
+   "title": "Rechercher les menaces à l’aide du graphique de chasse"
+  },
+  "xdr-t-DeviceProcessEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceprocessevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceprocessevents-table",
+   "title": "DeviceProcessEvents"
+  },
+  "xdr-t-DeviceNetworkEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicenetworkevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicenetworkevents-table",
+   "title": "DeviceNetworkEvents"
+  },
+  "xdr-t-DeviceFileEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicefileevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicefileevents-table",
+   "title": "DeviceFileEvents"
+  },
+  "xdr-t-DeviceLogonEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicelogonevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicelogonevents-table",
+   "title": "DeviceLogonEvents"
+  },
+  "xdr-t-DeviceRegistryEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceregistryevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceregistryevents-table",
+   "title": "DeviceRegistryEvents"
+  },
+  "xdr-t-DeviceEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceevents-table",
+   "title": "DeviceEvents"
+  },
+  "xdr-t-DeviceInfo": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceinfo-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceinfo-table",
+   "title": "DeviceInfo"
+  },
+  "xdr-t-DeviceImageLoadEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceimageloadevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-deviceimageloadevents-table",
+   "title": "DeviceImageLoadEvents"
+  },
+  "xdr-t-EmailEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailevents-table",
+   "title": "EmailEvents"
+  },
+  "xdr-t-EmailAttachmentInfo": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailattachmentinfo-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailattachmentinfo-table",
+   "title": "EmailAttachmentInfo"
+  },
+  "xdr-t-EmailUrlInfo": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailurlinfo-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailurlinfo-table",
+   "title": "EmailUrlInfo"
+  },
+  "xdr-t-EmailPostDeliveryEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailpostdeliveryevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-emailpostdeliveryevents-table",
+   "title": "EmailPostDeliveryEvents"
+  },
+  "xdr-t-UrlClickEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-urlclickevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-urlclickevents-table",
+   "title": "UrlClickEvents"
+  },
+  "xdr-t-IdentityLogonEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identitylogonevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identitylogonevents-table",
+   "title": "IdentityLogonEvents"
+  },
+  "xdr-t-IdentityQueryEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identityqueryevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identityqueryevents-table",
+   "title": "IdentityQueryEvents"
+  },
+  "xdr-t-IdentityDirectoryEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identitydirectoryevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identitydirectoryevents-table",
+   "title": "IdentityDirectoryEvents"
+  },
+  "xdr-t-IdentityInfo": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identityinfo-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-identityinfo-table",
+   "title": "IdentityInfo"
+  },
+  "xdr-t-CloudAppEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-cloudappevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-cloudappevents-table",
+   "title": "CloudAppEvents"
+  },
+  "xdr-t-AlertInfo": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-alertinfo-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-alertinfo-table",
+   "title": "AlertInfo"
+  },
+  "xdr-t-AlertEvidence": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-alertevidence-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-alertevidence-table",
+   "title": "AlertEvidence"
+  },
+  "xdr-t-DeviceTvm": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicetvmsoftwarevulnerabilities-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-devicetvmsoftwarevulnerabilities-table",
+   "title": "DeviceTvmSoftwareVulnerabilities"
+  },
+  "xdr-t-EntraIdSignInEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-entraidsigninevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-entraidsigninevents-table",
+   "title": "EntraIdSignInEvents"
+  },
+  "xdr-t-GraphApiAuditEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-graphapiauditevents-table",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-graphapiauditevents-table",
+   "title": "GraphAPIAuditEvents"
+  },
+  "xdr-ah-fileprofile": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-fileprofile-function",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-fileprofile-function",
+   "title": "FileProfile()"
+  },
+  "xdr-ah-shared": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-shared-queries",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-shared-queries",
+   "title": "Utiliser des requêtes partagées dans un repérage avancé"
+  },
+  "xdr-case-mgmt": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/siem-defender-case-management",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/siem-defender-case-management",
+   "title": "Gestion de dossiers dans le portail Microsoft Defender"
+  },
+  "mde-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/microsoft-defender-endpoint",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/microsoft-defender-endpoint",
+   "title": "Vue d’ensemble de Microsoft Defender pour point de terminaison"
+  },
+  "mde-response-device": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/respond-machine-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/respond-machine-alerts",
+   "title": "Prendre des mesures de réponse sur un appareil"
+  },
+  "mde-response-file": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/respond-file-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/respond-file-alerts",
+   "title": "Prendre des mesures de réponse sur un fichier"
+  },
+  "mde-live-response": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/live-response",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/live-response",
+   "title": "Examiner les entités sur les appareils avec Live Response"
+  },
+  "mde-timeline": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/investigate-machines",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/investigate-machines",
+   "title": "Examiner les appareils dans Microsoft Defender for Endpoint"
+  },
+  "mde-investigate-machine": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/investigate-machines",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/investigate-machines",
+   "title": "Examiner les appareils dans Microsoft Defender for Endpoint"
+  },
+  "mde-advanced-features": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/advanced-features",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/advanced-features",
+   "title": "Configurer des fonctionnalités avancées dans Defender pour point de terminaison"
+  },
+  "mde-indicators": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicators-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicators-overview",
+   "title": "Vue d’ensemble des indicateurs dans Microsoft Defender pour point de terminaison"
+  },
+  "mde-indicators-ip": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicator-ip-domain",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicator-ip-domain",
+   "title": "Créer des indicateurs pour les IP et URL/domaines"
+  },
+  "mde-asr": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/attack-surface-reduction-rules-reference",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/attack-surface-reduction-rules-reference",
+   "title": "Référence des règles de réduction de la surface d’attaque (ASR)"
+  },
+  "mde-asr-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/attack-surface-reduction-rules-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/attack-surface-reduction-rules-overview",
+   "title": "Vue d’ensemble des règles de réduction de la surface d’attaque (ASR)"
+  },
+  "mde-device-groups": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/machine-groups",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/machine-groups",
+   "title": "Créer et gérer des groupes d’appareils dans Microsoft Defender pour point de terminaison"
+  },
+  "mde-automation-levels": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/automation-levels",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/automation-levels",
+   "title": "Niveaux d’automatisation dans les fonctionnalités d’investigation et de correction automatisées"
+  },
+  "mde-air": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/automated-investigations",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/automated-investigations",
+   "title": "Vue d’ensemble des enquêtes automatisées"
+  },
+  "mde-rbac": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/rbac",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/rbac",
+   "title": "Gérer l’accès au portail à l’aide du contrôle d’accès en fonction du rôle"
+  },
+  "mde-network-protection": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/network-protection",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/network-protection",
+   "title": "Utiliser la protection réseau pour empêcher les connexions à des sites malveillants ou suspects"
+  },
+  "mde-tamper": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/tamper-protection-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/tamper-protection-overview",
+   "title": "Aperçu de la protection contre les falsifications"
+  },
+  "mde-edr-block": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/edr-in-block-mode",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/edr-in-block-mode",
+   "title": "Protection évolutive des points de terminaison en mode bloc"
+  },
+  "mde-cfa": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/controlled-folder-access-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/controlled-folder-access-overview",
+   "title": "Vue d’ensemble de l’accès contrôlé aux dossiers (CFA)"
+  },
+  "mde-custom-data": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/custom-data-collection",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/custom-data-collection",
+   "title": "Collecte de données personnalisées dans Microsoft Defender pour point de terminaison"
+  },
+  "mde-alert-suppression": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/manage-suppression-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/manage-suppression-rules",
+   "title": "Gérer des règles de suppression"
+  },
+  "mde-device-discovery": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/device-discovery",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/device-discovery",
+   "title": "Vue d’ensemble de la découverte d’appareils Microsoft Defender pour point de terminaison"
+  },
+  "mde-web-content": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/web-content-filtering",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/web-content-filtering",
+   "title": "Filtrage de contenu web dans Microsoft Defender for Endpoint"
+  },
+  "mdo-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/mdo-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/mdo-about",
+   "title": "Microsoft Defender pour Office 365 vue d’ensemble"
+  },
+  "mdo-explorer": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/threat-explorer-real-time-detections-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/threat-explorer-real-time-detections-about",
+   "title": "À propos de Threat Explorer et des détections en temps réel dans Microsoft Defender pour Office 365"
+  },
+  "mdo-remediate": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/remediate-malicious-email-delivered-office-365",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/remediate-malicious-email-delivered-office-365",
+   "title": "Corriger les courriers malveillants remis dans Office 365"
+  },
+  "mdo-air": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/air-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/air-about",
+   "title": "Investigation et réponse automatisées (AIR) dans Microsoft Defender pour Office 365 Plan 2"
+  },
+  "mdo-safe-links": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/safe-links-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/safe-links-about",
+   "title": "Liens fiables dans Microsoft Defender pour Office 365"
+  },
+  "mdo-safe-attachments": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/safe-attachments-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/safe-attachments-about",
+   "title": "Pièces jointes sécurisées dans Defender pour Office 365"
+  },
+  "mdo-zap": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/zero-hour-auto-purge",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/zero-hour-auto-purge",
+   "title": "Purge automatique à l’heure zéro (ZAP) dans Microsoft Defender pour Office 365"
+  },
+  "mdo-submissions": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/submissions-admin",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/submissions-admin",
+   "title": "Utilisez la page Soumissions pour envoyer des courriers indésirables suspects, des hameçonnages, des URL, des e-mails légitimes bloqués et des pièces jointes à Microsoft"
+  },
+  "mdo-tabl": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/tenant-allow-block-list-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/tenant-allow-block-list-about",
+   "title": "Gérer les autorisations et les blocages dans la liste d’autorisation/de blocage du locataire"
+  },
+  "mdo-quarantine": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/quarantine-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/quarantine-about",
+   "title": "Messages électroniques mis en quarantaine dans les organisations cloud"
+  },
+  "mdo-anti-phishing": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/anti-phishing-policies-about",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/anti-phishing-policies-about",
+   "title": "Stratégies anti-hameçonnage dans les organisations cloud"
+  },
+  "mdo-preset": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/preset-security-policies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/preset-security-policies",
+   "title": "Stratégies de sécurité prédéfinies dans les organisations cloud"
+  },
+  "mdo-email-entity": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/mdo-email-entity-page",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/mdo-email-entity-page",
+   "title": "Page d’entité Email dans Microsoft Defender pour Office 365"
+  },
+  "mdo-campaigns": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/campaigns",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/campaigns",
+   "title": "Campagnes dans Microsoft Defender pour Office 365"
+  },
+  "mdo-attack-sim": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/attack-simulation-training-get-started",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/attack-simulation-training-get-started",
+   "title": "Commencer à utiliser la formation à la simulation d’attaque"
+  },
+  "mdo-forwarding": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/outbound-spam-policies-external-email-forwarding",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/outbound-spam-policies-external-email-forwarding",
+   "title": "Contrôler le transfert automatique d’e-mails externes à partir de boîtes aux lettres cloud"
+  },
+  "mdo-compromised": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/responding-to-a-compromised-email-account",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/responding-to-a-compromised-email-account",
+   "title": "Répondre à un compte de messagerie cloud compromis"
+  },
+  "mdi-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/what-is",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/what-is",
+   "title": "vue d’ensemble de Microsoft Defender pour Identity"
+  },
+  "mdi-alerts": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/alerts-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/alerts-overview",
+   "title": "Alertes de sécurité dans Microsoft Defender pour Identity"
+  },
+  "mdi-recon": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/alerts-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/alerts-overview",
+   "title": "Alertes de sécurité dans Microsoft Defender pour Identity"
+  },
+  "mdi-lmp": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/what-is",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/what-is",
+   "title": "vue d’ensemble de Microsoft Defender pour Identity"
+  },
+  "mdi-remediation": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/remediation-actions",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/remediation-actions",
+   "title": "Actions de correction dans Microsoft Defender pour Identity"
+  },
+  "mdi-sensitive": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/entity-tags",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/entity-tags",
+   "title": "Balises d’entité de Defender for Identity dans Microsoft Defender"
+  },
+  "mdi-sensor": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/deploy/deploy-defender-identity",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/deploy/deploy-defender-identity",
+   "title": "Vue d’ensemble du déploiement Microsoft Defender pour Identity"
+  },
+  "mdi-sensor-v3": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/deploy/activate-sensor",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/deploy/activate-sensor",
+   "title": "Activez le capteur Microsoft Defender pour Identity v3.x"
+  },
+  "mdi-isp": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/security-assessment",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/security-assessment",
+   "title": "Évaluations de la posture de sécurité dans Microsoft Defender pour Identity"
+  },
+  "mdca-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/what-is-defender-for-cloud-apps",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/what-is-defender-for-cloud-apps",
+   "title": "Vue d’ensemble de Microsoft Defender for Cloud Apps"
+  },
+  "mdca-discovery": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/set-up-cloud-discovery",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/set-up-cloud-discovery",
+   "title": "Vue d’ensemble de la découverte d’applications cloud"
+  },
+  "mdca-mde": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/mde-integration",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/mde-integration",
+   "title": "Intégrer Microsoft Defender pour point de terminaison à Microsoft Defender for Cloud Apps"
+  },
+  "mdca-policies": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/control-cloud-apps-with-policies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/control-cloud-apps-with-policies",
+   "title": "Contrôler les applications cloud avec des stratégies"
+  },
+  "mdca-anomaly": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/anomaly-detection-policy",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/anomaly-detection-policy",
+   "title": "Créer des stratégies de détection d’anomalies Defender for Cloud Apps"
+  },
+  "mdca-session": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/session-policy-aad",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/session-policy-aad",
+   "title": "Créer des stratégies de session Microsoft Defender for Cloud Apps"
+  },
+  "mdca-cac": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/proxy-intro-aad",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/proxy-intro-aad",
+   "title": "Contrôle des applications d’accès conditionnel dans Microsoft Defender for Cloud Apps"
+  },
+  "mdca-governance": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/governance-actions",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/governance-actions",
+   "title": "Régir les actions pour les applications connectées dans Defender for Cloud Apps"
+  },
+  "mdca-app-gov": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/app-governance-manage-app-governance",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/app-governance-manage-app-governance",
+   "title": "Gouvernance des applications dans Microsoft Defender for Cloud Apps"
+  },
+  "mdca-investigate": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/investigate",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/investigate",
+   "title": "Examiner les risques des applications cloud et les activités suspectes"
+  },
+  "mdca-oauth": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/manage-app-permissions",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/manage-app-permissions",
+   "title": "Gérer les applications OAuth"
+  },
+  "mdca-activity-policy": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/user-activity-policies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/user-activity-policies",
+   "title": "Créer des stratégies d’activité Microsoft Defender for Cloud Apps"
+  },
+  "mdca-file-policy": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/data-protection-policies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/data-protection-policies",
+   "title": "Stratégies de fichier dans Microsoft Defender for Cloud Apps"
+  },
+  "entra-idp": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/id-protection/overview-identity-protection",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/id-protection/overview-identity-protection",
+   "title": "Qu’est-ce que Protection des ID Microsoft Entra ?"
+  },
+  "entra-risks": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/id-protection/concept-identity-protection-risks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/id-protection/concept-identity-protection-risks",
+   "title": "Que sont les détections de risques ?"
+  },
+  "entra-risk-policies": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/id-protection/concept-identity-protection-policies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/id-protection/concept-identity-protection-policies",
+   "title": "Stratégies d’accès basées sur les risques"
+  },
+  "entra-investigate": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/id-protection/howto-identity-protection-investigate-risk",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/id-protection/howto-identity-protection-investigate-risk",
+   "title": "Comment examiner les risques"
+  },
+  "entra-remediate": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/id-protection/howto-identity-protection-remediate-unblock",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/id-protection/howto-identity-protection-remediate-unblock",
+   "title": "Atténuer les risques et débloquer les utilisateurs"
+  },
+  "entra-signin-logs": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity/monitoring-health/concept-sign-ins",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity/monitoring-health/concept-sign-ins",
+   "title": "Que sont les journaux de connexion Microsoft Entra ?"
+  },
+  "entra-audit-logs": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity/monitoring-health/concept-audit-logs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity/monitoring-health/concept-audit-logs",
+   "title": "Que sont les journaux d’audit Microsoft Entra ?"
+  },
+  "entra-ca": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity/conditional-access/overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity/conditional-access/overview",
+   "title": "Qu’est-ce que l’accès conditionnel ?"
+  },
+  "entra-revoke": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity/users/users-revoke-access",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity/users/users-revoke-access",
+   "title": "Révoquer les accès utilisateur dans Microsoft Entra ID"
+  },
+  "entra-cae": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity/conditional-access/concept-continuous-access-evaluation",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity/conditional-access/concept-continuous-access-evaluation",
+   "title": "Évaluation de l’accès continu"
+  },
+  "entra-error-codes": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity-platform/reference-error-codes",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity-platform/reference-error-codes",
+   "title": "Codes d’erreur d’authentification et d’autorisation Microsoft Entra"
+  },
+  "entra-graph-activity": {
+   "url": "https://learn.microsoft.com/fr-fr/graph/microsoft-graph-activity-logs-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/graph/microsoft-graph-activity-logs-overview",
+   "title": "Accéder aux journaux d’activité Microsoft Graph"
+  },
+  "entra-pim": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/id-governance/privileged-identity-management/pim-configure",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/id-governance/privileged-identity-management/pim-configure",
+   "title": "Qu’est-ce que Microsoft Entra Privileged Identity Management ?"
+  },
+  "entra-consent": {
+   "url": "https://learn.microsoft.com/fr-fr/entra/identity/enterprise-apps/manage-consent-requests",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/entra/identity/enterprise-apps/manage-consent-requests",
+   "title": "Gestion du consentement aux applications et évaluation des demandes de consentement"
+  },
+  "entra-incident-pw": {
+   "url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbook-password-spray",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbook-password-spray",
+   "title": "Enquête sur l'attaque par pulvérisation de mots de passe"
+  },
+  "ir-phishing": {
+   "url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbook-phishing",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbook-phishing",
+   "title": "Enquête d’hameçonnage"
+  },
+  "ir-consent": {
+   "url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbook-app-consent",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbook-app-consent",
+   "title": "Investigation sur l'octroi de consentement pour l'application"
+  },
+  "ir-playbooks": {
+   "url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbooks",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-playbooks",
+   "title": "Guides opérationnels sur les réponses aux incidents"
+  },
+  "ir-ransomware": {
+   "url": "https://learn.microsoft.com/fr-fr/security/ransomware/human-operated-ransomware",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/ransomware/human-operated-ransomware",
+   "title": "Qu’est-ce qu’un ransomware ?"
+  },
+  "ir-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-overview",
+   "title": "Vue d’ensemble des réponse aux incidents"
+  },
+  "ir-planning": {
+   "url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-planning",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/security/operations/incident-response-planning",
+   "title": "Planification de la réponse aux incidents"
+  },
+  "purview-audit": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/audit-solutions-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/audit-solutions-overview",
+   "title": "En savoir plus sur les solutions d’audit dans Microsoft Purview"
+  },
+  "purview-audit-search": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/audit-search",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/audit-search",
+   "title": "Effectuer une recherche dans le journal d’audit"
+  },
+  "purview-content-search": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/ediscovery-content-search",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/ediscovery-content-search",
+   "title": "Prise en main de la recherche de contenu"
+  },
+  "purview-ediscovery": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/edisc",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/edisc",
+   "title": "En savoir plus sur eDiscovery"
+  },
+  "purview-insider": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/insider-risk-management",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/insider-risk-management",
+   "title": "En savoir plus sur la gestion des risques internes"
+  },
+  "purview-dlp": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/dlp-learn-about-dlp",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/dlp-learn-about-dlp",
+   "title": "En savoir plus sur la protection contre la perte de données"
+  },
+  "purview-dlp-alerts": {
+   "url": "https://learn.microsoft.com/fr-fr/purview/dlp-alerts-dashboard-get-started",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/purview/dlp-alerts-dashboard-get-started",
+   "title": "Prise en main du tableau de bord Alertes de protection contre la perte de données"
+  },
+  "mdc-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-cloud-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-cloud-introduction",
+   "title": "Qu’est-ce que Microsoft Defender pour le cloud ?"
+  },
+  "mdc-cspm": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-cloud-security-posture-management",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-cloud-security-posture-management",
+   "title": "Qu’est-ce que la gestion de posture de sécurité Cloud (CSPM)"
+  },
+  "mdc-servers": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-servers-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-servers-overview",
+   "title": "Defender pour serveurs"
+  },
+  "mdc-servers-plans": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/plan-defender-for-servers-select-plan",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/plan-defender-for-servers-select-plan",
+   "title": "Sélectionner un plan Defender pour serveurs et une étendue de déploiement"
+  },
+  "mdc-storage": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-storage-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-storage-introduction",
+   "title": "Présentation de Microsoft Defender pour le stockage"
+  },
+  "mdc-sql": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-sql-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-sql-introduction",
+   "title": "Vue d’ensemble des Microsoft Defender pour les bases de données Azure SQL"
+  },
+  "mdc-containers": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-containers-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-containers-introduction",
+   "title": "Présentation de Microsoft Defender pour les conteneurs"
+  },
+  "mdc-keyvault": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-key-vault-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-key-vault-introduction",
+   "title": "Vue d’ensemble de Microsoft Defender pour Key Vault"
+  },
+  "mdc-arm": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-resource-manager-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-resource-manager-introduction",
+   "title": "Vue d’ensemble de Microsoft Defender pour Resource Manager"
+  },
+  "mdc-appservice": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-app-service-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-app-service-introduction",
+   "title": "Vue d’ensemble de Defender pour App Service afin de protéger vos applications web et API Azure App Service"
+  },
+  "mdc-dns": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-dns-introduction",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/defender-for-dns-introduction",
+   "title": "Vue d’ensemble de Microsoft Defender pour DNS"
+  },
+  "mdc-alerts": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/alerts-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/alerts-overview",
+   "title": "Alertes et incidents de sécurité"
+  },
+  "mdc-alerts-ref": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/alerts-reference",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/alerts-reference",
+   "title": "Alertes de sécurité - guide de référence"
+  },
+  "mdc-manage-alerts": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/manage-respond-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/manage-respond-alerts",
+   "title": "Gérer et répondre aux alertes de sécurité"
+  },
+  "mdc-suppression": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/alerts-suppression-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/alerts-suppression-rules",
+   "title": "Supprimer les alertes de Microsoft Defender pour le cloud"
+  },
+  "mdc-workflow": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/workflow-automations",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/workflow-automations",
+   "title": "Automatiser les réponses de remédiation dans Microsoft Defender for Cloud"
+  },
+  "mdc-export": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/continuous-export",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/continuous-export",
+   "title": "Configurer l’exportation continue dans le portail Azure"
+  },
+  "mdc-secure-score": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/secure-score-security-controls",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/secure-score-security-controls",
+   "title": "Degré de sécurisation de Defender pour le cloud"
+  },
+  "mdc-recommendations": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/review-security-recommendations",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/review-security-recommendations",
+   "title": "Passer en revue les recommandations de sécurité"
+  },
+  "mdc-mcsb": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-regulatory-compliance",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-regulatory-compliance",
+   "title": "Référentiel de sécurité Cloud Microsoft dans Defender pour Cloud"
+  },
+  "mdc-jit": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/enable-just-in-time-access",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/enable-just-in-time-access",
+   "title": "Activer l’accès juste-à-temps"
+  },
+  "mdc-aws": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/quickstart-onboard-aws",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/quickstart-onboard-aws",
+   "title": "Connecter des comptes AWS à Microsoft Defender for Cloud"
+  },
+  "mdc-gcp": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/quickstart-onboard-gcp",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/quickstart-onboard-gcp",
+   "title": "Connecter votre projet GCP à Microsoft Defender for Cloud"
+  },
+  "mdc-arc": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/quickstart-onboard-machines",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/quickstart-onboard-machines",
+   "title": "Connecter vos machines non Azure à Microsoft Defender pour le cloud"
+  },
+  "mdc-attack-path": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/how-to-manage-attack-path",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/how-to-manage-attack-path",
+   "title": "Identifier et corriger les chemins d’attaque dans Microsoft Defender for Cloud"
+  },
+  "mdc-explorer": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/how-to-manage-cloud-security-explorer",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/how-to-manage-cloud-security-explorer",
+   "title": "Créer des requêtes avec l’explorateur de sécurité du cloud"
+  },
+  "mdc-xdr": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-integration-365",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-integration-365",
+   "title": "Alertes et incidents Microsoft Defender for Cloud dans Microsoft Defender XDR"
+  },
+  "mdc-sentinel-connector": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-defender-for-cloud",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-defender-for-cloud",
+   "title": "Ingérer les alertes Microsoft Defender for Cloud dans Microsoft Sentinel"
+  },
+  "mdc-governance": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/governance-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/governance-rules",
+   "title": "Générer la correction des recommandations à l’aide de règles de gouvernance"
+  },
+  "mdc-exemption": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/exempt-resource",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/exempt-resource",
+   "title": "Exempter des ressources à partir des suggestions"
+  },
+  "mdc-fim": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/file-integrity-monitoring-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/file-integrity-monitoring-overview",
+   "title": "Supervision de l’intégrité des fichiers"
+  },
+  "mdc-agentless": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-agentless-data-collection",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/concept-agentless-data-collection",
+   "title": "Analyse des machines sans agent"
+  },
+  "mdc-ai": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/ai-threat-protection",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/defender-for-cloud/ai-threat-protection",
+   "title": "Protection contre les menaces liées à l’IA dans Microsoft Defender for Cloud"
+  },
+  "kql-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/?view=microsoft-sentinel",
+   "title": "Vue d’ensemble du Langage de requête Kusto"
+  },
+  "kql-tutorial": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/tutorials/learn-common-operators?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/tutorials/learn-common-operators?view=microsoft-sentinel",
+   "title": "Tutoriel : Découvrir les opérateurs courants"
+  },
+  "kql-best": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/best-practices?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/best-practices?view=microsoft-sentinel",
+   "title": "Meilleures pratiques pour les requêtes Langage de requête Kusto"
+  },
+  "kql-where": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/where-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/where-operator?view=microsoft-sentinel",
+   "title": "opérateur where"
+  },
+  "kql-project": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/project-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/project-operator?view=microsoft-sentinel",
+   "title": "opérateur project"
+  },
+  "kql-extend": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/extend-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/extend-operator?view=microsoft-sentinel",
+   "title": "opérateur extend"
+  },
+  "kql-summarize": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/summarize-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/summarize-operator?view=microsoft-sentinel",
+   "title": "summarize, opérateur"
+  },
+  "kql-join": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/join-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/join-operator?view=microsoft-sentinel",
+   "title": "opérateur join"
+  },
+  "kql-union": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/union-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/union-operator?view=microsoft-sentinel",
+   "title": "opérateur union"
+  },
+  "kql-distinct": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/distinct-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/distinct-operator?view=microsoft-sentinel",
+   "title": "opérateur distinct"
+  },
+  "kql-count": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/count-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/count-operator?view=microsoft-sentinel",
+   "title": "count, opérateur"
+  },
+  "kql-top": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/top-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/top-operator?view=microsoft-sentinel",
+   "title": "opérateur top"
+  },
+  "kql-ago": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/ago-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/ago-function?view=microsoft-sentinel",
+   "title": "ago()"
+  },
+  "kql-now": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/now-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/now-function?view=microsoft-sentinel",
+   "title": "now()"
+  },
+  "kql-bin": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/bin-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/bin-function?view=microsoft-sentinel",
+   "title": "bin()"
+  },
+  "kql-tostring": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/tostring-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/tostring-function?view=microsoft-sentinel",
+   "title": "tostring()"
+  },
+  "kql-datetime": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/scalar-data-types/datetime?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/scalar-data-types/datetime?view=microsoft-sentinel",
+   "title": "Type de données datetime"
+  },
+  "kql-string-ops": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/datatypes-string-operators?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/datatypes-string-operators?view=microsoft-sentinel",
+   "title": "Opérateurs de chaîne"
+  },
+  "kql-regex": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/regex?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/regex?view=microsoft-sentinel",
+   "title": "Syntaxe des expressions régulières"
+  },
+  "kql-extract": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/extract-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/extract-function?view=microsoft-sentinel",
+   "title": "extract()"
+  },
+  "kql-parse": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/parse-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/parse-operator?view=microsoft-sentinel",
+   "title": "parse, opérateur"
+  },
+  "kql-mvexpand": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/mv-expand-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/mv-expand-operator?view=microsoft-sentinel",
+   "title": "mv-expand, opérateur"
+  },
+  "kql-let": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/let-statement?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/let-statement?view=microsoft-sentinel",
+   "title": "Let, instruction"
+  },
+  "kql-argmax": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/arg-max-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/arg-max-aggregation-function?view=microsoft-sentinel",
+   "title": "arg_max() (fonction d’agrégation)"
+  },
+  "kql-makeset": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/make-set-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/make-set-aggregation-function?view=microsoft-sentinel",
+   "title": "make_set() (fonction d’agrégation)"
+  },
+  "kql-dcount": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/dcount-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/dcount-aggregation-function?view=microsoft-sentinel",
+   "title": "dcount() (fonction d’agrégation)"
+  },
+  "kql-countif": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/countif-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/countif-aggregation-function?view=microsoft-sentinel",
+   "title": "countif() (fonction d’agrégation)"
+  },
+  "kql-make-series": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/make-series-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/make-series-operator?view=microsoft-sentinel",
+   "title": "opérateur make-series"
+  },
+  "kql-anomalies": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/series-decompose-anomalies-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/series-decompose-anomalies-function?view=microsoft-sentinel",
+   "title": "series_decompose_anomalies()"
+  },
+  "kql-render": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/render-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/render-operator?view=microsoft-sentinel",
+   "title": "render, opérateur"
+  },
+  "kql-lookup": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/lookup-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/lookup-operator?view=microsoft-sentinel",
+   "title": "lookup, opérateur"
+  },
+  "kql-ipv4-private": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/ipv4-is-private-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/ipv4-is-private-function?view=microsoft-sentinel",
+   "title": "ipv4_is_private()"
+  },
+  "kql-ipv4-range": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/ipv4-is-in-range-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/ipv4-is-in-range-function?view=microsoft-sentinel",
+   "title": "ipv4_is_in_range()"
+  },
+  "kql-geo": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/geo-info-from-ip-address-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/geo-info-from-ip-address-function?view=microsoft-sentinel",
+   "title": "informations_géographiques_depuis_adresse_ip()"
+  },
+  "kql-parse-json": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/parse-json-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/parse-json-function?view=microsoft-sentinel",
+   "title": "parse_json()"
+  },
+  "kql-datetime-diff": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/datetime-diff-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/datetime-diff-function?view=microsoft-sentinel",
+   "title": "datetime_diff() (fonction de différence de date et heure)"
+  },
+  "kql-iff": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/iff-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/iff-function?view=microsoft-sentinel",
+   "title": "iff()"
+  },
+  "kql-case": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/case-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/case-function?view=microsoft-sentinel",
+   "title": "case()"
+  },
+  "kql-materialize": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/materialize-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/materialize-function?view=microsoft-sentinel",
+   "title": "matérialiser()"
+  },
+  "kql-externaldata": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/externaldata-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/externaldata-operator?view=microsoft-sentinel",
+   "title": "opérateur de données externes"
+  },
+  "kql-datatable": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/datatable-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/datatable-operator?view=microsoft-sentinel",
+   "title": "opérateur DataTable"
+  },
+  "kql-split": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/split-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/split-function?view=microsoft-sentinel",
+   "title": "split()"
+  },
+  "kql-tolower": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/tolower-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/tolower-function?view=microsoft-sentinel",
+   "title": "tolower()"
+  },
+  "kql-isempty": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/isempty-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/isempty-function?view=microsoft-sentinel",
+   "title": "isempty()"
+  },
+  "kql-has-any": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/has-any-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/has-any-operator?view=microsoft-sentinel",
+   "title": "has_any, opérateur"
+  },
+  "kql-in": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/in-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/in-operator?view=microsoft-sentinel",
+   "title": "in~, opérateur"
+  },
+  "kql-between": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/between-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/between-operator?view=microsoft-sentinel",
+   "title": "between, opérateur"
+  },
+  "kql-sort": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/sort-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/sort-operator?view=microsoft-sentinel",
+   "title": "opérateur de tri"
+  },
+  "kql-take": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/take-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/take-operator?view=microsoft-sentinel",
+   "title": "opérateur take"
+  },
+  "kql-search": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/search-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/search-operator?view=microsoft-sentinel",
+   "title": "opérateur de recherche"
+  },
+  "kql-prev": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/prev-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/prev-function?view=microsoft-sentinel",
+   "title": "prev()"
+  },
+  "kql-serialize": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/serialize-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/serialize-operator?view=microsoft-sentinel",
+   "title": "serialize, opérateur"
+  },
+  "kql-bag-unpack": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/bag-unpack-plugin?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/bag-unpack-plugin?view=microsoft-sentinel",
+   "title": "bag_unpack, plug-in"
+  },
+  "kql-base64": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/base64-decode-tostring-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/base64-decode-tostring-function?view=microsoft-sentinel",
+   "title": "base64_decode_tostring()"
+  },
+  "kql-parse-url": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/parse-url-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/parse-url-function?view=microsoft-sentinel",
+   "title": "parse_url()"
+  },
+  "kql-startofday": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/startofday-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/startofday-function?view=microsoft-sentinel",
+   "title": "débutdejour()"
+  },
+  "kql-countof": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/countof-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/countof-function?view=microsoft-sentinel",
+   "title": "countof()"
+  },
+  "kql-strcat": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/strcat-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/strcat-function?view=microsoft-sentinel",
+   "title": "strcat()"
+  },
+  "kql-percentile": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/percentiles-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/percentiles-aggregation-function?view=microsoft-sentinel",
+   "title": "percentile(), centiles() (fonction d’agrégation)"
+  },
+  "kql-format-datetime": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/format-datetime-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/format-datetime-function?view=microsoft-sentinel",
+   "title": "format_datetime()"
+  },
+  "kql-ingestion-time": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/ingestion-time-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/ingestion-time-function?view=microsoft-sentinel",
+   "title": "ingestion_time()"
+  },
+  "kql-has": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/has-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/has-operator?view=microsoft-sentinel",
+   "title": "has, opérateur"
+  },
+  "kql-contains": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/contains-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/contains-operator?view=microsoft-sentinel",
+   "title": "contains, opérateur"
+  },
+  "kql-matches-regex": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/matches-regex-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/matches-regex-operator?view=microsoft-sentinel",
+   "title": "correspond à l'opérateur regex"
+  },
+  "kql-project-away": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/project-away-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/project-away-operator?view=microsoft-sentinel",
+   "title": "project-away, opérateur"
+  },
+  "kql-dynamic": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/scalar-data-types/dynamic?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/scalar-data-types/dynamic?view=microsoft-sentinel",
+   "title": "Le type de données dynamiques"
+  },
+  "kql-toscalar": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/toscalar-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/toscalar-function?view=microsoft-sentinel",
+   "title": "toscalar()"
+  },
+  "kql-hourofday": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/hour-of-day-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/hour-of-day-function?view=microsoft-sentinel",
+   "title": "hourofday()"
+  },
+  "kql-dayofweek": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/day-of-week-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/day-of-week-function?view=microsoft-sentinel",
+   "title": "jourDeLaSemaine()"
+  },
+  "kql-arg-min": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/arg-min-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/arg-min-aggregation-function?view=microsoft-sentinel",
+   "title": "arg_min() (fonction d’agrégation)"
+  },
+  "kql-make-list": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/make-list-aggregation-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/make-list-aggregation-function?view=microsoft-sentinel",
+   "title": "make_list() (fonction d’agrégation)"
+  },
+  "kql-autocluster": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/autocluster-plugin?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/autocluster-plugin?view=microsoft-sentinel",
+   "title": "autocluster, plug-in"
+  },
+  "kql-coalesce": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/coalesce-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/coalesce-function?view=microsoft-sentinel",
+   "title": "fusionner()"
+  },
+  "kql-column-ifexists": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/column-ifexists-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/column-ifexists-function?view=microsoft-sentinel",
+   "title": "column_ifexists()"
+  },
+  "kql-row-number": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/row-number-function?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/row-number-function?view=microsoft-sentinel",
+   "title": "row_number()"
+  },
+  "kql-invoke": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/invoke-operator?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/invoke-operator?view=microsoft-sentinel",
+   "title": "invoke, opérateur"
+  },
+  "la-t-SigninLogs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/signinlogs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/signinlogs",
+   "title": "SigninLogs"
+  },
+  "la-t-AuditLogs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/auditlogs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/auditlogs",
+   "title": "Journaux d'audit"
+  },
+  "la-t-SecurityEvent": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/securityevent",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/securityevent",
+   "title": "Événement de sécurité"
+  },
+  "la-t-Syslog": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/syslog",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/syslog",
+   "title": "syslog (protocole standard pour la journalisation des événements en informatique)"
+  },
+  "la-t-CommonSecurityLog": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/commonsecuritylog",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/commonsecuritylog",
+   "title": "JournalDeSécuritéCommun"
+  },
+  "la-t-AzureActivity": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/azureactivity",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/azureactivity",
+   "title": "AzureActivity"
+  },
+  "la-t-OfficeActivity": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/officeactivity",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/officeactivity",
+   "title": "Activité de Bureau"
+  },
+  "la-t-SecurityAlert": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/securityalert",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/securityalert",
+   "title": "Alerte de sécurité"
+  },
+  "la-t-SecurityIncident": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/securityincident",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/securityincident",
+   "title": "Incident de sécurité"
+  },
+  "la-t-BehaviorAnalytics": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/behavioranalytics",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/behavioranalytics",
+   "title": "BehaviorAnalytics"
+  },
+  "la-t-ThreatIntelIndicators": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/threatintelindicators",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/threatintelindicators",
+   "title": "ThreatIntelIndicators"
+  },
+  "la-t-ThreatIntelligenceIndicator": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/threatintelligenceindicator",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/threatintelligenceindicator",
+   "title": "Indicateur de Renseignement sur les Menaces"
+  },
+  "la-t-AADNonInteractive": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/aadnoninteractiveusersigninlogs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/aadnoninteractiveusersigninlogs",
+   "title": "AADNonInteractiveUserSignInLogs"
+  },
+  "la-t-AADUserRiskEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/aaduserriskevents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/aaduserriskevents",
+   "title": "AADUserRiskEvents"
+  },
+  "la-t-MicrosoftGraphActivityLogs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/microsoftgraphactivitylogs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/microsoftgraphactivitylogs",
+   "title": "MicrosoftGraphActivityLogs"
+  },
+  "la-t-Event": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/event",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/event",
+   "title": "Événement"
+  },
+  "la-t-Heartbeat": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/heartbeat",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/heartbeat",
+   "title": "Heartbeat"
+  },
+  "la-t-StorageBlobLogs": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/storagebloblogs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/storagebloblogs",
+   "title": "StorageBlobLogs"
+  },
+  "la-t-AzureDiagnostics": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/azurediagnostics",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/azurediagnostics",
+   "title": "AzureDiagnostics"
+  },
+  "la-t-Usage": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/usage",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/usage",
+   "title": "Utilisation"
+  },
+  "la-t-WindowsEvent": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/windowsevent",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/windowsevent",
+   "title": "WindowsEvent"
+  },
+  "la-t-SentinelHealth": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/sentinelhealth",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/sentinelhealth",
+   "title": "SentinelHealth"
+  },
+  "la-t-Anomalies": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/anomalies",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/anomalies",
+   "title": "Anomalies"
+  },
+  "la-t-IdentityInfo": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/identityinfo",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/identityinfo",
+   "title": "IdentityInfo"
+  },
+  "la-t-DnsEvents": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/dnsevents",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/dnsevents",
+   "title": "DnsEvents"
+  },
+  "la-t-AzureFirewall": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/azfwnetworkrule",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/azure-monitor/reference/tables/azfwnetworkrule",
+   "title": "AZFWNetworkRule"
+  },
+  "copilot-overview": {
+   "url": "https://learn.microsoft.com/fr-fr/copilot/security/microsoft-security-copilot",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/copilot/security/microsoft-security-copilot",
+   "title": "Qu’est-ce que Sécurité Microsoft Copilot ?"
+  },
+  "logic-apps": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/logic-apps/logic-apps-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/logic-apps/logic-apps-overview",
+   "title": "Qu’est-ce qu’Azure Logic Apps ?"
+  },
+  "xdr-ta-notif": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-threat-analytics-notifications",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-threat-analytics-notifications",
+   "title": "Obtenir Notifications par e-mail des mises à jour d’Analyse des menaces dans Microsoft Defender XDR"
+  },
+  "xdr-action-notif": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-response-actions-notifications",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/m365d-response-actions-notifications",
+   "title": "Obtenir Notifications par e-mail pour les actions de réponse dans Microsoft Defender XDR"
+  },
+  "xdr-copilot-agents": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/security-copilot-agents-defender",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/security-copilot-agents-defender",
+   "title": "Déployer des agents IA dans Microsoft Defender"
+  },
+  "xdr-phishing-triage": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/phishing-triage-agent",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/phishing-triage-agent",
+   "title": "Agent de triage du phishing Microsoft Security Copilot dans Microsoft Defender"
+  },
+  "xdr-copilot-summary": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/security-copilot-m365d-incident-summary",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/security-copilot-m365d-incident-summary",
+   "title": "Résumer un incident avec Microsoft Copilot dans Microsoft Defender"
+  },
+  "xdr-ah-language": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-query-language",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-query-language",
+   "title": "Découvrir le langage de requête de repérage avancé"
+  },
+  "xdr-ah-take-action": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-take-action",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/advanced-hunting-take-action",
+   "title": "Effectuer des actions sur les résultats de requête de chasse avancée"
+  },
+  "xdr-isoc": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-xdr/isoc-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-xdr/isoc-overview",
+   "title": "ISOC dans Microsoft Defender (aperçu)"
+  },
+  "sent-log-plans": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/log-plans",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/log-plans",
+   "title": "Niveaux de rétention des journaux dans Microsoft Sentinel"
+  },
+  "sent-tables": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/manage-table-tiers-retention",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/manage-table-tiers-retention",
+   "title": "Configurer les paramètres de table dans Microsoft Sentinel"
+  },
+  "sent-lake-compare": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/kql-jobs-summary-rules-search-jobs",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/kql-jobs-summary-rules-search-jobs",
+   "title": "Comparer les tâches KQL, les règles de synthèse et les tâches de recherche dans Microsoft Sentinel"
+  },
+  "sent-lake-onboarding": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-lake-onboarding",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-lake-onboarding",
+   "title": "Intégrer le lac de données Microsoft Sentinel et le graphe Microsoft Sentinel"
+  },
+  "sent-graph-viz": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/graph-visualization",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/graph-visualization",
+   "title": "Visualiser des graphiques dans Microsoft Sentinel (préversion)"
+  },
+  "sent-mcp-tools": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-mcp-tools-overview",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/datalake/sentinel-mcp-tools-overview",
+   "title": "Collection d’outils dans Microsoft Sentinel serveur MCP"
+  },
+  "sent-copilot": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/sentinel-security-copilot",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/sentinel-security-copilot",
+   "title": "Security Copilot avec Microsoft Sentinel"
+  },
+  "sent-xdr-connector": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-microsoft-365-defender",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/connect-microsoft-365-defender",
+   "title": "Stream les données de Microsoft Defender XDR à Microsoft Sentinel dans le Portail Azure"
+  },
+  "sent-retention": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/configure-data-retention-archive",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/configure-data-retention-archive",
+   "title": "Configurer la conservation interactive et à long terme des données dans Microsoft Sentinel"
+  },
+  "mde-custom-data-rules": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/create-custom-data-collection-rules",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/create-custom-data-collection-rules",
+   "title": "Créer et gérer des règles de collecte de données personnalisées dans Microsoft Defender pour point de terminaison"
+  },
+  "mde-indicator-file": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicator-file",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicator-file",
+   "title": "Créer des indicateurs de fichier dans Microsoft Defender for Endpoint"
+  },
+  "mde-indicator-cert": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicator-certificates",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-endpoint/indicator-certificates",
+   "title": "Créer des indicateurs pour les certificats dans Microsoft Defender for Endpoint"
+  },
+  "mdo-explorer-hunting": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/threat-explorer-threat-hunting",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/threat-explorer-threat-hunting",
+   "title": "Recherche des menaces dans l’Explorateur des menaces et détections en temps réel dans Microsoft Defender pour Office 365"
+  },
+  "mdo-air-approve": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/air-review-approve-pending-completed-actions",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/air-review-approve-pending-completed-actions",
+   "title": "Examiner et gérer les actions de correction dans les enquêtes et réponses automatisées (AIR) dans Microsoft Defender pour Office 365 Plan 2"
+  },
+  "mdo-user-reported": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-office-365/submissions-user-reported-messages-custom-mailbox",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-office-365/submissions-user-reported-messages-custom-mailbox",
+   "title": "Paramètres signalés par l’utilisateur"
+  },
+  "mdi-investigate": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/investigate-security-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/investigate-security-alerts",
+   "title": "Examiner les alertes dans Microsoft Defender pour Identity"
+  },
+  "mdi-sensor-v3-prereq": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-for-identity/deploy/deploy-sensor-v3",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-for-identity/deploy/deploy-sensor-v3",
+   "title": "Déploiement du capteur Microsoft Defender pour Identity v3.x"
+  },
+  "mdca-investigate-oauth": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/investigate-risky-oauth",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/investigate-risky-oauth",
+   "title": "Examiner et corriger les applications OAuth à risque"
+  },
+  "mdca-anomaly-alerts": {
+   "url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/investigate-anomaly-alerts",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/defender-cloud-apps/investigate-anomaly-alerts",
+   "title": "Comment examiner les alertes de détection d’anomalie"
+  },
+  "kql-quickref": {
+   "url": "https://learn.microsoft.com/fr-fr/kusto/query/kql-quick-reference?view=microsoft-sentinel",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/kusto/query/kql-quick-reference?view=microsoft-sentinel",
+   "title": "Référence rapide KQL"
+  },
+  "sent-onboard-defender": {
+   "url": "https://learn.microsoft.com/fr-fr/azure/sentinel/microsoft-sentinel-onboard",
+   "status": 200,
+   "final_url": "https://learn.microsoft.com/fr-fr/azure/sentinel/microsoft-sentinel-onboard",
+   "title": "Connecter Microsoft Sentinel au portail Microsoft Defender"
+  }
+ }
+}

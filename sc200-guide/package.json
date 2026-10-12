@@ -1,0 +1,8 @@
+{
+  "name": "sc200-guide",
+  "private": true,
+  "description": "Génération du guide SC-200 (PDF) et validation KQL",
+  "dependencies": {
+    "@kusto/language-service-next": "12.4.1"
+  }
+}

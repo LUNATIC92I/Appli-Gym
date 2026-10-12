@@ -1,0 +1,295 @@
+@@ module=1
+@@ section=Architecture, portail Defender et espaces de travail
+
+### Rôle de Microsoft Sentinel dans l'architecture SecOps
+@ niveau=D ref=sent-overview,sent-defender-portal
+?: Un RSSI demande à l'équipe SOC de résumer la fonction principale de Microsoft Sentinel par rapport aux autres produits Microsoft Security. Quelle description est la plus exacte ?
++: Un SIEM et une solution SOAR cloud natifs qui collectent des données de multiples sources (Microsoft et tierces), détectent les menaces par des règles d'analyse et automatisent la réponse.
+-: Un agent EDR installé sur les postes Windows qui bloque les malwares en temps réel. || C'est le rôle de Microsoft Defender for Endpoint (et de l'antivirus Microsoft Defender), pas de Sentinel, qui n'installe aucun agent de protection.
+-: Une solution de gestion de la posture cloud qui calcule un Secure Score à partir des recommandations Azure, AWS et GCP. || Cette description correspond à Microsoft Defender for Cloud (CSPM), pas à Sentinel.
+-: Un service d'identité qui calcule le risque des connexions et applique l'accès conditionnel. || Il s'agit de Microsoft Entra ID Protection et de l'accès conditionnel Microsoft Entra.
+=: Microsoft Sentinel est le **SIEM** (Security Information and Event Management) et le **SOAR** (Security Orchestration, Automation and Response) de Microsoft. Il s'appuie sur un espace de travail Log Analytics pour stocker les journaux, propose des connecteurs de données pour des sources Microsoft et tierces, des règles d'analyse (planifiées, NRT, Fusion, anomalies, renseignement sur les menaces), des classeurs, des outils de chasse et des capacités d'automatisation (règles d'automatisation et playbooks Logic Apps).
+T: Sentinel est désormais intégré au portail Microsoft Defender (plateforme d'opérations de sécurité unifiée) : incidents, chasse avancée et automatisation sont unifiés avec Defender XDR. Microsoft a annoncé qu'après le 31 mars 2027, Sentinel ne sera plus pris en charge dans le portail Azure et ne sera disponible que dans le portail Defender. Sentinel ne remplace pas les produits de protection (EDR, protection de la messagerie, CSPM) : il **agrège et corrèle** leurs signaux avec des journaux tiers (pare-feu, proxy, Syslog, SaaS).
+!: Sentinel = SIEM + SOAR cloud natif reposant sur Log Analytics ; Defender XDR = protection et détection étendues des charges Microsoft 365/terminaux/identités ; Defender for Cloud = CSPM + protection des charges cloud.
+
+### Prérequis de déploiement de Microsoft Sentinel
+@ niveau=D ref=sent-overview,la-workspace-design
+?: Vous devez activer Microsoft Sentinel pour une nouvelle filiale. Quelle ressource Azure doit exister (ou être créée) pour pouvoir activer Sentinel ?
++: Un espace de travail Log Analytics, sur lequel la solution Microsoft Sentinel est activée.
+-: Un compte de stockage Azure en mode Data Lake Storage Gen2. || Le stockage des journaux SIEM repose sur un espace de travail Log Analytics ; un compte de stockage peut servir à l'export ou à l'archivage externe, pas à l'activation de Sentinel.
+-: Un Event Hub dédié dans la même région. || Event Hubs peut transporter des données vers des outils tiers, mais n'est pas un prérequis de Sentinel.
+-: Un cluster Azure Data Explorer. || ADX peut être utilisé pour de l'analyse complémentaire, mais Sentinel s'active sur un espace Log Analytics.
+=: Microsoft Sentinel s'active **sur un espace de travail Log Analytics** : toutes les tables (SecurityEvent, SigninLogs, CommonSecurityLog, etc.) y sont stockées et interrogées en KQL. Un même espace ne peut héberger qu'une seule instance de Sentinel.
+T: La conception de l'espace (nombre d'espaces, région, souveraineté des données, séparation des données opérationnelles et de sécurité, coûts) est une décision d'architecture. Microsoft recommande en général de limiter le nombre d'espaces de travail et d'utiliser le RBAC de contexte de ressource ou de niveau table pour séparer les accès, sauf exigence réglementaire ou multi-locataire. Une fois connecté au portail Defender, un espace « principal » est désigné ; d'autres espaces peuvent être ajoutés.
+!: Pas d'espace Log Analytics, pas de Sentinel : l'activation se fait sur un espace existant ou nouvellement créé.
+
+### Portail d'exploitation recommandé
+@ niveau=D ref=sent-defender-portal,sent-roles
+?: Votre organisation utilise encore Microsoft Sentinel dans le portail Azure. Quelle affirmation correspond à la stratégie actuelle annoncée par Microsoft ?
++: Microsoft recommande la transition vers le portail Microsoft Defender ; après le 31 mars 2027, Sentinel ne sera plus pris en charge dans le portail Azure.
+-: Le portail Azure reste le seul portail permettant de créer des règles d'analyse planifiées. || Les règles d'analyse se gèrent également dans le portail Defender (Microsoft Sentinel > Configuration > Analytique).
+-: Le portail Defender est réservé aux clients disposant d'une licence Microsoft 365 E5. || La connexion de Sentinel au portail Defender ne dépend pas d'une licence E5 ; des scénarios « Sentinel seul » sont pris en charge.
+-: Le portail Defender ne permet que la consultation ; toute configuration doit se faire dans Azure. || La gestion des tables, de la rétention, des règles et de l'automatisation est disponible dans le portail Defender.
+=: La documentation Microsoft Learn indique qu'après le **31 mars 2027**, Microsoft Sentinel ne sera plus pris en charge dans le portail Azure et sera disponible uniquement dans le portail Microsoft Defender. Les clients sont invités à planifier leur transition dès maintenant.
+T: Dans le portail Defender, Sentinel bénéficie de la file d'incidents unifiée avec Defender XDR, de la chasse avancée sur les tables XDR et Sentinel, de la gestion des tables et de la rétention, de la gestion des cas, du data lake et du graphe Sentinel. Certaines fonctions évoluent lors de la connexion (par exemple, la création d'incidents est assurée par le moteur de corrélation de Defender XDR).
+!: Date à retenir : 31 mars 2027 — fin de la prise en charge de Sentinel dans le portail Azure ; le portail Defender devient l'unique interface.
+
+### Création d'incidents après connexion au portail Defender
+@ niveau=I ref=sent-defender-portal,xdr-correlation
+?: Après avoir connecté votre espace Sentinel au portail Microsoft Defender, un analyste constate que les alertes générées par une règle planifiée Sentinel sont regroupées avec des alertes Defender for Endpoint dans un même incident. Quel mécanisme explique ce comportement ?
++: Le moteur de corrélation de Defender XDR crée et regroupe les incidents à partir des alertes Sentinel et Defender, au lieu de la logique de création d'incidents propre à Sentinel.
+-: La règle planifiée a été configurée en mode « Fusion », ce qui fusionne automatiquement ses alertes avec celles de MDE. || « Fusion » est un type de règle distinct ; une règle planifiée ne bascule pas en mode Fusion.
+-: Une règle d'automatisation Sentinel a fusionné les incidents. || Les règles d'automatisation ne fusionnent pas des incidents ; elles changent statut, propriétaire, gravité, ajoutent des balises/tâches ou lancent des playbooks.
+-: Le connecteur Defender XDR copie toutes les alertes Sentinel dans Defender for Endpoint. || Les alertes Sentinel ne sont pas « copiées » dans MDE ; c'est le moteur de corrélation unifié qui les associe.
+=: Une fois Sentinel intégré au portail Defender, **Defender XDR devient responsable de la création et de la corrélation des incidents** pour les alertes Sentinel comme pour les alertes Defender. Il peut donc rattacher l'alerte d'une règle planifiée à un incident contenant des alertes MDE partageant des entités (appareil, utilisateur, IP).
+T: Ce fonctionnement apporte une vue unique de l'attaque (attack story). Les paramètres de regroupement d'alertes des règles Sentinel restent pris en compte, mais la décision finale de corrélation est prise par Defender XDR. Les règles « Création d'incidents Microsoft » de Sentinel ne sont pas utilisées dans ce mode : Defender XDR gère directement les alertes de ses propres produits.
+!: Portail Defender = moteur de corrélation XDR unique pour les alertes Sentinel et Defender ; attendez-vous à des incidents multi-produits.
+
+### Nombre d'instances Sentinel par espace de travail
+@ niveau=D ref=la-workspace-design,sent-overview
+?: Un ingénieur propose d'activer deux instances de Microsoft Sentinel distinctes sur le même espace de travail Log Analytics afin de séparer les équipes SOC Europe et Amérique. Que répondez-vous ?
++: C'est impossible : un espace de travail Log Analytics ne peut héberger qu'une seule instance de Microsoft Sentinel ; la séparation doit passer par le RBAC ou plusieurs espaces.
+-: C'est possible si les deux instances utilisent des groupes de ressources différents. || Sentinel est attaché à l'espace lui-même ; le groupe de ressources ne permet pas de créer une seconde instance sur le même espace.
+-: C'est possible uniquement avec une licence Sentinel « Enterprise ». || Il n'existe pas de licence permettant plusieurs instances sur un même espace.
+-: C'est possible si l'une des instances est connectée au portail Defender et l'autre au portail Azure. || Le portail d'accès ne change pas la relation un espace / une instance.
+=: Sentinel s'active **une seule fois par espace de travail**. Pour séparer des équipes, on utilise le RBAC Azure (rôles Sentinel sur le groupe de ressources), le RBAC de contexte de ressource ou au niveau table, ou une architecture multi-espaces.
+T: Une architecture multi-espaces se justifie par la souveraineté (régions), la séparation légale entre filiales, les MSSP (Azure Lighthouse) ou les exigences de facturation. Le portail Defender permet de gérer plusieurs espaces Sentinel ; l'interrogation croisée est possible avec la fonction `workspace()` en KQL.
+!: Un espace = au plus une instance Sentinel. Séparez les accès avec le RBAC plutôt qu'en multipliant les espaces sans nécessité.
+
+### Requête inter-espaces de travail
+@ niveau=I ref=la-workspace-design,kql-union
+?: Un MSSP exploite deux espaces Sentinel (« ws-eu » et « ws-us »). Un analyste veut, dans une seule requête KQL, compter les échecs de connexion Entra ID des deux espaces. Quelle approche est correcte ?
++: Utiliser `union` avec la fonction `workspace()` pour interroger la table SigninLogs de chaque espace dans la même requête.
+-: Créer une règle d'automatisation qui copie les incidents d'un espace vers l'autre. || Les règles d'automatisation agissent sur les incidents ; elles ne permettent pas d'interroger des journaux.
+-: Utiliser l'opérateur `lookup` en précisant le nom de l'abonnement Azure. || `lookup` enrichit une table par une autre ; il ne sélectionne pas un espace de travail.
+-: C'est impossible : une requête KQL ne peut porter que sur un seul espace. || Les requêtes inter-espaces sont prises en charge (fonction `workspace()`), dans la limite des autorisations de l'utilisateur.
+=: La fonction `workspace("nom")` référence un autre espace Log Analytics accessible à l'utilisateur ; combinée à `union`, elle permet une analyse inter-espaces.
+T: Les requêtes inter-espaces respectent le RBAC : l'utilisateur doit avoir accès en lecture à chaque espace. Les règles d'analyse planifiées peuvent aussi interroger plusieurs espaces (dans une limite documentée du nombre d'espaces). Pour un MSSP, Azure Lighthouse permet de gérer les locataires clients depuis le locataire du fournisseur.
+X: ```kqlnv
+union workspace("ws-eu").SigninLogs, workspace("ws-us").SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType != "0"
+| summarize Echecs = count() by TenantId, UserPrincipalName
+| top 20 by Echecs
+```
+!: Inter-espaces : `workspace("nom").Table` + `union` ; l'accès dépend des droits sur chaque espace.
+
+### Données stockées pour les incidents Sentinel
+@ niveau=I ref=la-t-SecurityIncident,kql-argmax
+?: Un analyste interroge la table SecurityIncident pour compter les incidents fermés au cours du mois et obtient un nombre bien supérieur au nombre réel d'incidents. Quelle est la cause la plus probable ?
++: Chaque modification d'un incident ajoute une nouvelle ligne dans SecurityIncident ; il faut ne conserver que la dernière version de chaque incident (par exemple avec `arg_max`).
+-: La table SecurityIncident contient aussi toutes les alertes Defender for Endpoint. || Les alertes sont dans SecurityAlert (côté Sentinel) ; SecurityIncident ne contient que des enregistrements d'incidents.
+-: La table SecurityIncident est en plan Basic et renvoie des doublons. || Le plan de table ne crée pas de doublons ; le comportement vient du modèle d'historisation.
+-: Les incidents fermés sont recréés chaque jour par les règles d'analyse. || Une règle ne recrée pas un incident fermé ; elle peut éventuellement le rouvrir si l'option de réouverture est activée.
+=: SecurityIncident est **historisée** : chaque création ou mise à jour (statut, propriétaire, classification, commentaire…) produit une nouvelle ligne. Pour un état courant, on regroupe par IncidentNumber (ou IncidentName) et on conserve la ligne la plus récente avec `arg_max(LastModifiedTime, *)` ou `arg_max(TimeGenerated, *)`.
+T: Ce modèle permet de mesurer les délais (MTTA/MTTR) en comparant CreatedTime, FirstModifiedTime et ClosedTime. Les classeurs « Security operations efficiency » s'appuient sur ce principe.
+X: ```kql
+SecurityIncident
+| where TimeGenerated > ago(30d)
+| summarize arg_max(LastModifiedTime, *) by IncidentNumber
+| where Status == "Closed"
+| summarize Incidents = count() by Classification
+```
+!: SecurityIncident (comme SecurityAlert pour les mises à jour d'état) est historisée : toujours dédupliquer avec `arg_max(...)` par identifiant d'incident.
+
+### Connexion de Microsoft Sentinel au portail Defender — prérequis
+@ niveau=I ref=sent-onboard-defender,sent-defender-portal
+?: Vous préparez la connexion d'un espace de travail Sentinel au portail Microsoft Defender, dans un locataire qui comporte plusieurs espaces Sentinel. Quelle combinaison d'autorisations correspond aux prérequis documentés pour l'administrateur qui réalise l'opération ?
++: Le rôle Propriétaire (attribution inconditionnelle) sur l'abonnement — ou Administrateur de l'accès utilisateur et Microsoft Sentinel Contributor — ainsi qu'au moins le rôle Administrateur de la sécurité dans Microsoft Entra ID.
+-: Uniquement le rôle Microsoft Sentinel Reader sur l'espace. || Ce rôle suffit pour consulter Sentinel dans le portail Defender une fois la connexion faite, pas pour réaliser la connexion.
+-: Uniquement le rôle Microsoft Sentinel Playbook Operator. || Ce rôle permet seulement de lister et d'exécuter manuellement des playbooks.
+-: Une licence Microsoft 365 E5 attribuée à l'administrateur, sans autre rôle. || La documentation précise que ni Defender XDR ni une licence E5 ne sont nécessaires pour utiliser Sentinel dans le portail Defender ; ce sont des rôles qui sont requis.
+=: D'après la page « Connecter Microsoft Sentinel au portail Microsoft Defender », la connexion exige **Owner** (attribution inconditionnelle, étendue abonnement) **ou User Access Administrator + Microsoft Sentinel Contributor**, et, lorsque le locataire compte plus d'un espace Sentinel, au moins **Security Administrator** dans Microsoft Entra ID.
+T: Après la connexion, les autorisations RBAC Azure existantes continuent de s'appliquer dans le portail Defender (Reader pour consulter, Contributor pour agir sur les incidents…). Le portail Defender prend en charge un seul locataire Entra, un espace **principal** et des espaces secondaires. La documentation indique aussi que, dans de nombreux cas, les clients qui ont intégré Sentinel après le 1er juillet 2025 sont automatiquement connectés au portail Defender. Pour Defender for Cloud, il est recommandé d'utiliser le connecteur « Tenant-based Microsoft Defender for Cloud » sur l'espace principal.
+!: Connexion Sentinel → Defender : Owner (ou User Access Administrator + Sentinel Contributor) sur l'abonnement + Security Administrator Entra si plusieurs espaces. Aucune licence E5 requise.
+
+@@ section=Rôles et contrôle d'accès (RBAC)
+
+### Rôle minimal pour gérer les incidents
+@ niveau=D ref=sent-roles
+?: Un analyste N1 doit pouvoir consulter les données et les classeurs, et modifier les incidents (statut, propriétaire, commentaires), sans pouvoir créer ni modifier des règles d'analyse. Quel rôle intégré attribuer ?
++: Microsoft Sentinel Responder.
+-: Microsoft Sentinel Reader. || Le lecteur peut consulter les incidents mais pas les modifier (statut, affectation).
+-: Microsoft Sentinel Contributor. || Ce rôle permet en plus de créer et modifier des règles, connecteurs, classeurs et solutions : il dépasse le besoin (principe du moindre privilège).
+-: Logic App Contributor. || Ce rôle concerne la création et la modification de playbooks (Logic Apps), pas la gestion des incidents.
+=: **Microsoft Sentinel Responder** = toutes les autorisations du Reader + gestion des incidents (affectation, changement de statut, gravité, commentaires). C'est le rôle typique des analystes de triage.
+T: Rôles intégrés Sentinel : Reader (lecture), Responder (lecture + gestion des incidents), Contributor (Responder + création/modification des ressources et installation de solutions), Playbook Operator (lister, consulter et exécuter manuellement des playbooks), Automation Contributor (permet à Sentinel d'ajouter des playbooks aux règles d'automatisation — rôle destiné au compte de service, pas aux utilisateurs). Microsoft recommande d'attribuer ces rôles au niveau du **groupe de ressources** contenant l'espace.
+!: Gérer des incidents sans créer de règles = Microsoft Sentinel Responder.
+
+### Exécuter un playbook sans pouvoir le modifier
+@ niveau=I ref=sent-roles,sent-playbooks
+?: Les analystes N2 doivent pouvoir lancer manuellement, depuis un incident, un playbook « Bloquer l'utilisateur dans Entra ID », mais ne doivent pas pouvoir modifier la logique du playbook. Quel rôle est le plus adapté, en complément de Microsoft Sentinel Responder ?
++: Microsoft Sentinel Playbook Operator.
+-: Logic App Contributor. || Ce rôle permet de modifier les Logic Apps, ce qui est explicitement interdit ici.
+-: Microsoft Sentinel Automation Contributor. || Ce rôle est destiné au compte de service Microsoft Sentinel pour l'attacher aux playbooks via les règles d'automatisation, pas aux analystes.
+-: Contributeur (Contributor) sur l'abonnement. || Rôle beaucoup trop large, contraire au moindre privilège.
+=: **Microsoft Sentinel Playbook Operator** permet de lister, de consulter et d'exécuter manuellement des playbooks, sans droit de modification. Il est attribué sur le groupe de ressources qui contient les playbooks.
+T: La création/modification de playbooks nécessite **Logic App Contributor** sur le groupe de ressources des playbooks. Pour que des règles d'automatisation puissent déclencher des playbooks, le compte de service de Sentinel doit disposer de **Microsoft Sentinel Automation Contributor** sur ce groupe de ressources (configuré via « Gérer les autorisations des playbooks » dans les paramètres).
+!: Exécuter sans modifier = Playbook Operator ; modifier = Logic App Contributor ; permettre à Sentinel d'appeler les playbooks = Automation Contributor (compte de service).
+
+### Échec d'exécution de playbook depuis une règle d'automatisation
+@ niveau=I ref=sent-automation-rules,sent-roles
+?: Une règle d'automatisation doit lancer un playbook à la création de chaque incident. Lors de la configuration, le playbook apparaît grisé et ne peut pas être sélectionné. Quelle action corrige le problème ?
++: Accorder à Microsoft Sentinel les autorisations sur le groupe de ressources du playbook (« Gérer les autorisations des playbooks »), ce qui attribue le rôle Microsoft Sentinel Automation Contributor au compte de service Sentinel.
+-: Attribuer le rôle Logic App Contributor à l'analyste qui crée la règle. || Les droits de l'utilisateur sur les Logic Apps n'autorisent pas le service Sentinel à déclencher le playbook.
+-: Convertir le playbook en déclencheur « When a HTTP request is received ». || Les règles d'automatisation exigent un déclencheur Microsoft Sentinel (incident, alerte ou entité), pas un déclencheur HTTP.
+-: Déplacer le playbook dans l'abonnement de facturation de Log Analytics. || Ce n'est pas une question d'abonnement mais d'autorisations du service Sentinel.
+=: Pour qu'une règle d'automatisation exécute un playbook, **le compte de service de Microsoft Sentinel** doit avoir des autorisations explicites (rôle Microsoft Sentinel Automation Contributor) sur le groupe de ressources contenant le playbook. Sans cela, le playbook est indisponible dans la liste.
+T: Le paramètre se trouve dans Paramètres > Paramètres > Autorisations des playbooks (portail Azure) ou dans les paramètres Sentinel du portail Defender. Il faut sélectionner les groupes de ressources concernés. Le playbook doit aussi utiliser le bon déclencheur (incident pour une règle « Lorsque l'incident est créé/mis à jour »).
+!: Playbook grisé dans une règle d'automatisation → autorisations du compte de service Sentinel (Automation Contributor) sur le groupe de ressources du playbook.
+
+### Restreindre l'accès à certaines tables
+@ niveau=A ref=sent-roles,la-workspace-design
+?: L'équipe RH doit pouvoir interroger uniquement la table OfficeActivity d'un espace Sentinel partagé, sans voir SecurityEvent ni SigninLogs. Quelle approche répond au besoin sans créer de nouvel espace ?
++: Configurer un contrôle d'accès au niveau table (table-level RBAC), via un rôle personnalisé ou l'attribution de droits de lecture limités aux tables autorisées.
+-: Attribuer le rôle Microsoft Sentinel Reader sur l'espace. || Ce rôle donne la lecture de toutes les données de l'espace.
+-: Créer une règle d'automatisation qui masque les autres tables pour ce groupe. || Les règles d'automatisation n'agissent pas sur l'accès aux tables.
+-: Placer la table OfficeActivity en plan Basic. || Le plan de table concerne le coût et les capacités de requête, pas les autorisations.
+=: Le **RBAC au niveau table** de Log Analytics permet d'accorder l'accès à des tables précises (ou de l'interdire) au sein d'un même espace. C'est l'option documentée pour séparer des données sensibles sans multiplier les espaces.
+T: Alternatives : le **RBAC de contexte de ressource** (l'utilisateur voit les journaux des ressources Azure auxquelles il a accès, sans accès à Sentinel) et les espaces dédiés. Dans le portail Defender, le RBAC unifié (URBAC) peut aussi gouverner l'accès aux données Sentinel. Attention : l'utilisateur limité à certaines tables ne doit pas recevoir de rôle Sentinel lui ouvrant toutes les données.
+!: Séparer l'accès à certaines tables dans un espace partagé → RBAC au niveau table (ou contexte de ressource), pas un nouveau rôle Sentinel global.
+
+### Accès aux journaux d'une équipe applicative sans Sentinel
+@ niveau=I ref=sent-roles,la-workspace-design
+?: Une équipe applicative doit voir les journaux de ses propres machines virtuelles stockés dans l'espace Sentinel, sans accès à l'interface Sentinel ni aux autres données. Quelle solution est recommandée ?
++: Le RBAC de contexte de ressource : l'équipe consulte les journaux depuis ses ressources Azure, sur lesquelles elle possède déjà des droits.
+-: Le rôle Microsoft Sentinel Responder limité au groupe de ressources de l'application. || Les rôles Sentinel s'appliquent à l'espace et à Sentinel ; ils ne filtrent pas les données par ressource source.
+-: Une règle d'automatisation qui affecte les incidents à l'équipe. || L'affectation d'incidents n'ouvre pas l'accès aux journaux bruts.
+-: Une copie quotidienne des journaux dans un compte de stockage accessible à l'équipe. || Solution lourde, non nécessaire : le RBAC de contexte de ressource répond nativement au besoin.
+=: Avec le **RBAC de contexte de ressource**, un utilisateur ayant des droits sur une ressource Azure (VM, App Service…) peut lire les journaux de cette ressource dans l'espace, sans avoir accès à l'espace entier ni à Sentinel.
+T: Ce mode fonctionne pour les données associées à un identifiant de ressource Azure (`_ResourceId`). Les sources non Azure (Syslog relayé, CEF) peuvent nécessiter des approches complémentaires (par exemple, transformation pour renseigner l'identifiant de ressource, ou RBAC au niveau table).
+!: Donner à une équipe l'accès à « ses » journaux seulement → RBAC de contexte de ressource.
+
+### Rôles du data lake Microsoft Sentinel
+@ niveau=A ref=sent-roles,sent-lake
+?: Un chasseur de menaces doit exécuter des requêtes KQL interactives et des notebooks sur le data lake Microsoft Sentinel. Quelle affirmation sur le modèle d'autorisations est exacte ?
++: Le data lake utilise des rôles Microsoft Entra ID (RBAC Entra) en plus des rôles Azure de Sentinel, alors que le SIEM Sentinel repose sur le RBAC Azure.
+-: Le data lake n'est accessible qu'au rôle Propriétaire de l'abonnement Azure. || L'accès repose sur des rôles dédiés et non sur la seule propriété de l'abonnement.
+-: Le rôle Microsoft Sentinel Responder donne automatiquement le droit de créer des jobs KQL dans le data lake. || Responder sert à gérer les incidents ; la documentation ne lui attribue pas de capacités data lake.
+-: Le data lake ne nécessite aucun rôle : tout utilisateur du portail Defender peut l'interroger. || L'accès aux données est toujours soumis à des autorisations.
+=: La documentation « Rôles et autorisations dans la plateforme Microsoft Sentinel » précise que Sentinel utilise le **RBAC Azure** pour le SIEM et le **RBAC Microsoft Entra ID** pour le data lake. Par exemple, Reader et Contributor permettent des requêtes interactives sur les espaces ; d'autres opérations (jobs, gestion) exigent des rôles Entra appropriés.
+T: Le data lake (stockage Parquet, séparation stockage/calcul, rétention jusqu'à 12 ans) est piloté depuis le portail Defender ; ses activités (requêtes, notebooks, jobs) sont auditées et consultables dans l'audit Microsoft Purview. Vérifiez la matrice détaillée des rôles dans la documentation avant d'accorder des droits.
+!: SIEM Sentinel = RBAC Azure ; data lake Sentinel = RBAC Microsoft Entra ID (en complément).
+
+### Gestion des incidents dans le portail Defender avec le RBAC unifié
+@ niveau=I ref=xdr-urbac,xdr-case-mgmt
+?: Votre locataire utilise le RBAC unifié de Microsoft Defender (URBAC). Un analyste doit pouvoir consulter et gérer les incidents (y compris les « cas d'incident ») mais pas modifier les paramètres de sécurité. Quelle autorisation URBAC est la plus appropriée ?
++: « Security data » en lecture et gestion (Security Data Read / Security Data Manage) dans le groupe d'autorisations Opérations de sécurité.
+-: « Security settings » (gestion des paramètres) uniquement. || Ces droits concernent la configuration, pas le traitement des incidents.
+-: Le rôle Microsoft Entra Global Administrator. || Rôle hautement privilégié à réserver aux urgences ; contraire au moindre privilège.
+-: « Data (manage) » dans le groupe Opérations de données. || Cette autorisation concerne la gestion des tables et de la rétention, pas des incidents.
+=: Selon la documentation de la gestion des cas, les cas d'incident suivent le même modèle que les incidents : **Security Data Read** permet de les consulter, **Security Data Manage** de les consulter et de les gérer.
+T: Le RBAC unifié remplace progressivement les modèles d'autorisations propres à chaque produit Defender. Il se combine avec les étendues (groupes d'appareils, sources de données) pour limiter la visibilité. Les paramètres de tables/rétention relèvent de « Data (manage) » ; la configuration des produits relève des autorisations « Security settings ».
+!: URBAC : incidents/cas = Security Data (Read/Manage) ; tables et rétention = Data (manage) ; configuration = Security settings.
+
+@@ section=Connecteurs de données et ingestion
+
+### Choisir le connecteur pour les événements de sécurité Windows
+@ niveau=D ref=sent-ama-windows,la-dcr
+?: Vous devez collecter les événements du journal Sécurité de 300 serveurs Windows (Azure et locaux via Azure Arc) dans Sentinel. Quel connecteur et quel agent sont recommandés ?
++: Le connecteur « Windows Security Events via AMA », avec l'agent Azure Monitor (AMA) et une règle de collecte de données (DCR).
+-: Le connecteur « Security Events via Legacy Agent » avec l'agent Log Analytics (MMA). || L'agent Log Analytics (MMA) a été retiré ; il ne doit plus être utilisé pour de nouveaux déploiements.
+-: Le connecteur Syslog via AMA. || Syslog concerne les systèmes Linux/appliances, pas le journal Sécurité Windows.
+-: Le connecteur Microsoft Defender XDR, qui collecte tout le journal Sécurité Windows. || Defender XDR transmet sa télémétrie EDR (tables Device*), pas le journal Sécurité Windows complet.
+=: Le connecteur **Windows Security Events via AMA** déploie l'agent Azure Monitor et une **DCR** qui définit les événements collectés (Tous, Courants, Minimal ou Personnalisé via XPath). Les événements arrivent dans la table **SecurityEvent**.
+T: Les serveurs hors Azure doivent être connectés via **Azure Arc** pour recevoir AMA et les DCR. Les jeux d'événements prédéfinis : *All events*, *Common* (sélection pour l'audit), *Minimal* (petit volume, détection de base) ; l'option *Custom* utilise des requêtes XPath. Pour des journaux autres que Sécurité (System, Application, PowerShell/Operational), on utilise le connecteur Windows Forwarded Events ou une DCR « Windows Event Logs » (table Event ou WindowsEvent selon la configuration).
+!: Journal Sécurité Windows → « Windows Security Events via AMA » + DCR → table SecurityEvent. Serveurs locaux = Azure Arc.
+
+### Filtrer les événements Windows à la source
+@ niveau=I ref=sent-ama-windows,la-dcr
+?: Le coût d'ingestion de SecurityEvent est trop élevé. Le SOC souhaite collecter uniquement les événements 4624, 4625, 4688 et 4720 sur certains serveurs. Quelle méthode utiliser avec AMA ?
++: Créer une règle de collecte de données (DCR) avec un jeu d'événements personnalisé défini par des requêtes XPath sur ces EventID, associée aux serveurs concernés.
+-: Ajouter un filtre `where EventID in (...)` dans chaque règle d'analyse. || Le filtrage au moment de la requête ne réduit pas l'ingestion : les données sont déjà facturées.
+-: Passer la table SecurityEvent en plan Auxiliary. || Le niveau de table change le coût de stockage/requête mais ne filtre pas les événements collectés, et limite l'usage en détection.
+-: Désactiver l'audit avancé Windows sur les serveurs. || Cela supprimerait des événements essentiels à la détection ; le filtrage doit être ciblé.
+=: Avec AMA, la **DCR** porte la sélection des événements. L'option *Custom* accepte des requêtes **XPath**, par exemple `Security!*[System[(EventID=4624 or EventID=4625 or EventID=4688 or EventID=4720)]]`. Seuls ces événements sont alors envoyés.
+T: Une **transformation au moment de l'ingestion** (transformKql dans la DCR) peut aussi filtrer des lignes ou supprimer des colonnes (par exemple masquer un champ sensible) avant stockage. Le filtrage XPath intervient sur l'agent, la transformation dans le pipeline d'ingestion. Les deux réduisent les volumes facturés.
+X: ```text
+Security!*[System[(EventID=4624 or EventID=4625 or EventID=4688 or EventID=4720)]]
+```
+!: Réduire l'ingestion Windows avec AMA → DCR avec XPath personnalisé (ou transformation d'ingestion), jamais un simple filtre dans les requêtes.
+
+### Windows Event Forwarding (WEF)
+@ niveau=I ref=sent-wef,sent-ama-windows
+?: Une organisation utilise déjà Windows Event Forwarding : 2 000 postes envoient leurs événements à deux serveurs collecteurs WEC. Elle souhaite ingérer ces événements dans Sentinel sans déployer d'agent sur chaque poste. Quelle solution est appropriée ?
++: Installer l'agent Azure Monitor sur les serveurs collecteurs WEC et utiliser le connecteur « Windows Forwarded Events » (événements du journal ForwardedEvents).
+-: Installer l'agent Log Analytics (MMA) sur chaque poste. || Contraire à l'exigence (pas d'agent par poste) et l'agent MMA est retiré.
+-: Configurer le connecteur Syslog via AMA sur les collecteurs WEC. || WEF utilise le protocole Windows (WinRM) et le journal ForwardedEvents, pas Syslog.
+-: Utiliser le connecteur Common Event Format. || CEF concerne les appliances qui émettent du Syslog formaté CEF.
+=: Le connecteur **Windows Forwarded Events** collecte, via **AMA installé sur les collecteurs WEC**, les événements du journal *ForwardedEvents*. Les données arrivent dans la table **WindowsEvent**.
+T: WEF réduit le nombre d'agents à gérer, centralise le filtrage par les abonnements WEF (sélection des événements côté source) et convient aux environnements très étendus. Il faut dimensionner les collecteurs (volume, nombre d'abonnements) et surveiller la latence. Les événements de sécurité collectés directement via « Windows Security Events via AMA » vont dans SecurityEvent ; les événements transférés via WEF vont dans WindowsEvent.
+!: WEF → AMA sur les collecteurs WEC + connecteur « Windows Forwarded Events » → table WindowsEvent.
+
+### Collecte CEF depuis un pare-feu
+@ niveau=I ref=sent-cef-syslog-ama
+?: Un pare-feu Palo Alto envoie ses journaux au format CEF sur Syslog. Quelle architecture recommandée permet de les ingérer dans Sentinel ?
++: Un redirecteur de journaux Linux avec l'agent Azure Monitor et une DCR « CEF via AMA », vers lequel le pare-feu envoie ses messages Syslog/CEF ; les données arrivent dans CommonSecurityLog.
+-: Installer l'agent Azure Monitor directement sur le pare-feu. || On ne peut généralement pas installer d'agent sur une appliance ; on passe par un redirecteur Linux.
+-: Envoyer les journaux par e-mail vers une boîte surveillée par un playbook. || Architecture non prévue, non fiable et non scalable.
+-: Utiliser le connecteur Windows Security Events via AMA. || Ce connecteur concerne le journal Sécurité Windows.
+=: Le schéma de référence **CEF via AMA** : l'appliance envoie du Syslog (CEF) vers un **redirecteur Linux** (VM ou serveur, connecté à Azure Arc s'il est hors Azure) sur lequel tourne **AMA** ; une **DCR** sélectionne les facilités/niveaux et le format CEF. Les événements sont analysés et stockés dans **CommonSecurityLog**.
+T: Le démon rsyslog ou syslog-ng du redirecteur reçoit les messages (UDP/TCP 514) et les transmet à AMA. Pour éviter les doublons, une même facilité ne doit pas être collectée à la fois en Syslog et en CEF. Les messages Syslog non CEF vont dans la table **Syslog**. Les champs CEF sont mappés (DeviceVendor, DeviceProduct, SourceIP, DestinationIP, Activity…).
+!: Appliance CEF → redirecteur Linux + AMA + DCR « CEF via AMA » → CommonSecurityLog ; Syslog classique → table Syslog.
+
+### Doublons entre Syslog et CommonSecurityLog
+@ niveau=A ref=sent-cef-syslog-ama,la-dcr
+?: Après la mise en place d'un redirecteur Linux avec AMA, les mêmes événements de pare-feu apparaissent à la fois dans Syslog et dans CommonSecurityLog, doublant les coûts. Quelle est la cause la plus probable ?
++: Deux DCR (Syslog via AMA et CEF via AMA) collectent la même facilité Syslog sur le même redirecteur.
+-: Le pare-feu envoie chaque message deux fois en UDP. || Une émission en double produirait des doublons dans une seule table, pas une répartition entre deux tables.
+-: La table CommonSecurityLog est en plan Basic. || Le plan de table n'entraîne pas de copie vers Syslog.
+-: Le connecteur Microsoft Defender XDR réplique les journaux de pare-feu. || Defender XDR ne collecte pas les journaux de pare-feu tiers.
+=: Les DCR **Syslog** et **CEF** s'appuient sur les facilités/niveaux de gravité Syslog. Si les deux DCR sont associées au même redirecteur et ciblent la même facilité (par exemple *local4*), chaque message est envoyé dans les deux tables. Il faut séparer les facilités : appliances CEF sur une facilité dédiée collectée uniquement par la DCR CEF.
+T: Bonnes pratiques : documenter le plan de facilités par appliance, utiliser des transformations d'ingestion pour éliminer les messages inutiles, surveiller la table **Usage** pour détecter les variations de volume et utiliser les recommandations d'optimisation SOC.
+X: ```kql
+Usage
+| where TimeGenerated > ago(7d)
+| where DataType in ("Syslog", "CommonSecurityLog")
+| summarize VolumeGo = sum(Quantity) / 1024 by DataType, bin(TimeGenerated, 1d)
+```
+!: Même facilité dans les DCR Syslog et CEF = doublons ; attribuez une facilité distincte aux flux CEF.
+
+### Collecter le journal d'activité Azure
+@ niveau=D ref=la-activity-log,la-diag-settings
+?: Vous devez collecter dans Sentinel le journal d'activité Azure (opérations du plan de contrôle) de 40 abonnements, y compris des abonnements créés à l'avenir. Quelle méthode est recommandée ?
++: Configurer des paramètres de diagnostic du journal d'activité vers l'espace Sentinel, déployés à grande échelle par une affectation Azure Policy.
+-: Installer l'agent Azure Monitor sur toutes les machines virtuelles. || Le journal d'activité est un journal de plateforme Azure, collecté sans agent.
+-: Utiliser le connecteur Syslog via AMA. || Le journal d'activité Azure n'est pas émis en Syslog.
+-: Exporter chaque jour le journal en CSV depuis le portail et l'importer dans une table personnalisée. || Procédure manuelle, non temps réel et non scalable.
+=: Le journal d'activité est envoyé vers Log Analytics par des **paramètres de diagnostic** au niveau abonnement. Le connecteur **Azure Activity** de Sentinel s'appuie sur une **affectation Azure Policy** pour appliquer automatiquement ce paramètre à tous les abonnements (actuels et futurs) dans l'étendue choisie. Les données arrivent dans **AzureActivity**.
+T: Les journaux de ressources (Key Vault, Storage, SQL…) suivent la même logique : paramètres de diagnostic, souvent appliqués par Azure Policy (initiatives « Enable allLogs category group… »). Une tâche de correction (remediation task) applique la stratégie aux ressources existantes.
+!: Journal d'activité / journaux de ressources Azure = paramètres de diagnostic, déployés à l'échelle avec Azure Policy (+ tâche de correction pour l'existant).
+
+### Ingestion d'indicateurs de menace via TAXII
+@ niveau=I ref=sent-ti-connect,sent-ti
+?: Un ISAC sectoriel publie des indicateurs STIX 2.1 sur un serveur TAXII 2.1. Vous voulez importer automatiquement ces indicateurs dans Sentinel. Quel connecteur utiliser ?
++: Le connecteur « Threat Intelligence – TAXII », configuré avec l'URL de la racine d'API, l'identifiant de collection et les informations d'authentification.
+-: Le connecteur Common Event Format. || CEF transporte des journaux d'appliances, pas des flux d'indicateurs STIX/TAXII.
+-: Une règle d'analyse NRT qui interroge directement l'URL TAXII. || Les règles d'analyse interrogent les données de l'espace ; elles n'appellent pas d'API externes.
+-: Le connecteur Microsoft Defender Threat Intelligence. || Ce connecteur importe les indicateurs de Microsoft, pas ceux d'un serveur TAXII tiers.
+=: Le connecteur **Threat Intelligence – TAXII** interroge périodiquement un serveur TAXII 2.0/2.1 et importe les objets STIX (indicateurs et, avec le nouveau modèle, d'autres objets STIX) dans Sentinel.
+T: Autres voies d'ingestion : le connecteur **Microsoft Defender Threat Intelligence** (indicateurs Microsoft), l'**API d'upload Threat Intelligence** (plateformes TIP qui poussent des objets STIX), l'ajout manuel ou en masse (fichier CSV/JSON) dans la page Renseignement sur les menaces. Les indicateurs sont stockés dans **ThreatIntelIndicators** (et les autres objets STIX dans ThreatIntelObjects) ; l'ancienne table ThreatIntelligenceIndicator est remplacée par ce nouveau modèle.
+!: Serveur TAXII → connecteur « Threat Intelligence – TAXII » ; plateforme TIP qui pousse → API d'upload ; indicateurs Microsoft → connecteur MDTI.
+
+### Table personnalisée pour une application métier
+@ niveau=A ref=la-ingestion-api,la-custom-table,sent-custom-logs
+?: Une application métier développée en interne doit envoyer ses journaux d'authentification au format JSON dans Sentinel, dans une table dédiée avec un schéma maîtrisé. Quelle approche moderne est recommandée ?
++: Créer une table personnalisée (suffixe _CL) et utiliser l'API d'ingestion des journaux (Logs Ingestion API) avec un point de terminaison de collecte et une règle de collecte de données qui peut transformer les données.
+-: Utiliser l'API HTTP Data Collector. || Cette API historique est en voie de retrait ; Microsoft recommande la Logs Ingestion API basée sur les DCR.
+-: Écrire directement dans la table SecurityEvent. || Les tables standard ont un schéma réservé ; on ne peut pas y injecter des journaux applicatifs arbitraires.
+-: Envoyer les journaux dans Microsoft Defender for Endpoint via des indicateurs personnalisés. || Les indicateurs MDE servent à autoriser/bloquer des fichiers, IP, URL ou certificats, pas à ingérer des journaux.
+=: La **Logs Ingestion API** permet d'envoyer des données via REST vers une **table personnalisée _CL** (ou certaines tables standard prises en charge). La **DCR** définit le flux d'entrée, la transformation KQL (`transformKql`) et la table de destination. L'application s'authentifie avec une identité Microsoft Entra (inscription d'application ou identité managée) disposant du rôle Monitoring Metrics Publisher sur la DCR.
+T: Les tables personnalisées peuvent être placées dans le niveau Analytics (détection, règles) ou dans un niveau moins coûteux (données secondaires). Le Codeless Connector Platform (CCP) permet aussi de créer des connecteurs SaaS sans code. Pensez à normaliser les données vers ASIM pour réutiliser les détections existantes.
+!: Journaux applicatifs personnalisés → table _CL + Logs Ingestion API + DCR (transformation possible) ; l'API HTTP Data Collector est historique.
+
+### Connecteur Microsoft Defender XDR
+@ niveau=I ref=sent-xdr-connector
+?: Vous activez le connecteur Microsoft Defender XDR dans Sentinel. Quelles données ce connecteur peut-il apporter ?
+@ multi=2
++: Les incidents et alertes de Defender XDR, synchronisés avec Sentinel.
++: Les événements bruts de la chasse avancée (par exemple DeviceProcessEvents, EmailEvents, IdentityLogonEvents) vers les tables correspondantes de l'espace.
+-: Le journal d'activité Azure de tous les abonnements. || Ce journal provient du connecteur Azure Activity (paramètres de diagnostic).
+-: Les journaux Syslog des serveurs Linux non protégés. || Ces journaux nécessitent Syslog via AMA.
+-: Les recommandations de Secure Score de Defender for Cloud. || Ces données relèvent de Defender for Cloud (export continu), pas du connecteur Defender XDR.
+=: Le connecteur **Microsoft Defender XDR** synchronise les **incidents et alertes** (avec synchronisation bidirectionnelle de l'état) et peut transmettre les **événements de chasse avancée** des produits Defender (Endpoint, Office 365, Identity, Cloud Apps…) dans les tables Device*, Email*, Identity*, CloudAppEvents de l'espace.
+T: L'ingestion des événements bruts a un coût ; on choisit les tables utiles. Dans le portail Defender, les tables XDR restent interrogeables nativement en chasse avancée (30 jours) même sans ingestion dans Sentinel ; l'ingestion sert à la rétention longue, aux règles Sentinel et aux corrélations avec des données tierces. Le connecteur Defender XDR active aussi la collecte des alertes des produits Defender (MDE, MDO, MDI, MDCA) et, selon la configuration, d'Entra ID Protection.
+!: Connecteur Defender XDR = incidents/alertes (bidirectionnel) + événements bruts de chasse avancée optionnels.

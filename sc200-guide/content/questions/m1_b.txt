@@ -1,0 +1,335 @@
+@@ module=1
+@@ section=Rétention, niveaux de données, coûts et optimisation SOC
+
+### Niveau de données adapté aux règles de détection
+@ niveau=D ref=sent-log-plans,sent-tiers
+?: Les journaux d'authentification Entra ID (SigninLogs) doivent alimenter des règles d'analyse planifiées exécutées toutes les 5 minutes. Dans quel niveau (tier) ces données doivent-elles être stockées ?
++: Le niveau Analytics.
+-: Le niveau data lake uniquement. || Le niveau data lake est destiné aux données secondaires, à la rétention longue et aux requêtes/jobs ponctuels ; il ne sert pas directement aux règles d'analyse en quasi-temps réel.
+-: L'archive à long terme uniquement. || Les données archivées doivent être restaurées ou interrogées par des jobs de recherche ; elles ne sont pas utilisables par des règles fréquentes.
+-: Aucun : les règles d'analyse lisent directement les journaux à la source dans Entra ID. || Les règles d'analyse interrogent les tables de l'espace de travail, pas les services sources.
+=: Microsoft classe les journaux en **données de sécurité principales** (EDR, authentification, audit cloud, TI, alertes externes), à stocker dans le **niveau Analytics** pour la détection en continu, la chasse interactive, la corrélation et l'UEBA, et en **données secondaires** (volumineuses, verbeuses : pare-feu, DNS, proxy, flux réseau), candidates au **niveau data lake**.
+T: Le niveau Analytics offre toutes les capacités (règles planifiées et NRT, classeurs, chasse, UEBA) avec une rétention interactive incluse (90 jours pour un espace où Sentinel est activé) puis une rétention totale configurable. Le niveau data lake réduit fortement le coût de stockage, conserve les données jusqu'à 12 ans au format ouvert et s'interroge par KQL interactif, jobs KQL ou notebooks.
+!: Détection fréquente = niveau Analytics. Données volumineuses à faible valeur unitaire = niveau data lake.
+
+### Rétention longue à faible coût
+@ niveau=I ref=sent-lake,sent-tables
+?: La réglementation impose de conserver les journaux de pare-feu pendant 7 ans. Ils ne servent qu'à des investigations ponctuelles. Quelle configuration est la plus économique tout en restant interrogeable en KQL ?
++: Stocker la table dans le niveau data lake avec une rétention de 7 ans, et utiliser des requêtes KQL ou des jobs KQL lors des investigations.
+-: Conserver la table en niveau Analytics avec une rétention interactive de 7 ans. || Techniquement possible mais nettement plus coûteux pour des données rarement interrogées.
+-: Exporter quotidiennement les journaux en CSV vers un partage de fichiers. || Les données ne seraient plus interrogeables en KQL et la chaîne de preuve serait plus difficile à garantir.
+-: Supprimer les journaux après 90 jours et ne conserver que les alertes. || Contraire à l'exigence réglementaire de conservation des journaux.
+=: Le **niveau data lake** de Microsoft Sentinel permet une rétention jusqu'à **12 ans** à faible coût, avec un stockage unique au format ouvert (Parquet) et une séparation stockage/calcul. Les données restent interrogeables en KQL (requêtes interactives, **jobs KQL**) et par notebooks.
+T: Dans le portail Defender, la gestion se fait dans Microsoft Sentinel > Configuration > **Tables** : choix du niveau (Analytics ou data lake) et de la rétention par table. Les opérations de lecture sur le data lake sont facturées selon le volume de données analysées : on privilégie des requêtes filtrées dans le temps.
+!: Conservation longue + accès occasionnel = niveau data lake (jusqu'à 12 ans), interrogé par KQL ou jobs KQL.
+
+### Rétention des tables Defender XDR
+@ niveau=I ref=sent-tables,xdr-ah-overview
+?: Un analyste constate que la chasse avancée Defender XDR ne lui permet de remonter que sur 30 jours dans DeviceProcessEvents. Il doit enquêter sur une compromission vieille de 5 mois. Quelle mesure, à mettre en place en amont, permettait de conserver ces données plus longtemps ?
++: Configurer, dans la gestion des tables du portail Defender (Sentinel connecté), une rétention plus longue pour la table XDR concernée, dans le niveau Analytics ou data lake.
+-: Augmenter le niveau d'automatisation de Defender for Endpoint. || Le niveau d'automatisation concerne la remédiation (AIR), pas la rétention des données.
+-: Activer le mode bloc EDR. || Le mode bloc EDR améliore la prévention, il n'a aucun effet sur la rétention.
+-: Créer une règle de détection personnalisée qui s'exécute toutes les 24 heures. || Une règle de détection ne conserve pas les événements bruts.
+=: Par défaut, les données de chasse avancée XDR sont disponibles **30 jours**. Une fois Sentinel connecté au portail Defender, la page **Tables** permet de gérer les tables XDR (« niveau XDR ») : prolonger leur rétention dans le niveau Analytics ou les stocker dans le data lake pour une conservation longue.
+T: La prolongation a un coût (ingestion/stockage) ; il faut cibler les tables utiles (DeviceProcessEvents, DeviceNetworkEvents, EmailEvents, IdentityLogonEvents…). Configurer les paramètres de tables requiert « Data (manage) » en URBAC ou Log Analytics Contributor sur l'espace. Sans cette anticipation, aucune donnée au-delà de 30 jours n'est récupérable a posteriori dans la chasse avancée.
+!: Chasse avancée XDR = 30 jours par défaut ; pour plus, prolonger la rétention des tables XDR via Sentinel (Analytics ou data lake), à anticiper.
+
+### Choisir entre job KQL, règle de synthèse et job de recherche
+@ niveau=A ref=sent-lake-compare,sent-lake-jobs,sent-summary-rules
+?: Pendant une réponse à incident, vous devez exécuter, sur 2 ans d'historique stocké dans le data lake, une requête qui joint DeviceNetworkEvents et une table de journaux de proxy, puis rendre le résultat disponible dans le niveau Analytics pour la chasse avancée. Quelle fonctionnalité choisir ?
++: Un job KQL (KQL job) sur le data lake, qui promeut le résultat vers une table du niveau Analytics.
+-: Une règle de synthèse (summary rule). || Les règles de synthèse s'exécutent fréquemment (20 minutes à 24 heures) avec une fenêtre de recherche limitée à 1 jour : elles ne conviennent pas à une analyse sur 2 ans.
+-: Un job de recherche (search job). || Les jobs de recherche portent sur une seule table et ne prennent pas en charge les jointures.
+-: Une règle d'analyse NRT. || Les règles NRT ne remontent que quelques minutes et ne créent pas de table de résultats.
+=: Selon la comparaison officielle, les **jobs KQL** interrogent le data lake avec une fenêtre jusqu'à **12 ans**, prennent en charge **plusieurs tables, les jointures et les unions**, peuvent être ponctuels ou planifiés (quotidien, hebdomadaire, mensuel) et **promeuvent les résultats vers le niveau Analytics**.
+T: Repères : règles de synthèse = agrégation fréquente (20 min à 24 h), fenêtre ≤ 1 jour, résultats dans une table personnalisée Analytics, modèles disponibles ; jobs de recherche = une seule table, sans jointure, jusqu'à 100 millions de résultats, utiles pour l'archive et les données antérieures à l'intégration au data lake ; jobs KQL = jointures, jusqu'à 12 ans, délai d'expiration d'une heure.
+!: Historique long + jointures + promotion vers Analytics = job KQL ; agrégation fréquente = règle de synthèse ; une table archivée volumineuse = job de recherche.
+
+### Règles de synthèse pour des journaux verbeux
+@ niveau=I ref=sent-summary-rules,sent-lake-compare
+?: Les journaux de flux réseau (plusieurs To/mois) sont stockés dans un niveau peu coûteux. Le SOC veut un tableau de bord mis à jour toutes les heures avec le volume d'octets par adresse IP source, interrogeable rapidement. Quelle fonctionnalité est la plus adaptée ?
++: Une règle de synthèse (summary rule) qui agrège les données chaque heure dans une table personnalisée du niveau Analytics.
+-: Un job de recherche planifié chaque heure. || Les jobs de recherche sont ponctuels et longs ; ils ne sont pas conçus pour une agrégation périodique.
+-: Déplacer toute la table dans le niveau Analytics. || Cela supprimerait l'avantage économique du stockage des journaux verbeux.
+-: Une règle d'analyse planifiée générant une alerte par adresse IP. || Les alertes ne sont pas un mécanisme de stockage d'agrégats ; cela créerait du bruit.
+=: Les **règles de synthèse** agrègent en arrière-plan de gros volumes (flux réseau, pare-feu) et stockent les résultats précalculés dans une **table personnalisée Analytics**, rapide à interroger, y compris à partir de données de niveaux peu coûteux.
+T: Fréquence de 20 minutes à 24 heures ; la sortie peut aussi servir à masquer des données personnelles (agrégats partageables). L'état des exécutions est consultable dans la table **LASummaryLogs**. Des modèles prêts à l'emploi sont disponibles dans le hub de contenu.
+!: Agrégation périodique de journaux volumineux → règle de synthèse → table Analytics rapide.
+
+### Restaurer ou rechercher des données archivées
+@ niveau=I ref=sent-search-jobs,sent-retention
+?: Un espace de travail non intégré au data lake conserve SecurityEvent 90 jours en rétention interactive et 2 ans en rétention à long terme. Vous devez retrouver tous les événements 4720 d'un compte précis sur l'année écoulée. Quelle méthode est appropriée ?
++: Lancer un job de recherche (search job) sur SecurityEvent ; les résultats sont placés dans une nouvelle table suffixée _SRCH, interrogeable en KQL.
+-: Exécuter une requête interactive classique sur 365 jours. || Les données au-delà de la rétention interactive ne sont pas accessibles par une requête interactive standard.
+-: Créer une règle NRT avec une fenêtre de recherche d'un an. || Les règles NRT ne permettent pas de remonter dans l'historique.
+-: Utiliser l'opérateur `externaldata` vers la rétention à long terme. || `externaldata` lit des fichiers externes (blob, URL), pas la rétention longue de l'espace.
+=: Le **job de recherche** interroge de façon asynchrone une **seule table**, y compris sa rétention à long terme, et écrit les résultats dans une table **_SRCH**. On peut aussi **restaurer** (restore) une période de données dans une table **_RST** pour des requêtes complètes à haute performance.
+T: Le job de recherche est facturé selon les données analysées, la restauration selon le volume et la durée de restauration. Pour un espace intégré au data lake, la documentation recommande les jobs KQL pour les données postérieures à l'intégration et les jobs de recherche pour les données plus anciennes.
+!: Rétention longue (archive) : job de recherche → table _SRCH ; restauration → table _RST.
+
+### Rétention gratuite incluse avec Sentinel
+@ niveau=D ref=sent-billing,sent-log-plans
+?: Lors du chiffrage d'un projet, quelle durée de rétention interactive (niveau Analytics) est incluse sans surcoût de rétention pour les données d'un espace où Microsoft Sentinel est activé ?
++: 90 jours.
+-: 7 jours. || Valeur inexacte : la rétention incluse avec Sentinel est plus longue.
+-: 30 jours. || 30 jours correspondent à la rétention par défaut de la chasse avancée XDR et à la rétention par défaut d'un espace Log Analytics sans Sentinel, pas à la rétention incluse avec Sentinel.
+-: 2 ans. || Au-delà de la période incluse, la rétention est facturée.
+=: Pour un espace Log Analytics où **Microsoft Sentinel est activé**, la **rétention interactive de 90 jours** est incluse pour les données du niveau Analytics ; au-delà, la rétention interactive ou à long terme est facturée.
+T: Le coût principal d'une solution Sentinel reste l'ingestion dans le niveau Analytics (paiement à l'usage ou paliers d'engagement). Certaines sources sont gratuites (par exemple les alertes de certains produits Microsoft, le journal d'activité Azure). Le calculateur de prix et la page « Planifier les coûts » détaillent ces éléments, qui évoluent régulièrement.
+!: Sentinel inclut 90 jours de rétention interactive dans le niveau Analytics ; vérifier la tarification à jour.
+
+### Recommandations d'optimisation SOC
+@ niveau=I ref=sent-soc-optimization
+?: Un responsable SOC veut identifier les tables coûteuses qui ne sont utilisées par aucune règle de détection ni requête, et les lacunes de couverture face à des menaces précises. Quelle fonctionnalité intégrée fournit ces recommandations ?
++: Les optimisations SOC (SOC optimization) de Microsoft Sentinel.
+-: Le classeur « Workspace Usage Report » uniquement. || Utile pour les volumes, mais il ne propose pas de recommandations de couverture des menaces.
+-: Le Secure Score de Microsoft Defender XDR. || Le Secure Score mesure la posture de sécurité des charges, pas l'utilisation des données du SIEM.
+-: Microsoft Purview Compliance Manager. || Outil de conformité réglementaire, sans lien avec l'optimisation des données SIEM.
+=: Les **optimisations SOC** proposent des recommandations de **valeur des données** (tables peu ou pas utilisées, suggestions de changement de niveau), de **couverture basée sur les menaces** (règles manquantes pour des scénarios d'attaque comme les rançongiciels ou la compromission de messagerie) et de similarité avec d'autres organisations.
+T: Accessibles dans le portail Defender (et dans Azure pour Sentinel) ; elles peuvent être consommées par API. Chaque recommandation peut être marquée « en cours », « terminée » ou « ignorée ». Le référentiel SC-200 cite explicitement « Optimiser la plateforme Microsoft Sentinel, y compris les recommandations d'optimisation SOC ».
+!: Optimisation des coûts et de la couverture = page « Optimisations SOC ».
+
+### Identifier les tables les plus volumineuses
+@ niveau=I ref=la-t-Usage,sent-cost-reduce
+?: Vous devez lister les 10 types de données qui ont le plus contribué à l'ingestion facturable au cours des 30 derniers jours. Quelle requête utiliser ?
++: ```kql
+Usage
+| where TimeGenerated > ago(30d)
+| where IsBillable == true
+| summarize VolumeGo = sum(Quantity) / 1024 by DataType
+| top 10 by VolumeGo
+```
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(30d)
+| summarize count() by Computer
+| top 10 by count_
+```
+|| Heartbeat mesure la disponibilité des agents, pas le volume ingéré par type de données.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(30d)
+| summarize count() by EventID
+| top 10 by count_
+```
+|| Cette requête ne porte que sur une table et compte des lignes, pas des volumes facturables.
+-: ```kqlbad
+Usage
+| where TimeGenerated > ago(30d)
+| summarize VolumeGo = sum(Quantity) by Computer
+| top 10 by VolumeGo
+```
+|| La table Usage ne contient pas de colonne Computer ; le volume est agrégé par DataType (Quantity en Mo).
+=: La table **Usage** enregistre le volume ingéré par type de données (**DataType**), en mégaoctets dans **Quantity**, avec l'indicateur **IsBillable**. Diviser par 1024 donne des gigaoctets.
+T: Pour un détail par ordinateur ou par ressource, on peut utiliser les colonnes système `_BilledSize` et `_IsBillable` présentes dans chaque table (par exemple `SecurityEvent | summarize sum(_BilledSize) by Computer`). Ces analyses alimentent les décisions de filtrage (DCR), de changement de niveau et de choix de palier d'engagement.
+!: Volume facturable par type de données → table Usage (DataType, Quantity en Mo, IsBillable).
+
+### Supprimer une colonne volumineuse avant stockage
+@ niveau=A ref=la-transform,la-dcr
+?: La table CommonSecurityLog contient une colonne AdditionalExtensions très volumineuse, jamais utilisée par les détections. Comment réduire le coût d'ingestion tout en conservant les autres colonnes ?
++: Ajouter une transformation au moment de l'ingestion (transformKql) dans la DCR, par exemple `source | project-away AdditionalExtensions`.
+-: Utiliser `project-away AdditionalExtensions` dans toutes les règles d'analyse. || Le volume a déjà été ingéré et facturé ; l'opérateur dans les requêtes n'a aucun effet sur le coût.
+-: Réduire la rétention de CommonSecurityLog à 30 jours. || Cela réduit le coût de rétention au-delà de la période incluse, pas le coût d'ingestion.
+-: Supprimer la table puis la recréer chaque nuit. || Opération destructrice et sans effet sur l'ingestion future.
+=: Les **transformations d'ingestion** sont des requêtes KQL appliquées dans la **DCR** avant stockage. Elles peuvent filtrer des lignes (`where`), supprimer ou masquer des colonnes (`project-away`, `extend` + `replace_string`) ou enrichir des données. Les données supprimées ne sont pas stockées.
+T: Les transformations prennent en charge un sous-ensemble de KQL (pas de jointure avec d'autres tables, par exemple). Pour les tables alimentées par des sources ne passant pas par une DCR d'agent, on utilise une **DCR par défaut de l'espace** (workspace transformation DCR). Attention : un filtrage trop agressif peut supprimer des preuves utiles ; validez avec les ingénieurs détection.
+X: ```text
+source
+| where DeviceAction != "keepalive"
+| project-away AdditionalExtensions
+```
+!: Réduire ce qui est ingéré = filtrer à la source (DCR XPath/facilités) ou transformer à l'ingestion (transformKql) ; filtrer dans les requêtes ne réduit pas la facture.
+
+@@ section=Règles d'analyse et détections
+
+### Règle planifiée ou NRT
+@ niveau=D ref=sent-nrt,sent-scheduled-details
+?: Vous devez détecter, avec le délai le plus court possible, l'ajout d'un compte au groupe « Admins du domaine » (événement 4728 ou 4732 sur les contrôleurs de domaine). Quel type de règle d'analyse Sentinel est le plus adapté ?
++: Une règle NRT (Near-Real-Time), exécutée environ toutes les minutes.
+-: Une règle planifiée avec une fréquence de 24 heures. || Délai de détection beaucoup trop long pour un événement critique.
+-: Une règle d'anomalie (ML). || Les anomalies identifient des écarts statistiques et ne génèrent pas d'alertes par défaut ; elles ne conviennent pas à un événement déterministe.
+-: Une règle Fusion. || Fusion corrèle des signaux multi-étapes avec du machine learning ; on ne peut pas y écrire sa propre requête.
+=: Les règles **NRT** s'exécutent **toutes les minutes** et interrogent les données ingérées depuis la dernière exécution. Elles conviennent aux événements simples et critiques à détecter immédiatement.
+T: Les règles NRT ont des limites : nombre maximal de règles NRT par espace de travail (50 selon la documentation actuelle), pas de paramétrage de fréquence ni de fenêtre de recherche, certaines restrictions de requête. Elles gèrent nativement le délai d'ingestion. Pour des corrélations sur des fenêtres longues, on revient aux règles planifiées.
+X: ```kql
+SecurityEvent
+| where EventID in (4728, 4732, 4756)
+| where TargetUserName in ("Domain Admins", "Admins du domaine", "Enterprise Admins")
+| project TimeGenerated, Computer, SubjectAccount, MemberName, TargetUserName
+```
+!: Événement critique à détecter en ~1 minute → règle NRT (nombre limité par espace).
+
+### Fréquence et fenêtre de recherche
+@ niveau=I ref=sent-scheduled-details
+?: Une règle planifiée s'exécute toutes les heures avec une fenêtre de recherche (lookback) de 30 minutes. Quel est le risque principal ?
++: Des événements survenus pendant 30 minutes de chaque heure ne sont jamais analysés, ce qui crée des angles morts de détection.
+-: Les mêmes événements sont analysés deux fois, générant des alertes en double. || C'est le risque inverse, lorsque la fenêtre de recherche est nettement supérieure à la fréquence.
+-: La règle est automatiquement désactivée par Sentinel. || Une telle configuration n'entraîne pas de désactivation ; elle crée des trous de couverture.
+-: Aucun risque : Sentinel compense automatiquement l'écart. || Sentinel ne comble pas l'écart entre fréquence et fenêtre.
+=: La **fenêtre de recherche** doit être **au moins égale à la fréquence** d'exécution, sinon une partie des données n'est jamais évaluée. À l'inverse, une fenêtre beaucoup plus grande que la fréquence provoque des recouvrements et des alertes en double, à gérer par la suppression ou par une logique de déduplication.
+T: Paramètres d'une règle planifiée : fréquence de 5 minutes à 14 jours, fenêtre de recherche jusqu'à 14 jours, seuil d'alerte (nombre de résultats), regroupement des événements, suppression temporaire après une alerte. Une heure de début peut être fixée pour aligner l'exécution.
+!: Lookback ≥ fréquence ; lookback ≫ fréquence = doublons potentiels.
+
+### Délai d'ingestion et événements manqués
+@ niveau=A ref=sent-ingestion-delay,kql-ingestion-time
+?: Une source tierce arrive dans Sentinel avec un délai d'ingestion pouvant atteindre 20 minutes. Une règle planifiée toutes les 10 minutes avec une fenêtre de 10 minutes rate certains événements. Quelle correction est recommandée par Microsoft ?
++: Augmenter la fenêtre de recherche pour couvrir le délai, puis filtrer sur `ingestion_time()` afin de n'évaluer que les lignes ingérées depuis la dernière exécution et d'éviter les doublons.
+-: Remplacer `TimeGenerated` par `now()` dans le filtre temporel. || `now()` ne règle rien : les événements tardifs sont toujours hors fenêtre.
+-: Passer la règle en fréquence de 5 minutes avec la même fenêtre. || Plus de fréquence ne compense pas le retard d'arrivée des données.
+-: Convertir la table en niveau data lake. || Cela rendrait au contraire la table inutilisable par une règle planifiée.
+=: La documentation « Gérer le délai d'ingestion dans les règles d'analyse planifiées » recommande d'**élargir la fenêtre** (par exemple 10 minutes + délai attendu) et d'ajouter un filtre sur **`ingestion_time()`** correspondant à la fréquence, pour ne traiter qu'une fois chaque événement.
+T: `TimeGenerated` reflète l'heure de l'événement, alors que `ingestion_time()` reflète l'arrivée dans l'espace. Les règles NRT gèrent ce délai nativement. On peut mesurer le délai réel : `| extend Delai = ingestion_time() - TimeGenerated | summarize percentiles(Delai, 50, 95, 99)`.
+X: ```kql
+let ingestion_delay = 20m;
+let rule_frequency = 10m;
+CommonSecurityLog
+| where TimeGenerated >= ago(ingestion_delay + rule_frequency)
+| where ingestion_time() > ago(rule_frequency)
+| where DeviceAction == "deny" and DestinationPort == 3389
+```
+!: Données tardives : lookback = fréquence + délai, puis `where ingestion_time() > ago(fréquence)`.
+
+### Regroupement des événements en alertes
+@ niveau=I ref=sent-scheduled-details,sent-alert-grouping
+?: Une règle planifiée renvoie 40 lignes, chacune correspondant à un utilisateur différent ayant échoué à se connecter plus de 20 fois. Vous souhaitez une alerte distincte par utilisateur, avec ses entités. Quel paramètre configurer ?
++: Le regroupement des événements sur « Déclencher une alerte pour chaque événement » (une alerte par résultat).
+-: Le regroupement des événements sur « Regrouper tous les événements en une seule alerte ». || Ce mode crée une seule alerte pour les 40 lignes.
+-: La suppression de la règle pendant 24 heures. || La suppression arrête l'exécution de la règle après une alerte ; elle ne gère pas le découpage par utilisateur.
+-: Le seuil d'alerte à « supérieur à 40 ». || Le seuil conditionne le déclenchement sur le nombre de résultats ; il ne crée pas d'alertes par ligne.
+=: L'option **« Déclencher une alerte pour chaque événement »** crée une alerte par ligne de résultat, chacune avec ses entités mappées. L'autre option regroupe tous les résultats d'une exécution dans une seule alerte.
+T: En mode une alerte par résultat, une exécution peut générer au maximum **150 alertes** ; au-delà, Sentinel crée une alerte de synthèse. Le regroupement en **incidents** (alert grouping) est un paramètre distinct, configuré dans l'onglet « Paramètres d'incident ».
+!: « Une alerte par événement » = une alerte par ligne (150 max par exécution) ; le regroupement en incidents est un paramètre séparé.
+
+### Mappage des entités
+@ niveau=I ref=sent-entity-mapping
+?: Une règle détecte des connexions RDP suspectes. Les alertes n'affichent aucune entité et ne sont donc pas corrélées avec d'autres alertes portant sur le même hôte. Quelle configuration manque ?
++: Le mappage des entités (Account, Host, IP…) vers les colonnes de résultat de la requête.
+-: Les détails personnalisés (custom details). || Ils affichent des champs supplémentaires dans l'alerte mais ne créent pas d'entités.
+-: La remplacement dynamique des détails d'alerte (alert details override). || Il personnalise le titre, la description, la gravité ou les tactiques, pas les entités.
+-: Un regroupement d'événements « une seule alerte ». || Il change le nombre d'alertes, pas la présence d'entités.
+=: Le **mappage des entités** associe des colonnes de la requête à des types d'entités (Account, Host, IP, URL, File, Process…) via des **identificateurs** (par exemple Account → Name + UPNSuffix, ou FullName ; Host → HostName + DnsDomain). Les entités alimentent la corrélation en incidents, le graphe d'investigation, l'UEBA et les playbooks.
+T: Une règle peut mapper jusqu'à **10 entités**, chacune avec jusqu'à **3 identificateurs**. Privilégiez les **identificateurs forts** (par exemple Account avec AadUserId ou Sid, Host avec AzureID ou HostName+DnsDomain) pour une corrélation fiable. Les entités servent aussi aux règles d'automatisation (conditions sur entités).
+!: Pas d'entités = pas de corrélation ni de pivot : mappez Account, Host, IP… avec des identificateurs forts (10 entités max par règle).
+
+### Personnaliser le titre de l'alerte
+@ niveau=I ref=sent-alert-details,sent-custom-details
+?: Toutes les alertes d'une règle s'intitulent « Accès suspect à un partage ». Les analystes veulent que le titre contienne le nom de l'ordinateur et du compte concernés, par exemple « Accès suspect à un partage par jdupont sur SRV-FIC01 ». Quelle fonctionnalité utiliser ?
++: Le remplacement des détails d'alerte (alert details override), avec un format de nom d'alerte contenant des paramètres tels que `{{SubjectUserName}}` et `{{Computer}}`.
+-: Les détails personnalisés (custom details) uniquement. || Ils exposent des valeurs dans le corps de l'alerte mais ne modifient pas son titre.
+-: Une règle d'automatisation qui renomme l'alerte. || Les règles d'automatisation modifient l'incident (statut, gravité, propriétaire, balises, tâches), pas le nom de l'alerte générée.
+-: Une watchlist contenant les titres souhaités. || Une watchlist enrichit les requêtes ; elle ne contrôle pas le titre des alertes.
+=: Le **remplacement des détails d'alerte** permet de définir dynamiquement, à partir de colonnes des résultats, le **nom**, la **description**, la **gravité**, les **tactiques/techniques** ou le **fournisseur** de l'alerte. Les paramètres s'écrivent `{{NomDeColonne}}`.
+T: Les **détails personnalisés** (jusqu'à 20 paires clé/valeur) affichent des données de l'événement (par exemple la ligne de commande) dans l'alerte et l'incident, et sont exploitables par l'automatisation. Combinés au mappage des entités, ils évitent aux analystes d'avoir à relancer la requête pour comprendre l'alerte.
+!: Titre/gravité/tactique dynamiques = alert details override (`{{Colonne}}`) ; données métier dans l'alerte = custom details.
+
+### Regroupement des alertes en incidents
+@ niveau=A ref=sent-alert-grouping
+?: Une règle génère jusqu'à 60 alertes par jour pour le même serveur, ce qui crée 60 incidents. Vous voulez un seul incident par serveur et par 24 heures, et rouvrir l'incident s'il a été fermé par erreur. Quelle configuration de règle répond au besoin ?
++: Activer le regroupement d'alertes dans les paramètres d'incident, sur une période de 24 heures, en regroupant les alertes dont l'entité Host correspond, avec l'option de réouverture des incidents fermés correspondants.
+-: Configurer la suppression de la règle pendant 24 heures. || La suppression empêcherait la création de nouvelles alertes ; on perdrait la traçabilité des 59 autres détections.
+-: Désactiver la création d'incidents et traiter les alertes manuellement. || Les alertes ne seraient plus suivies comme incidents.
+-: Créer une règle d'automatisation qui ferme les incidents en double. || Solution réactive qui masque la cause, alors que la règle dispose d'une option native de regroupement.
+=: Dans l'onglet **Paramètres d'incident** d'une règle planifiée, le **regroupement d'alertes** permet de rattacher les alertes à un même incident selon : toutes les entités correspondantes, des **entités sélectionnées** (ici Host), ou tous les détails. On fixe la **période** (jusqu'à 7 jours) et l'option **« Rouvrir les incidents correspondants fermés »**.
+T: Un incident peut regrouper jusqu'à 150 alertes ; au-delà, un nouvel incident est créé. Dans le portail Defender, la corrélation XDR peut ensuite rattacher cet incident à d'autres alertes Defender. Bien choisir les entités évite les regroupements abusifs (par exemple, regrouper sur une IP de NAT partagée).
+!: Moins d'incidents sans perdre d'alertes = regroupement d'alertes (période ≤ 7 jours, entités choisies, réouverture optionnelle).
+
+### Suppression temporaire d'une règle
+@ niveau=I ref=sent-scheduled-details
+?: Une règle détecte une attaque par force brute et génère une alerte toutes les 5 minutes tant que l'attaque dure. L'équipe veut qu'après une alerte, la règle cesse de s'exécuter pendant 1 heure. Quel paramètre utiliser ?
++: La suppression (« Arrêter l'exécution de la requête après la génération d'une alerte ») réglée sur 1 heure.
+-: Le regroupement d'alertes en incidents sur 1 heure. || Les alertes continueraient d'être générées ; seules les créations d'incidents seraient regroupées.
+-: Un seuil d'alerte « supérieur à 12 ». || Le seuil s'applique au nombre de résultats d'une exécution, pas à une pause entre exécutions.
+-: La désactivation manuelle de la règle par l'analyste. || Procédure manuelle et risquée (oubli de réactivation).
+=: Le paramètre de **suppression** arrête l'exécution de la règle pendant une durée définie (jusqu'à 24 heures) après la génération d'une alerte, ce qui limite le bruit pendant une attaque en cours.
+T: Inconvénient : pendant la suppression, d'autres attaques correspondant à la même règle ne sont pas détectées. On préfère souvent le **regroupement d'alertes** (qui conserve toutes les alertes dans un incident) et la suppression pour les règles très bruyantes et redondantes.
+!: Suppression = pause de la règle après une alerte (≤ 24 h) ; à utiliser avec prudence car elle crée un angle mort.
+
+### Règle désactivée automatiquement
+@ niveau=A ref=sent-detect-threats,sent-health
+?: Dans la liste des règles d'analyse, une règle porte désormais le préfixe « AUTO DISABLED ». Quelle est l'explication la plus probable ?
++: Sentinel a désactivé la règle après des échecs permanents d'exécution (par exemple une table ou une fonction supprimée, ou une perte d'accès à un espace cible).
+-: La règle a généré plus de 150 alertes en une exécution. || Ce cas entraîne la création d'une alerte de synthèse, pas la désactivation de la règle.
+-: Un analyste Responder a fermé tous ses incidents comme faux positifs. || La classification des incidents n'a pas d'effet sur l'état de la règle.
+-: La règle n'a produit aucune alerte depuis 30 jours. || Une règle silencieuse n'est pas désactivée automatiquement.
+=: Lorsqu'une règle planifiée échoue de façon **permanente** (erreur non transitoire répétée : table inexistante, fonction supprimée, autorisations perdues sur un espace interrogé…), Sentinel la **désactive automatiquement** et ajoute le préfixe **AUTO DISABLED** à son nom, avec la raison dans la description.
+T: Il faut corriger la cause puis réactiver la règle. L'**audit et la surveillance de l'intégrité** de Sentinel (table SentinelHealth) permettent de suivre les exécutions des règles d'analyse et des automatisations, et d'alerter sur les échecs.
+X: ```kql
+SentinelHealth
+| where TimeGenerated > ago(7d)
+| where SentinelResourceType == "Analytics Rule"
+| where Status != "Success"
+| summarize Echecs = count(), Dernier = max(TimeGenerated) by SentinelResourceName, Status, Description
+```
+!: « AUTO DISABLED » = échecs permanents ; corriger la cause, réactiver, et surveiller via SentinelHealth.
+
+### Détection multi-étapes Fusion
+@ niveau=I ref=sent-fusion
+?: Quelle affirmation décrit correctement la détection Fusion (Advanced Multistage Attack Detection) de Microsoft Sentinel ?
++: Elle s'appuie sur l'apprentissage automatique pour corréler des alertes et anomalies de faible fidélité provenant de plusieurs produits en incidents multi-étapes de haute fidélité ; elle est activée par défaut.
+-: C'est une règle planifiée dont l'analyste rédige la requête KQL de corrélation. || La logique de Fusion est gérée par Microsoft ; on ne peut pas écrire sa requête.
+-: Elle ne fonctionne qu'avec des journaux Syslog. || Fusion utilise de nombreuses sources : Entra ID Protection, Defender for Cloud Apps, Defender for Endpoint, anomalies, règles planifiées configurées, etc.
+-: Elle génère une alerte pour chaque échec de connexion. || Fusion vise précisément à réduire le bruit en ne remontant que des scénarios corrélés.
+=: **Fusion** est un moteur de corrélation fondé sur le **machine learning** qui identifie des combinaisons d'activités anormales et suspectes à différentes étapes de la chaîne d'attaque. Il produit peu d'incidents, mais de haute fidélité, et la règle est **activée par défaut**.
+T: Fusion couvre des scénarios tels que les activités de rançongiciel, la compromission de compte suivie d'exfiltration, ou des scénarios émergents. Il est possible de configurer les sources (fournisseurs et gravités) prises en compte et d'inclure les alertes des règles planifiées. Dans le portail Defender, la corrélation multi-produits est aussi assurée par le moteur XDR.
+!: Fusion = ML multi-étapes, activé par défaut, logique non modifiable, peu d'incidents mais très fiables.
+
+### Correspondance avec le renseignement sur les menaces
+@ niveau=I ref=sent-ti-matching
+?: Vous voulez que Sentinel génère automatiquement des alertes lorsque des journaux CEF, DNS ou Syslog contiennent des indicateurs de compromission connus de Microsoft, sans écrire de requête. Quelle règle activer ?
++: La règle d'analyse « Microsoft Threat Intelligence Analytics » (correspondance avec le renseignement Microsoft).
+-: Une règle NRT basée sur la table Heartbeat. || Heartbeat ne contient pas de données d'IoC.
+-: La règle Fusion. || Fusion corrèle des alertes multi-étapes ; elle ne fait pas de correspondance d'indicateurs dans les journaux.
+-: Une règle d'anomalie UEBA. || Les anomalies comportementales ne s'appuient pas sur des listes d'IoC.
+=: La règle **Microsoft Threat Intelligence Analytics** compare les journaux de l'espace (CommonSecurityLog, DNS, Syslog, etc.) aux **indicateurs gérés par Microsoft** et génère des alertes à haute fidélité lorsqu'une correspondance est trouvée.
+T: Pour vos propres indicateurs (TAXII, API d'upload, saisie manuelle), utilisez les modèles de règles « TI map … to … » (correspondance d'IP, de domaines, d'URL ou de hachages avec différentes tables). Les correspondances doivent tenir compte de la validité (`ValidUntil`) et de l'état actif (`IsActive`) des indicateurs.
+!: IoC Microsoft dans les journaux sans requête = règle « Microsoft Threat Intelligence Analytics » ; vos IoC = modèles « TI map ».
+
+### Règles d'anomalie
+@ niveau=A ref=sent-anomalies,la-t-Anomalies
+?: Une règle d'anomalie intégrée produit trop de résultats. Vous voulez tester des seuils plus stricts sans perdre la version de production. Quelle démarche est correcte ?
++: Dupliquer la règle d'anomalie, ajuster ses paramètres dans la copie exécutée en mode « Flighting » (test), comparer les résultats dans la table Anomalies, puis basculer la copie en production.
+-: Modifier la requête KQL de la règle d'anomalie comme celle d'une règle planifiée. || La logique ML des anomalies n'est pas éditable comme une requête ; seuls certains paramètres sont réglables.
+-: Supprimer la règle et la recréer à partir de Fusion. || Fusion n'est pas une source de règles d'anomalie.
+-: Activer la création d'incidents pour comparer les résultats. || Les anomalies ne créent pas d'alertes ni d'incidents ; elles alimentent la table Anomalies.
+=: Les **règles d'anomalie** (SOC-ML) sont des modèles de machine learning prédéfinis dont certains **paramètres** (seuils, exclusions) sont réglables. On **duplique** la règle, on règle la copie en **Flighting** pour la tester en parallèle de la production, puis on compare les sorties dans la table **Anomalies** avant de la promouvoir en production.
+T: Les anomalies n'entraînent pas d'alertes : elles servent de signaux à la chasse, à l'UEBA et à Fusion. Le référentiel SC-200 cite « Configurer des anomalies dans Microsoft Sentinel ».
+X: ```kql
+Anomalies
+| where TimeGenerated > ago(7d)
+| summarize Nombre = count() by RuleName, RuleStatus
+| order by Nombre desc
+```
+!: Anomalies = ML paramétrable (Production / Flighting), résultats dans la table Anomalies, pas d'alertes.
+
+### Mesurer la couverture MITRE ATT&CK
+@ niveau=D ref=sent-mitre
+?: La direction demande quelles techniques MITRE ATT&CK sont couvertes par les règles actives et lesquelles pourraient l'être avec des modèles disponibles. Où trouver cette vue dans Sentinel ?
++: Dans la page MITRE ATT&CK de Microsoft Sentinel, qui affiche la couverture des règles actives et simulée à partir des modèles et requêtes disponibles.
+-: Dans la page Watchlists. || Les watchlists stockent des listes de référence, pas une cartographie ATT&CK.
+-: Dans le Secure Score Microsoft. || Le Secure Score mesure la posture de configuration, pas la couverture de détection ATT&CK.
+-: Uniquement dans un tableur exporté manuellement. || Sentinel fournit nativement une matrice de couverture.
+=: La page **MITRE ATT&CK** affiche la matrice des tactiques et techniques avec le nombre de règles actives (planifiées, NRT), de requêtes de chasse et de détections couvrant chaque technique. Le mode **simulé** montre la couverture possible avec les modèles disponibles.
+T: Les règles indiquent leurs tactiques et techniques dans leurs paramètres ; les incidents et alertes les affichent. Cette vue alimente les recommandations d'optimisation SOC « couverture basée sur les menaces ».
+!: Couverture ATT&CK = page MITRE ATT&CK de Sentinel (active + simulée).
+
+### Créer une règle à partir d'un modèle du hub de contenu
+@ niveau=D ref=sent-content-hub,sent-scheduled
+?: Vous voulez déployer des détections prêtes à l'emploi pour Microsoft Entra ID. Quelle démarche est correcte ?
++: Installer la solution correspondante depuis le hub de contenu, puis créer des règles d'analyse actives à partir des modèles de règles fournis, en les ajustant si nécessaire.
+-: Les modèles sont actifs dès l'installation de la solution, sans action supplémentaire. || Installer une solution ajoute des modèles ; une règle active doit être créée à partir du modèle (sauf exceptions activées par défaut).
+-: Copier les requêtes depuis GitHub dans une règle NRT obligatoirement. || Le hub de contenu est la méthode intégrée ; le type de règle dépend du modèle.
+-: Demander l'activation au support Microsoft. || L'installation de solutions est une opération en libre-service (rôle Microsoft Sentinel Contributor).
+=: Le **hub de contenu** regroupe des **solutions** (connecteurs, règles, classeurs, requêtes de chasse, playbooks, analyseurs) et du contenu autonome. Après installation, on **crée une règle à partir d'un modèle** ; Sentinel signale ensuite lorsqu'une nouvelle version du modèle est disponible.
+T: Le rôle **Microsoft Sentinel Contributor** permet d'installer ou de mettre à jour des solutions. Pour un pilotage « détection-as-code », les **référentiels** (CI/CD avec GitHub ou Azure DevOps) déploient règles, classeurs et playbooks depuis un dépôt.
+!: Hub de contenu = solutions → modèles → règles actives à créer (et à mettre à jour lorsque le modèle évolue).
+
+### Seuil d'alerte d'une règle planifiée
+@ niveau=D ref=sent-scheduled-details
+?: Une règle planifiée renvoie une ligne par adresse IP ayant scanné des ports. Vous ne voulez déclencher une alerte que si au moins 5 adresses IP différentes apparaissent dans les résultats d'une même exécution. Quel paramètre utiliser ?
++: Le seuil d'alerte : générer une alerte lorsque le nombre de résultats de la requête est supérieur à 4.
+-: La suppression de la règle pendant 5 heures. || La suppression arrête temporairement la règle après une alerte, elle ne fixe pas de seuil de résultats.
+-: Le regroupement d'alertes sur 5 entités. || Ce paramètre agit sur la création d'incidents, pas sur le déclenchement de l'alerte.
+-: Une gravité « Élevée ». || La gravité qualifie l'alerte, elle ne conditionne pas son déclenchement.
+=: Le **seuil d'alerte** compare le **nombre de lignes de résultats** à une valeur (supérieur, inférieur, égal, différent). Avec « supérieur à 4 », l'alerte n'est déclenchée que si au moins 5 lignes sont renvoyées.
+T: Une alternative consiste à intégrer la logique dans la requête (`summarize dcount(SourceIP)` puis `where`), ce qui rend la règle plus explicite et testable. Le seuil s'applique avant le regroupement des événements.
+!: Seuil d'alerte = condition sur le nombre de résultats d'une exécution.

@@ -1,0 +1,76 @@
+N°;Identifiant;Module;Sous-section;Titre;Niveau;Objectif officiel;Bonne réponse;Références;Examens blancs
+1;M1-001;1;Architecture, portail Defender et espaces de travail;Rôle de Microsoft Sentinel dans l'architecture SecOps;Débutant;1;B;sent-overview sent-defender-portal;
+2;M1-002;1;Architecture, portail Defender et espaces de travail;Prérequis de déploiement de Microsoft Sentinel;Débutant;1;D;sent-overview la-workspace-design;
+3;M1-003;1;Architecture, portail Defender et espaces de travail;Portail d'exploitation recommandé;Débutant;1;C;sent-defender-portal sent-roles;
+4;M1-004;1;Architecture, portail Defender et espaces de travail;Création d'incidents après connexion au portail Defender;Intermédiaire;1;A;sent-defender-portal xdr-correlation;Examen 3 Q5
+5;M1-005;1;Architecture, portail Defender et espaces de travail;Nombre d'instances Sentinel par espace de travail;Débutant;1;B;la-workspace-design sent-overview;
+6;M1-006;1;Architecture, portail Defender et espaces de travail;Requête inter-espaces de travail;Intermédiaire;1;D;la-workspace-design kql-union;Examen 1 Q4
+7;M1-007;1;Architecture, portail Defender et espaces de travail;Données stockées pour les incidents Sentinel;Intermédiaire;1;C;la-t-SecurityIncident kql-argmax;Examen 3 Q21
+8;M1-008;1;Architecture, portail Defender et espaces de travail;Connexion de Microsoft Sentinel au portail Defender — prérequis;Intermédiaire;1;A;sent-onboard-defender sent-defender-portal;Examen 3 Q20
+9;M1-009;1;Rôles et contrôle d'accès (RBAC);Rôle minimal pour gérer les incidents;Débutant;1;B;sent-roles;
+10;M1-010;1;Rôles et contrôle d'accès (RBAC);Exécuter un playbook sans pouvoir le modifier;Intermédiaire;1;D;sent-roles sent-playbooks;Examen 1 Q19
+11;M1-011;1;Rôles et contrôle d'accès (RBAC);Échec d'exécution de playbook depuis une règle d'automatisation;Intermédiaire;1;A;sent-automation-rules sent-roles;Examen 3 Q6
+12;M1-012;1;Rôles et contrôle d'accès (RBAC);Restreindre l'accès à certaines tables;Avancé;1;C;sent-roles la-workspace-design;Examen 1 Q5
+13;M1-013;1;Rôles et contrôle d'accès (RBAC);Accès aux journaux d'une équipe applicative sans Sentinel;Intermédiaire;1;D;sent-roles la-workspace-design;Examen 3 Q18
+14;M1-014;1;Rôles et contrôle d'accès (RBAC);Rôles du data lake Microsoft Sentinel;Avancé;1;A;sent-roles sent-lake;Examen 3 Q4
+15;M1-015;1;Rôles et contrôle d'accès (RBAC);Gestion des incidents dans le portail Defender avec le RBAC unifié;Intermédiaire;1;C;xdr-urbac xdr-case-mgmt;Examen 1 Q2
+16;M1-016;1;Connecteurs de données et ingestion;Choisir le connecteur pour les événements de sécurité Windows;Débutant;1;B;sent-ama-windows la-dcr;
+17;M1-017;1;Connecteurs de données et ingestion;Filtrer les événements Windows à la source;Intermédiaire;1;D;sent-ama-windows la-dcr;Examen 2 Q4
+18;M1-018;1;Connecteurs de données et ingestion;Windows Event Forwarding (WEF);Intermédiaire;1;A;sent-wef sent-ama-windows;Examen 1 Q10
+19;M1-019;1;Connecteurs de données et ingestion;Collecte CEF depuis un pare-feu;Intermédiaire;1;C;sent-cef-syslog-ama;Examen 3 Q10
+20;M1-020;1;Connecteurs de données et ingestion;Doublons entre Syslog et CommonSecurityLog;Avancé;1;B;sent-cef-syslog-ama la-dcr;Examen 2 Q20
+21;M1-021;1;Connecteurs de données et ingestion;Collecter le journal d'activité Azure;Débutant;1;D;la-activity-log la-diag-settings;
+22;M1-022;1;Connecteurs de données et ingestion;Ingestion d'indicateurs de menace via TAXII;Intermédiaire;1;C;sent-ti-connect sent-ti;Examen 3 Q19
+23;M1-023;1;Connecteurs de données et ingestion;Table personnalisée pour une application métier;Avancé;1;A;la-ingestion-api la-custom-table sent-custom-logs;Examen 1 Q11
+24;M1-024;1;Connecteurs de données et ingestion;Connecteur Microsoft Defender XDR;Intermédiaire;1;DE;sent-xdr-connector;Examen 2 Q9
+25;M1-025;1;Rétention, niveaux de données, coûts et optimisation SOC;Niveau de données adapté aux règles de détection;Débutant;1;B;sent-log-plans sent-tiers;Examen 3 Q17
+26;M1-026;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention longue à faible coût;Intermédiaire;1;C;sent-lake sent-tables;Examen 2 Q6
+27;M1-027;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention des tables Defender XDR;Intermédiaire;1;D;sent-tables xdr-ah-overview;Examen 3 Q12
+28;M1-028;1;Rétention, niveaux de données, coûts et optimisation SOC;Choisir entre job KQL, règle de synthèse et job de recherche;Avancé;1;A;sent-lake-compare sent-lake-jobs sent-summary-rules;Examen 3 Q1
+29;M1-029;1;Rétention, niveaux de données, coûts et optimisation SOC;Règles de synthèse pour des journaux verbeux;Intermédiaire;1;B;sent-summary-rules sent-lake-compare;Examen 1 Q7
+30;M1-030;1;Rétention, niveaux de données, coûts et optimisation SOC;Restaurer ou rechercher des données archivées;Intermédiaire;1;C;sent-search-jobs sent-retention;Examen 3 Q13
+31;M1-031;1;Rétention, niveaux de données, coûts et optimisation SOC;Rétention gratuite incluse avec Sentinel;Débutant;1;D;sent-billing sent-log-plans;Examen 1 Q12
+32;M1-032;1;Rétention, niveaux de données, coûts et optimisation SOC;Recommandations d'optimisation SOC;Intermédiaire;1;B;sent-soc-optimization;Examen 2 Q16
+33;M1-033;1;Rétention, niveaux de données, coûts et optimisation SOC;Identifier les tables les plus volumineuses;Intermédiaire;1;A;la-t-Usage sent-cost-reduce;Examen 2 Q11
+34;M1-034;1;Rétention, niveaux de données, coûts et optimisation SOC;Supprimer une colonne volumineuse avant stockage;Avancé;1;C;la-transform la-dcr;Examen 2 Q5
+35;M1-035;1;Règles d'analyse et détections;Règle planifiée ou NRT;Débutant;1;B;sent-nrt sent-scheduled-details;
+36;M1-036;1;Règles d'analyse et détections;Fréquence et fenêtre de recherche;Intermédiaire;1;D;sent-scheduled-details;Examen 1 Q21
+37;M1-037;1;Règles d'analyse et détections;Délai d'ingestion et événements manqués;Avancé;1;A;sent-ingestion-delay kql-ingestion-time;Examen 1 Q9
+38;M1-038;1;Règles d'analyse et détections;Regroupement des événements en alertes;Intermédiaire;1;C;sent-scheduled-details sent-alert-grouping;Examen 1 Q14
+39;M1-039;1;Règles d'analyse et détections;Mappage des entités;Intermédiaire;1;D;sent-entity-mapping;Examen 2 Q1
+40;M1-040;1;Règles d'analyse et détections;Personnaliser le titre de l'alerte;Intermédiaire;1;A;sent-alert-details sent-custom-details;Examen 1 Q13
+41;M1-041;1;Règles d'analyse et détections;Regroupement des alertes en incidents;Avancé;1;B;sent-alert-grouping;Examen 2 Q14
+42;M1-042;1;Règles d'analyse et détections;Suppression temporaire d'une règle;Intermédiaire;1;D;sent-scheduled-details;Examen 3 Q7
+43;M1-043;1;Règles d'analyse et détections;Règle désactivée automatiquement;Avancé;1;A;sent-detect-threats sent-health;Examen 2 Q18
+44;M1-044;1;Règles d'analyse et détections;Détection multi-étapes Fusion;Intermédiaire;1;C;sent-fusion;Examen 3 Q16
+45;M1-045;1;Règles d'analyse et détections;Correspondance avec le renseignement sur les menaces;Intermédiaire;1;B;sent-ti-matching;Examen 3 Q14
+46;M1-046;1;Règles d'analyse et détections;Règles d'anomalie;Avancé;1;A;sent-anomalies la-t-Anomalies;Examen 1 Q3
+47;M1-047;1;Règles d'analyse et détections;Mesurer la couverture MITRE ATT&CK;Débutant;1;D;sent-mitre;Examen 1 Q17
+48;M1-048;1;Règles d'analyse et détections;Créer une règle à partir d'un modèle du hub de contenu;Débutant;1;C;sent-content-hub sent-scheduled;
+49;M1-049;1;Règles d'analyse et détections;Seuil d'alerte d'une règle planifiée;Débutant;1;B;sent-scheduled-details;Examen 3 Q15
+50;M1-050;1;Automatisation : règles d'automatisation et playbooks;Déclencheurs des règles d'automatisation;Débutant;1;D;sent-automation-rules;
+51;M1-051;1;Automatisation : règles d'automatisation et playbooks;Fermer automatiquement des faux positifs connus;Intermédiaire;1;C;sent-create-automation-rules;Examen 1 Q1
+52;M1-052;1;Automatisation : règles d'automatisation et playbooks;Ordre d'exécution des règles d'automatisation;Avancé;1;B;sent-automation-rules;Examen 2 Q2
+53;M1-053;1;Automatisation : règles d'automatisation et playbooks;Déclencheur de playbook recommandé;Intermédiaire;1;A;sent-playbook-triggers sent-playbooks;Examen 2 Q21
+54;M1-054;1;Automatisation : règles d'automatisation et playbooks;Identité managée pour un playbook;Avancé;1;C;sent-playbook-create logic-apps;Examen 2 Q8
+55;M1-055;1;Automatisation : règles d'automatisation et playbooks;Tâches d'incident;Intermédiaire;1;D;sent-incident-tasks sent-automation-rules;Examen 2 Q19
+56;M1-056;1;Automatisation : règles d'automatisation et playbooks;Playbook sur une entité pendant la chasse;Intermédiaire;1;B;sent-playbook-triggers sent-hunting;Examen 2 Q3
+57;M1-057;1;Automatisation : règles d'automatisation et playbooks;Exécuter un playbook sur les alertes Defender for Cloud;Avancé;1;A;sent-automation-rules mdc-workflow;Examen 3 Q8
+58;M1-058;1;Automatisation : règles d'automatisation et playbooks;Automatisation des incidents dans le portail Defender;Avancé;1;D;sent-defender-portal sent-automation-rules;Examen 3 Q11
+59;M1-059;1;Automatisation : règles d'automatisation et playbooks;Synchronisation avec un outil ITSM;Intermédiaire;1;C;sent-playbooks logic-apps;Examen 2 Q10
+60;M1-060;1;Automatisation : règles d'automatisation et playbooks;Interruption automatique d'attaque et automatisation Sentinel;Intermédiaire;1;B;xdr-disruption sent-playbooks;Examen 3 Q3
+61;M1-061;1;Classeurs, chasse, UEBA, watchlists et data lake;Créer un classeur à partir d'un modèle;Débutant;1;A;sent-workbooks;
+62;M1-062;1;Classeurs, chasse, UEBA, watchlists et data lake;Paramètre de période dans un classeur;Intermédiaire;1;C;sent-workbooks;Examen 1 Q8
+63;M1-063;1;Classeurs, chasse, UEBA, watchlists et data lake;Requêtes de chasse et bookmarks;Débutant;1;D;sent-hunting sent-bookmarks;
+64;M1-064;1;Classeurs, chasse, UEBA, watchlists et data lake;Mener une campagne de chasse structurée;Intermédiaire;1;A;sent-hunts sent-hunting;Examen 1 Q6
+65;M1-065;1;Classeurs, chasse, UEBA, watchlists et data lake;Activer l'UEBA;Intermédiaire;1;B;sent-ueba-enable sent-ueba;Examen 3 Q9
+66;M1-066;1;Classeurs, chasse, UEBA, watchlists et data lake;Exploiter BehaviorAnalytics;Avancé;1;C;sent-ueba-ref la-t-BehaviorAnalytics;Examen 1 Q20
+67;M1-067;1;Classeurs, chasse, UEBA, watchlists et data lake;Watchlist d'actifs critiques;Intermédiaire;1;A;sent-watchlists;Examen 1 Q15
+68;M1-068;1;Classeurs, chasse, UEBA, watchlists et data lake;Jupyter notebooks et MSTICPy;Intermédiaire;1;B;sent-notebooks sent-lake-notebooks;Examen 2 Q13
+69;M1-069;1;Classeurs, chasse, UEBA, watchlists et data lake;Serveur MCP de Microsoft Sentinel;Intermédiaire;1;D;sent-mcp sent-mcp-tools;Examen 2 Q15
+70;M1-070;1;Classeurs, chasse, UEBA, watchlists et data lake;Graphe Microsoft Sentinel et rayon d'impact;Intermédiaire;1;A;sent-graph xdr-hunting-graph;Examen 3 Q2
+71;M1-071;1;Classeurs, chasse, UEBA, watchlists et data lake;Modèle d'information ASIM;Avancé;1;B;sent-asim;Examen 2 Q7
+72;M1-072;1;Classeurs, chasse, UEBA, watchlists et data lake;Surveiller l'intégrité des connecteurs;Intermédiaire;1;C;sent-health la-t-SentinelHealth;Examen 2 Q12
+73;M1-073;1;Classeurs, chasse, UEBA, watchlists et data lake;Investigation dans le graphe d'un incident;Débutant;1;D;sent-incidents;Examen 2 Q17
+74;M1-074;1;Classeurs, chasse, UEBA, watchlists et data lake;Déployer le contenu Sentinel « as code »;Intermédiaire;1;A;sent-repositories;Examen 1 Q16
+75;M1-075;1;Classeurs, chasse, UEBA, watchlists et data lake;Plusieurs espaces Sentinel dans le portail Defender;Avancé;1;C;sent-onboard-defender sent-defender-portal;Examen 1 Q18
