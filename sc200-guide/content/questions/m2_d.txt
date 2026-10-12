@@ -1,0 +1,455 @@
+@@ module=2
+@@ section=Defender for Cloud Apps : applications SaaS et Shadow IT
+
+### Découverte du Shadow IT sans collecteur
+@ niveau=D ref=mdca-discovery,mdca-mde
+?: Vous voulez identifier les applications cloud utilisées par les employés depuis leurs postes Windows gérés par Defender for Endpoint, sans déployer de collecteur de journaux sur les pare-feu. Quelle méthode utiliser ?
++: L'intégration de Defender for Cloud Apps avec Defender for Endpoint, qui alimente Cloud Discovery à partir de la télémétrie réseau des appareils.
+-: Les connecteurs d'applications par API. || Ils surveillent des applications déjà connues et approuvées (Microsoft 365, Salesforce…), pas la découverte du Shadow IT.
+-: Le contrôle d'application par accès conditionnel. || Il contrôle des sessions vers des applications intégrées à Entra ID, il ne découvre pas les applications inconnues.
+-: Les stratégies de fichiers. || Elles analysent des fichiers dans des applications connectées.
+=: L'**intégration MDE** envoie à **Cloud Discovery** les données de trafic des appareils intégrés, sans collecteur ni téléchargement de journaux. Le tableau de bord présente les applications découvertes, leur **score de risque** (0 à 10 dans le catalogue) et les utilisateurs/appareils associés.
+T: Autres sources de Cloud Discovery : **collecteur de journaux** (conteneur Docker recevant les journaux de pare-feu/proxy) et **chargement manuel** d'instantanés de journaux. L'intégration MDE permet aussi de **bloquer** les applications marquées « non approuvées ».
+!: Shadow IT depuis les postes MDE = intégration MDE → Cloud Discovery (sans collecteur).
+
+### Bloquer une application non approuvée
+@ niveau=I ref=mdca-mde,mdca-discovery
+?: Un service de partage de fichiers à haut risque est massivement utilisé. Vous le marquez « Non approuvé » dans Defender for Cloud Apps, mais les utilisateurs y accèdent toujours. Quelle configuration manque pour que le blocage soit appliqué sur les postes ?
++: L'option d'application des accès (Enforce app access) de l'intégration MDE dans Defender for Cloud Apps, avec la protection réseau en mode bloc sur les appareils.
+-: Une stratégie anti-hameçonnage dans Defender for Office 365. || Sans rapport avec l'accès web aux applications.
+-: Une règle ASR « Bloquer les applications non approuvées ». || Cette règle n'existe pas ; le blocage passe par les indicateurs réseau et la protection réseau.
+-: Une watchlist Sentinel contenant le domaine. || Une watchlist ne bloque pas le trafic.
+=: Lorsqu'une application est marquée **non approuvée**, MDCA crée des **indicateurs d'URL/domaines** dans MDE si l'option **Enforce app access** est activée ; les appareils les bloquent via la **protection réseau** (mode bloc) et les indicateurs réseau personnalisés.
+T: Le marquage « Surveillé » (Monitored) permet d'afficher un avertissement contournable. Les blocages apparaissent dans la chronologie des appareils et DeviceEvents. Il est possible de cibler des groupes d'appareils.
+!: Non approuvé + Enforce app access + protection réseau en bloc = application bloquée sur les postes MDE.
+
+### Contrôle des sessions
+@ niveau=I ref=mdca-session,mdca-cac
+?: Les utilisateurs doivent pouvoir consulter Salesforce depuis des appareils personnels non gérés, mais sans télécharger de fichiers. Quelle solution répond au besoin ?
++: Une stratégie d'accès conditionnel Microsoft Entra qui route les sessions vers le contrôle d'application par accès conditionnel, et une stratégie de session Defender for Cloud Apps qui bloque les téléchargements depuis les appareils non gérés.
+-: Une stratégie de découverte d'applications. || Elle alerte sur l'usage d'applications, sans contrôle de session.
+-: Un connecteur d'application API Salesforce uniquement. || Le connecteur API surveille et gouverne a posteriori, il ne bloque pas un téléchargement en temps réel.
+-: L'isolation des appareils personnels dans MDE. || Ces appareils ne sont pas gérés.
+=: Le **contrôle d'application par accès conditionnel** (proxy inverse) applique en temps réel des **stratégies de session** : bloquer/protéger les téléchargements, bloquer le copier-coller ou l'impression, surveiller l'activité. Il est activé par une stratégie d'**accès conditionnel Entra** avec le contrôle « Utiliser le contrôle d'application par accès conditionnel ».
+T: Les **stratégies d'accès** contrôlent l'accès lui-même (bloquer l'accès depuis certains contextes). Le caractère géré de l'appareil peut s'appuyer sur la conformité Intune ou la jonction hybride. Pour les applications non Microsoft, l'application doit être intégrée à Entra ID (SSO).
+!: Contrôle en temps réel (bloquer le téléchargement) = Conditional Access App Control + stratégie de session.
+
+### Alerte de voyage impossible
+@ niveau=I ref=mdca-anomaly,mdca-anomaly-alerts
+?: Defender for Cloud Apps lève une alerte « Impossible travel » pour un utilisateur connecté depuis Paris puis, 40 minutes plus tard, depuis Singapour. Quelle vérification permet le plus souvent d'identifier un faux positif ?
++: Vérifier si l'une des adresses IP correspond à un VPN d'entreprise, un proxy cloud ou un fournisseur connu utilisé par l'utilisateur, et consulter le journal d'activité pour les appareils et agents utilisateur.
+-: Supprimer immédiatement le compte de l'utilisateur. || Mesure destructrice avant toute analyse.
+-: Désactiver la stratégie d'anomalies pour tout le locataire. || Supprimerait une détection importante.
+-: Vérifier le Secure Score du locataire. || Sans rapport avec cette alerte.
+=: Les faux positifs de **voyage impossible** proviennent souvent de **VPN**, de **proxys cloud** ou de passerelles d'accès. On compare les IP, l'agent utilisateur, l'appareil, l'application et les activités effectuées. Les **plages d'adresses IP** de l'organisation peuvent être déclarées (balises « Corporate », « VPN ») pour affiner la détection.
+T: La stratégie de détection d'anomalies **Impossible travel** a une période d'apprentissage et une sensibilité réglable ; on peut ignorer les connexions réussies depuis des pays connus de l'utilisateur. Si l'activité est confirmée malveillante : **confirmer l'utilisateur compromis**, révoquer les sessions, réinitialiser les identifiants.
+!: Voyage impossible : vérifier VPN/proxy/IP connues avant de conclure ; déclarer les plages IP de l'organisation.
+
+### Actions de gouvernance sur un utilisateur
+@ niveau=I ref=mdca-governance
+?: Une stratégie MDCA détecte un téléchargement massif de fichiers SharePoint par un utilisateur dont le compte semble compromis. Quelle action de gouvernance de Defender for Cloud Apps augmente aussi son niveau de risque dans Entra ID Protection, déclenchant les stratégies d'accès conditionnel basées sur le risque ?
++: « Confirmer que l'utilisateur est compromis » (Confirm user compromised).
+-: « Notifier l'utilisateur ». || Envoie un message, sans effet sur le risque.
+-: « Appliquer une étiquette de confidentialité ». || Concerne les fichiers.
+-: « Supprimer le partage externe ». || Concerne les fichiers partagés.
+=: L'action **Confirm user compromised** définit le **risque utilisateur à élevé** dans Microsoft Entra ID Protection, ce qui active les stratégies d'accès conditionnel basées sur le risque (par exemple blocage ou changement de mot de passe sécurisé).
+T: Autres actions utilisateur : **Suspendre l'utilisateur** (bloque la connexion dans Entra ID), **Exiger une nouvelle connexion** (révoque les sessions), notifier l'utilisateur ou son responsable. Ces actions peuvent être automatiques dans une stratégie ou manuelles depuis l'alerte/la page utilisateur.
+!: Confirm user compromised (MDCA) → risque utilisateur élevé dans Entra ID Protection.
+
+### Application OAuth à risque
+@ niveau=A ref=mdca-investigate-oauth,mdca-app-gov
+?: Une application OAuth inconnue, d'un éditeur non vérifié, a obtenu le consentement de 120 utilisateurs avec les autorisations Mail.ReadWrite et Files.ReadWrite.All. Que faire en priorité ?
++: Examiner l'application (éditeur, autorisations, activité, utilisateurs), et si elle est malveillante, l'interdire/la désactiver et révoquer les consentements, puis enquêter sur les données consultées.
+-: Ignorer l'alerte car les utilisateurs ont donné leur consentement. || Le consentement peut avoir été obtenu par hameçonnage (illicit consent grant).
+-: Réinitialiser uniquement les mots de passe des utilisateurs. || Les jetons OAuth accordés à l'application restent valides sans révocation du consentement.
+-: Désactiver Defender for Cloud Apps. || Contre-productif.
+=: Le **consentement illicite** (T1528) permet à une application malveillante d'accéder aux données des utilisateurs via des **jetons OAuth**, indépendamment de leur mot de passe. Defender for Cloud Apps (gouvernance des applications) permet d'**examiner** l'application et de la **désactiver** ou d'**interdire** son usage, ce qui révoque son accès.
+T: Prévention : restreindre le consentement des utilisateurs (éditeurs vérifiés, autorisations à faible impact), activer le **flux de demande de consentement administrateur**. Investigation : AuditLogs (« Consent to application »), CloudAppEvents, MicrosoftGraphActivityLogs pour les appels effectués par l'application.
+!: Application OAuth malveillante = désactiver/interdire l'application et révoquer les consentements ; le changement de mot de passe ne suffit pas.
+
+### Stratégie de fichier pour données sensibles
+@ niveau=I ref=mdca-file-policy
+?: Vous voulez détecter automatiquement les fichiers OneDrive contenant des numéros de carte bancaire partagés publiquement, et retirer le partage. Quelle fonctionnalité utiliser ?
++: Une stratégie de fichiers Defender for Cloud Apps avec inspection du contenu (types d'informations sensibles) et l'action de gouvernance « Supprimer le partage public ».
+-: Une stratégie d'anomalie « Impossible travel ». || Concerne les connexions.
+-: Une règle ASR. || Concerne les terminaux.
+-: Une stratégie de découverte d'applications. || Concerne le Shadow IT.
+=: Les **stratégies de fichiers** analysent les fichiers des applications connectées (via API) selon leur partage, leur propriétaire et leur **contenu** (types d'informations sensibles Purview, étiquettes), et appliquent des **actions de gouvernance** (supprimer le partage externe/public, appliquer une étiquette, mettre en quarantaine, notifier).
+T: La DLP Microsoft Purview couvre aussi ces scénarios pour Microsoft 365 ; MDCA apporte la cohérence pour des applications tierces (Box, Dropbox, Google Workspace…).
+!: Fichiers sensibles partagés dans des apps connectées = stratégie de fichiers MDCA + action de gouvernance.
+
+### Activité depuis une adresse IP anonyme
+@ niveau=D ref=mdca-anomaly
+?: Une alerte indique qu'un utilisateur administrateur a effectué des opérations depuis une adresse IP associée à Tor. De quel type de détection s'agit-il ?
++: Une détection d'anomalie « Activity from anonymous IP addresses » de Defender for Cloud Apps (signal aussi présent côté Entra ID Protection pour les connexions).
+-: Une règle ASR. || Les règles ASR s'appliquent aux processus des terminaux.
+-: Une alerte de santé de capteur MDI. || Concerne l'état des capteurs.
+-: Une alerte de Secure Score. || Le Secure Score ne génère pas ce type d'alerte.
+=: MDCA dispose de stratégies de détection d'anomalies intégrées, dont **activité depuis des adresses IP anonymes** (Tor, proxys anonymiseurs), **activité depuis un pays peu fréquent**, **voyage impossible**, **téléchargement massif**, **suppression massive**, **activité de rançongiciel**, **manipulation suspecte de règles de boîte de réception**.
+T: Les alertes MDCA remontent dans les incidents Defender XDR et peuvent être ingérées par Sentinel. Pour les comptes administrateurs, ces alertes doivent être priorisées.
+!: IP anonyme (Tor) = anomalie MDCA (et risque de connexion Entra ID Protection).
+
+### Connecteur d'application API
+@ niveau=D ref=mdca-overview
+?: Quel est l'intérêt principal d'un connecteur d'application (API) Defender for Cloud Apps vers Microsoft 365 ou une application SaaS tierce ?
++: Obtenir la visibilité sur les activités, fichiers et comptes de l'application, et appliquer des actions de gouvernance via les API du fournisseur.
+-: Bloquer en temps réel les téléchargements dans le navigateur. || C'est le rôle du contrôle de session (proxy).
+-: Découvrir les applications non approuvées utilisées sur le réseau. || C'est le rôle de Cloud Discovery.
+-: Remplacer l'authentification unique Entra ID. || Le connecteur n'est pas un fournisseur d'identité.
+=: Les **connecteurs d'applications** utilisent les API des fournisseurs pour collecter **activités**, **comptes** et **fichiers**, alimenter les détections d'anomalies et les stratégies, et exécuter des **actions de gouvernance** (suspendre un utilisateur, retirer un partage).
+T: Les trois piliers de MDCA : découverte (Cloud Discovery), protection via API (connecteurs), contrôle en temps réel (proxy de session). L'activité Microsoft 365 collectée alimente aussi la table **CloudAppEvents** de la chasse avancée.
+!: Connecteur API = visibilité + gouvernance a posteriori ; proxy de session = contrôle en temps réel ; Cloud Discovery = Shadow IT.
+
+### Chasse dans CloudAppEvents
+@ niveau=A ref=xdr-t-CloudAppEvents
+?: Vous voulez identifier les comptes qui ont téléchargé plus de 500 fichiers SharePoint ou OneDrive en une heure. Quelle requête de chasse avancée est la plus adaptée ?
++: ```kqlx
+CloudAppEvents
+| where Timestamp > ago(1d)
+| where ActionType == "FileDownloaded"
+| summarize Fichiers = count() by AccountDisplayName, AccountObjectId, IPAddress, bin(Timestamp, 1h)
+| where Fichiers > 500
+| order by Fichiers desc
+```
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(1d)
+| where ActionType == "FileDownloaded"
+| summarize count() by DeviceName
+```
+|| DeviceFileEvents ne connaît pas l'ActionType « FileDownloaded » de SharePoint ; ses actions sont FileCreated, FileModified, FileRenamed, FileDeleted.
+-: ```kqlx
+EmailAttachmentInfo
+| where Timestamp > ago(1d)
+| summarize count() by RecipientEmailAddress
+```
+|| Concerne les pièces jointes d'e-mails.
+-: ```kqlx
+CloudAppEvents
+| where Timestamp > ago(1d)
+| summarize count() by Application
+```
+|| Compte toutes les activités par application, sans isoler les téléchargements ni les comptes.
+=: **CloudAppEvents** contient les activités des applications cloud surveillées (Microsoft 365 et applications connectées) : `ActionType` (par exemple FileDownloaded, FileAccessed, MailItemsAccessed…), `Application`, `AccountObjectId`, `IPAddress`, `CountryCode`, `RawEventData`.
+T: Le téléchargement massif (T1530 / exfiltration) est aussi détecté par l'anomalie MDCA « Mass download ». Enrichissez avec IdentityInfo (département, poste) et vérifiez si l'utilisateur est sur le départ (indicateur Insider Risk).
+R: Une ligne par compte, IP et heure dépassant 500 téléchargements.
+!: Activités SaaS/Microsoft 365 en chasse avancée = CloudAppEvents (ActionType, Application, AccountObjectId).
+
+@@ section=Microsoft Entra ID : identités compromises
+
+### Risque utilisateur et risque de connexion
+@ niveau=D ref=entra-risks
+?: Dans Microsoft Entra ID Protection, quelle détection relève du risque utilisateur (user risk) plutôt que du risque de connexion (sign-in risk) ?
++: Des identifiants divulgués (Leaked credentials) retrouvés sur le dark web.
+-: Une connexion depuis une adresse IP anonyme. || C'est une détection de risque de connexion.
+-: Des propriétés de connexion inhabituelles (Unfamiliar sign-in properties). || Risque de connexion, évalué en temps réel.
+-: Un voyage atypique (Atypical travel). || Risque de connexion.
+=: Le **risque utilisateur** représente la probabilité que l'**identité** soit compromise (identifiants divulgués, activité utilisateur anormale, renseignement sur les menaces Microsoft au niveau utilisateur). Le **risque de connexion** représente la probabilité qu'une **authentification** donnée ne soit pas le fait du propriétaire (IP anonyme, propriétés inhabituelles, voyage atypique, IP malveillante, pulvérisation de mots de passe…).
+T: Les détections sont **en temps réel** ou **hors ligne**. Les tables Sentinel : **AADUserRiskEvents** (détections), **AADRiskyUsers**, et les colonnes de risque de SigninLogs (`RiskLevelDuringSignIn`, `RiskEventTypes_V2`). ID Protection requiert Microsoft Entra ID P2 pour l'ensemble des fonctionnalités.
+!: Identifiants divulgués = risque utilisateur ; IP anonyme / propriétés inhabituelles / voyage atypique = risque de connexion.
+
+### Stratégies basées sur le risque
+@ niveau=I ref=entra-risk-policies,entra-ca
+?: Vous voulez exiger l'authentification multifacteur pour les connexions à risque moyen ou élevé, et un changement de mot de passe sécurisé pour les utilisateurs à risque élevé. Quelle configuration est recommandée ?
++: Deux stratégies d'accès conditionnel : l'une avec la condition « risque de connexion moyen et élevé » et le contrôle « Exiger l'authentification multifacteur », l'autre avec « risque utilisateur élevé » et « Exiger la modification du mot de passe » (avec MFA).
+-: Une règle d'automatisation Sentinel qui réinitialise tous les mots de passe chaque nuit. || Disproportionné et sans lien avec le risque.
+-: Une seule stratégie bloquant toutes les connexions des utilisateurs à risque faible. || Trop restrictif et ne répond pas au besoin exprimé.
+-: Une règle ASR. || Les règles ASR ne s'appliquent pas aux identités cloud.
+=: Microsoft recommande de configurer les stratégies basées sur le risque dans l'**accès conditionnel** : **risque de connexion** → MFA ; **risque utilisateur** → **modification sécurisée du mot de passe** (qui exige une MFA préalable). La remédiation par l'utilisateur fait baisser automatiquement le risque.
+T: Prérequis : licences Entra ID P2, utilisateurs inscrits à la MFA et à la réinitialisation en libre-service. Exclure les comptes d'urgence (break-glass). L'auto-remédiation réduit la charge du SOC.
+!: Risque de connexion → MFA ; risque utilisateur → changement de mot de passe sécurisé ; via l'accès conditionnel.
+
+### Révoquer les sessions d'un utilisateur
+@ niveau=I ref=entra-revoke,entra-cae
+?: Après la réinitialisation du mot de passe d'un utilisateur compromis, l'attaquant semble toujours accéder à sa boîte aux lettres pendant quelques minutes. Pourquoi, et quelle action limite ce délai ?
++: Les jetons d'accès déjà émis restent valides jusqu'à leur expiration ; il faut révoquer les sessions (jetons d'actualisation), et l'évaluation continue de l'accès (CAE) permet aux applications compatibles de rejeter rapidement les jetons après ces événements critiques.
+-: La réinitialisation du mot de passe ne prend effet qu'après 24 heures. || Le nouveau mot de passe est effectif immédiatement ; c'est la validité des jetons qui pose problème.
+-: L'attaquant utilise toujours l'ancien mot de passe, qui reste valide une semaine. || Faux : l'ancien mot de passe n'est plus accepté.
+-: Exchange Online ne prend pas en charge Microsoft Entra ID. || Faux.
+=: **Révoquer les sessions** (Revoke-MgUserSignInSession / bouton du centre d'administration) invalide les **jetons d'actualisation** ; les **jetons d'accès** déjà émis restent valides jusqu'à leur expiration (environ 1 heure par défaut). Avec la **CAE**, Exchange Online, SharePoint Online et Teams sont informés d'événements critiques (désactivation, changement de mot de passe, révocation) et rejettent les jetons quasi immédiatement.
+T: Procédure complète : désactiver ou réinitialiser le compte, révoquer les sessions, vérifier/retirer les méthodes MFA et les appareils enregistrés par l'attaquant, examiner les consentements OAuth et les règles de boîte aux lettres.
+!: Jeton d'accès valide jusqu'à expiration → révoquer les sessions ; CAE accélère la prise en compte dans les services compatibles.
+
+### Fatigue MFA
+@ niveau=A ref=la-t-SigninLogs,entra-error-codes
+?: Un utilisateur signale avoir reçu des dizaines de notifications MFA non sollicitées pendant la nuit, puis en avoir accepté une par erreur. Quelle requête Sentinel aide à repérer ce schéma pour d'autres utilisateurs ?
++: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "500121"
+| summarize Refus = count(), IPs = make_set(IPAddress, 10) by UserPrincipalName, bin(TimeGenerated, 1h)
+| where Refus > 10
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "0"
+| summarize count() by AppDisplayName
+```
+|| Compte les connexions réussies par application, sans lien avec des refus MFA répétés.
+-: ```kql
+AuditLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "Add member to group"
+```
+|| Opérations d'administration sur les groupes, sans rapport avec la MFA.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4625
+| summarize count() by TargetUserName
+```
+|| Échecs d'ouverture de session Windows, pas les sollicitations MFA cloud.
+=: Le code **500121** (« Authentication failed during strong authentication request ») apparaît lorsque la demande de MFA échoue ou est refusée. Un grand nombre de ces échecs sur une courte période pour un même utilisateur, suivi d'un succès, caractérise une attaque de **fatigue MFA** (T1621 – Multi-Factor Authentication Request Generation).
+T: Dans SigninLogs, **ResultType** est une **chaîne** (« 0 » = succès). Mitigations : correspondance de nombres (number matching) et contexte géographique dans Authenticator, MFA résistante à l'hameçonnage (FIDO2, Windows Hello), stratégies de risque. Vérifier ensuite si un succès a suivi : `where ResultType == "0"` pour le même utilisateur et la même IP.
+R: Une ligne par utilisateur et par heure où plus de 10 échecs MFA ont été enregistrés, avec jusqu'à 10 IP sources.
+S: Codes d'erreur Entra documentés dans « Codes d'erreur d'authentification et d'autorisation Microsoft Entra ». La table SigninLogs nécessite le connecteur Microsoft Entra ID (journaux de connexion).
+!: Fatigue MFA = rafales de ResultType "500121" puis succès ; parade : number matching, MFA résistante à l'hameçonnage.
+
+### Connexions non interactives
+@ niveau=I ref=la-t-AADNonInteractive,entra-signin-logs
+?: Un analyste ne trouve pas dans SigninLogs les connexions effectuées par un client de messagerie qui renouvelle ses jetons en arrière-plan avec un jeton d'actualisation volé. Où ces activités sont-elles enregistrées ?
++: Dans AADNonInteractiveUserSignInLogs (connexions utilisateur non interactives).
+-: Dans AADServicePrincipalSignInLogs. || Cette table concerne les principaux de service (applications), pas les utilisateurs.
+-: Dans AzureActivity. || Plan de contrôle Azure.
+-: Dans Heartbeat. || Disponibilité des agents.
+=: Les connexions **non interactives** (renouvellement de jetons par un client au nom de l'utilisateur, SSO en arrière-plan) sont dans **AADNonInteractiveUserSignInLogs**. SigninLogs ne contient que les connexions **interactives**.
+T: Les autres catégories : **AADServicePrincipalSignInLogs** (applications), **AADManagedIdentitySignInLogs** (identités managées), **AADProvisioningLogs**. Pour une investigation complète d'un vol de jeton, il faut unir SigninLogs et AADNonInteractiveUserSignInLogs (volumineuse : coût à anticiper).
+X: ```kql
+union SigninLogs, AADNonInteractiveUserSignInLogs
+| where TimeGenerated > ago(2d)
+| where UserPrincipalName =~ "a.martin@contoso.com"
+| summarize Connexions = count() by IPAddress, AppDisplayName, Type
+```
+!: Renouvellement de jetons en arrière-plan = AADNonInteractiveUserSignInLogs ; applications = AADServicePrincipalSignInLogs.
+
+### Confirmer ou rejeter le risque
+@ niveau=D ref=entra-investigate,entra-remediate
+?: Après enquête, un analyste conclut qu'un utilisateur signalé « à risque élevé » a bien été compromis. Quelle action effectuer dans Entra ID Protection pour que les modèles de détection en tirent parti et que les stratégies de risque s'appliquent ?
++: « Confirmer l'utilisateur compromis » (Confirm user compromised).
+-: « Ignorer le risque utilisateur » (Dismiss user risk). || À utiliser lorsque le risque est un faux positif.
+-: Supprimer l'historique des connexions. || Impossible et contraire à la conservation des preuves.
+-: Ajouter l'utilisateur à une watchlist sans autre action. || Une watchlist n'informe pas Entra ID Protection.
+=: **Confirm user compromised** fixe le risque utilisateur à **élevé** et alimente l'apprentissage des modèles ; **Dismiss user risk** abaisse le risque en cas de faux positif. Pour les connexions, on peut aussi confirmer une connexion compromise ou sûre.
+T: Remédiations : réinitialisation sécurisée du mot de passe, révocation des sessions, blocage temporaire. Le risque peut aussi être remédié automatiquement par l'utilisateur via les stratégies d'accès conditionnel. Les comptes hybrides nécessitent la réécriture du mot de passe pour la remédiation en libre-service.
+!: Compromis avéré = Confirm user compromised ; faux positif = Dismiss user risk.
+
+### Adversary-in-the-middle et vol de jeton
+@ niveau=A ref=entra-risks,entra-ca
+?: Une campagne d'hameçonnage de type adversary-in-the-middle (AiTM) a permis de voler des cookies de session malgré la MFA. Quelle mesure préventive réduit le plus efficacement ce risque à l'avenir ?
++: Exiger une méthode d'authentification résistante à l'hameçonnage (FIDO2, Windows Hello for Business, authentification par certificat) et des appareils conformes/gérés via l'accès conditionnel.
+-: Augmenter la longueur minimale des mots de passe. || Le mot de passe est relayé en temps réel par le proxy AiTM ; sa longueur ne protège pas.
+-: Désactiver les liens sécurisés. || Contre-productif.
+-: Utiliser uniquement des SMS comme second facteur. || Les codes SMS sont relayés par le proxy AiTM au même titre que le mot de passe.
+=: Les attaques **AiTM** (T1557, T1539) relaient l'authentification via un proxy et volent le **cookie de session** après la MFA. Seules les méthodes **résistantes à l'hameçonnage** (liées à l'origine, comme FIDO2 / passkeys) empêchent le relais ; l'exigence d'un **appareil conforme** et la **protection des jetons** limitent la réutilisation du cookie volé.
+T: Détection : risques Entra « Anomalous token », « Attacker in the Middle », « Token issuer anomaly » ; alertes Defender XDR AiTM ; l'interruption automatique d'attaque couvre certains scénarios AiTM (désactivation de l'utilisateur). Réponse : révoquer les sessions, réinitialiser les identifiants, vérifier les règles de boîte aux lettres et les méthodes MFA ajoutées.
+!: AiTM contourne la MFA classique ; parade = MFA résistante à l'hameçonnage + appareil conforme / protection des jetons.
+
+### Consentement d'application dans les journaux d'audit
+@ niveau=I ref=la-t-AuditLogs,entra-consent
+?: Vous voulez lister les consentements accordés à des applications au cours des 7 derniers jours, avec l'utilisateur et le nom de l'application. Quelle requête est correcte ?
++: ```kql
+AuditLogs
+| where TimeGenerated > ago(7d)
+| where OperationName == "Consent to application"
+| extend Utilisateur = tostring(InitiatedBy.user.userPrincipalName)
+| extend Application = tostring(TargetResources[0].displayName)
+| project TimeGenerated, Utilisateur, Application, Result
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where OperationName == "Consent to application"
+```
+|| Les consentements sont des opérations d'annuaire enregistrées dans AuditLogs, pas des connexions.
+-: ```kqlbad
+AuditLogs
+| where TimeGenerated > ago(7d)
+| where OperationName == "Consent to application"
+| summarize count() by InitiatedBy
+```
+|| InitiatedBy est de type dynamique : il ne peut pas servir de clé de regroupement sans conversion (`tostring`).
+-: ```kql
+OfficeActivity
+| where TimeGenerated > ago(7d)
+| where Operation == "Consent to application"
+| project TimeGenerated, UserId
+```
+|| Les consentements d'applications Entra ID ne sont pas dans OfficeActivity (audit Microsoft 365 des charges de travail).
+=: **AuditLogs** enregistre les opérations d'annuaire Microsoft Entra, dont **« Consent to application »**. Les colonnes **InitiatedBy** et **TargetResources** sont **dynamiques** : on extrait les valeurs avec la notation pointée/indexée et `tostring()`.
+T: Les détails des autorisations accordées figurent dans `TargetResources[0].modifiedProperties`. À corréler avec Defender for Cloud Apps (gouvernance des applications) et MicrosoftGraphActivityLogs pour voir ce que l'application a fait ensuite.
+R: Liste horodatée des consentements avec l'utilisateur et l'application concernée.
+!: Consentements d'applications = AuditLogs « Consent to application » ; champs dynamiques → `tostring()`.
+
+### Ajout de méthode MFA par un attaquant
+@ niveau=A ref=la-t-AuditLogs,entra-audit-logs
+?: Après une compromission, vous soupçonnez que l'attaquant a enregistré son propre téléphone comme méthode MFA pour garder l'accès. Quelle source de données et quelle opération examiner ?
++: AuditLogs, opérations d'enregistrement d'informations de sécurité (par exemple « User registered security info » ou « User changed default security info »), filtrées sur l'utilisateur et la période.
+-: DeviceProcessEvents, processus « mfa.exe ». || Il n'existe pas de tel processus ; l'enregistrement MFA est une opération cloud.
+-: Syslog, facilité auth. || Concerne des systèmes Linux.
+-: Heartbeat. || Disponibilité des agents.
+=: Les modifications de méthodes d'authentification sont tracées dans les **journaux d'audit Entra** (**AuditLogs**, catégorie UserManagement / service Authentication Methods), avec l'IP et l'agent utilisateur dans `InitiatedBy` et `AdditionalDetails`.
+T: Technique **T1098.005** (Device Registration) / persistance par ajout de méthode. Remédiation : supprimer la méthode, exiger une nouvelle inscription sous contrôle (TAP – Temporary Access Pass), révoquer les sessions. Une stratégie d'accès conditionnel peut restreindre l'inscription des informations de sécurité à des emplacements/appareils de confiance.
+X: ```kql
+AuditLogs
+| where TimeGenerated > ago(14d)
+| where OperationName has "security info"
+| extend Utilisateur = tostring(TargetResources[0].userPrincipalName)
+| extend IP = tostring(InitiatedBy.user.ipAddress)
+| project TimeGenerated, OperationName, Utilisateur, IP, Result
+```
+!: Méthode MFA ajoutée par l'attaquant = AuditLogs (security info) ; restreindre l'inscription par accès conditionnel.
+
+### Comptes d'urgence et stratégies de risque
+@ niveau=I ref=entra-ca
+?: Lors du déploiement de stratégies d'accès conditionnel bloquant les connexions à risque élevé, quelle précaution est indispensable ?
++: Exclure les comptes d'accès d'urgence (break-glass) des stratégies et surveiller leur utilisation par des alertes dédiées.
+-: Inclure les comptes d'urgence dans toutes les stratégies pour plus de sécurité. || Risque de verrouillage complet du locataire en cas de mauvaise configuration.
+-: Désactiver la journalisation des connexions pour les administrateurs. || Supprimerait la traçabilité.
+-: Appliquer les stratégies directement en mode « Activé » sans test. || Le mode « Rapport uniquement » doit d'abord être utilisé pour évaluer l'impact.
+=: Microsoft recommande de conserver au moins deux **comptes d'accès d'urgence**, **exclus** des stratégies d'accès conditionnel, dotés d'identifiants forts et dont l'utilisation déclenche une **alerte** (par exemple une règle Sentinel sur SigninLogs).
+T: Déployer les nouvelles stratégies en mode **Rapport uniquement** (report-only), analyser l'impact (classeur « Conditional Access insights »), puis activer.
+!: Exclure et surveiller les comptes break-glass ; tester les stratégies en mode Rapport uniquement.
+
+@@ section=Microsoft Purview, journaux Microsoft Graph et activités Microsoft 365
+
+### Rechercher dans le journal d'audit Purview
+@ niveau=D ref=purview-audit-search,purview-audit
+?: Sans Sentinel, un analyste doit savoir quels fichiers SharePoint un utilisateur a téléchargés la semaine dernière et depuis quelles adresses IP. Quel outil utiliser ?
++: La recherche dans le journal d'audit de Microsoft Purview (Audit), filtrée sur l'utilisateur, la période et l'activité « Fichier téléchargé ».
+-: La recherche de contenu eDiscovery. || Elle recherche du contenu (e-mails, documents), pas des journaux d'activité.
+-: Le rapport de filtrage web de MDE. || Concerne la navigation des postes.
+-: Les détections en temps réel MDO. || Concernent les e-mails.
+=: **Purview Audit** centralise les activités utilisateurs et administrateurs de Microsoft 365 (SharePoint, OneDrive, Exchange, Teams, Entra ID…). La recherche permet de filtrer par **dates**, **activités**, **utilisateurs**, **fichiers/sites**, et d'**exporter** les résultats (CSV).
+T: **Audit (Standard)** : conservation de 180 jours. **Audit (Premium)** : conservation d'un an par défaut (jusqu'à 10 ans avec un module complémentaire), événements à forte valeur supplémentaires et bande passante d'accès API plus élevée. PowerShell `Search-UnifiedAuditLog` offre une alternative scriptable. Le référentiel cite « Examiner les menaces à l'aide de Microsoft Purview Audit ».
+!: Activités Microsoft 365 (qui a fait quoi, quand, d'où) = Purview Audit (Standard 180 jours, Premium 1 an+).
+
+### MailItemsAccessed
+@ niveau=A ref=purview-audit
+?: Lors d'une compromission de messagerie, vous devez déterminer quels e-mails l'attaquant a effectivement lus (synchronisation ou accès par lien). Quel événement d'audit est conçu pour cela ?
++: MailItemsAccessed.
+-: New-InboxRule. || Création de règle de boîte de réception.
+-: FileDownloaded. || Téléchargement de fichiers SharePoint/OneDrive.
+-: UserLoggedIn. || Connexion, sans détail des messages consultés.
+=: **MailItemsAccessed** enregistre l'accès aux messages par les protocoles de messagerie et clients (accès « Bind » à un élément précis, ou « Sync » pour une synchronisation de dossier). Il permet d'évaluer l'étendue d'une violation de données dans une boîte compromise.
+T: Historiquement réservé à Audit (Premium), cet événement a été étendu à davantage de clients (Audit Standard) selon l'évolution annoncée par Microsoft : vérifiez la disponibilité dans votre locataire. Les événements peuvent être agrégés (throttling) en cas de volume élevé ; interpréter les champs `OperationProperties` (MailAccessType) et `SessionId`.
+!: Quels e-mails l'attaquant a-t-il lus ? = MailItemsAccessed (Bind/Sync), dans Purview Audit / CloudAppEvents.
+
+### Purger des e-mails avec la recherche de contenu
+@ niveau=A ref=purview-content-search,purview-ediscovery
+?: Une organisation sans Defender for Office 365 Plan 2 doit supprimer de toutes les boîtes un e-mail malveillant déjà distribué. Quelle méthode utiliser ?
++: Créer une recherche de contenu Microsoft Purview (eDiscovery) ciblant le message (expéditeur, objet, date), puis lancer une action de purge (`New-ComplianceSearchAction -Purge`) en suppression réversible ou définitive.
+-: Utiliser Threat Explorer. || Threat Explorer nécessite MDO Plan 2.
+-: Supprimer les boîtes aux lettres des destinataires. || Destructeur.
+-: Activer une règle ASR. || Sans rapport avec Exchange Online.
+=: La **recherche de contenu** (eDiscovery) identifie les messages ; la cmdlet **`New-ComplianceSearchAction -Purge -PurgeType SoftDelete|HardDelete`** les supprime. Cette méthode est disponible sans MDO P2, avec des limites (nombre d'éléments supprimés par boîte et par action).
+T: Rôles requis : gestionnaire eDiscovery pour la recherche, et le rôle Search And Purge pour la suppression. Le référentiel cite « Examiner les menaces à l'aide de la recherche de contenu dans Microsoft Purview eDiscovery ». Avec MDO P2, Threat Explorer offre une remédiation plus simple et tracée dans le Centre de notifications.
+X: ```powershell
+New-ComplianceSearch -Name "Phish-2026-10" -ExchangeLocation All -ContentMatchQuery 'from:"facture@contoso-billing.co" AND subject:"Facture impayée"'
+Start-ComplianceSearch -Identity "Phish-2026-10"
+New-ComplianceSearchAction -SearchName "Phish-2026-10" -Purge -PurgeType SoftDelete
+```
+!: Sans MDO P2 : recherche de contenu Purview + `New-ComplianceSearchAction -Purge`.
+
+### Journaux d'activité Microsoft Graph
+@ niveau=I ref=entra-graph-activity,la-t-MicrosoftGraphActivityLogs
+?: Une application malveillante ayant obtenu des autorisations Mail.Read est soupçonnée d'avoir lu des boîtes aux lettres via l'API Microsoft Graph. Quelle source de données permet de voir les requêtes HTTP effectuées vers Graph par cette application ?
++: Les journaux d'activité Microsoft Graph (table MicrosoftGraphActivityLogs), envoyés vers Log Analytics par paramètres de diagnostic Entra ID.
+-: La table Heartbeat. || Disponibilité des agents.
+-: La table DeviceNetworkEvents. || Les appels proviennent d'un service cloud, pas d'un appareil géré.
+-: La table Syslog. || Journaux Linux.
+=: Les **journaux d'activité Microsoft Graph** enregistrent les **requêtes HTTP** adressées à Graph (URI, méthode, code de réponse, IP, identifiants de l'application et de l'utilisateur, rôles/étendues du jeton). Ils permettent d'investiguer ce qu'une application ou un compte compromis a fait via l'API.
+T: Activation via les **paramètres de diagnostic** de Microsoft Entra ID vers un espace Log Analytics (licence Entra ID P1/P2 requise). En chasse avancée Defender XDR, la table **GraphApiAuditEvents** fournit des informations similaires. Le référentiel cite « Enquêter sur les menaces en utilisant les journaux d'activité de Microsoft Graph ».
+X: ```kql
+MicrosoftGraphActivityLogs
+| where TimeGenerated > ago(7d)
+| where AppId == "5f3c2a1b-9d8e-4c7f-a6b5-0e1d2c3b4a59"
+| where RequestUri has "/messages"
+| summarize Requetes = count(), Utilisateurs = dcount(UserId) by IPAddress, RequestMethod, ResponseStatusCode
+```
+!: Ce qu'une app/compte a fait via l'API Graph = MicrosoftGraphActivityLogs (ou GraphApiAuditEvents en chasse avancée).
+
+### Alertes DLP de Microsoft Purview
+@ niveau=I ref=purview-dlp,purview-dlp-alerts
+?: Une stratégie DLP Purview détecte qu'un employé a téléchargé vers un site de stockage personnel des fichiers contenant des numéros de sécurité sociale. Où l'analyste SOC peut-il examiner cette alerte avec le contexte des autres signaux de sécurité ?
++: Dans la file des incidents et alertes du portail Microsoft Defender, où les alertes DLP Purview sont intégrées (ainsi que dans le tableau de bord des alertes DLP de Purview).
+-: Uniquement dans les journaux Syslog. || Les alertes DLP ne transitent pas par Syslog.
+-: Dans le rapport de santé des capteurs MDI. || Sans rapport.
+-: Dans les recommandations de Defender for Cloud. || Les recommandations concernent la posture des ressources cloud.
+=: Les **alertes DLP** de Microsoft Purview remontent dans **Defender XDR** (incidents/alertes), ce qui permet de les corréler avec d'autres signaux (compromission de compte, exfiltration). Elles restent aussi consultables dans le **tableau de bord des alertes DLP** de Purview.
+T: La DLP des terminaux (Endpoint DLP) s'appuie sur les appareils intégrés. Les alertes de **Gestion des risques internes** (Insider Risk Management) peuvent aussi être intégrées, avec pseudonymisation selon les paramètres. Le référentiel cite « Examiner et corriger les menaces ou entités compromises identifiées par Microsoft Purview ».
+!: Alertes DLP Purview = visibles et corrélées dans les incidents Defender XDR.
+
+### Gestion des risques internes
+@ niveau=I ref=purview-insider
+?: Le SOC reçoit une alerte de Gestion des risques internes (Insider Risk Management) concernant un utilisateur sur le départ ayant exfiltré des données. Pourquoi l'identité de l'utilisateur peut-elle apparaître pseudonymisée ?
++: Parce que les paramètres de confidentialité d'Insider Risk Management peuvent masquer les noms des utilisateurs pour protéger la vie privée, seuls des rôles autorisés pouvant lever la pseudonymisation.
+-: Parce que l'utilisateur n'existe plus dans Entra ID. || Ce n'est pas la cause de la pseudonymisation.
+-: Parce que Defender XDR ne prend pas en charge les alertes Purview. || Ces alertes peuvent être intégrées.
+-: Parce que le connecteur Syslog est mal configuré. || Sans rapport.
+=: **Insider Risk Management** propose la **pseudonymisation** des utilisateurs pour limiter les biais et protéger la vie privée ; seuls les enquêteurs autorisés (rôles Insider Risk) voient l'identité réelle.
+T: Ces enquêtes impliquent souvent les RH et le juridique : le SOC doit respecter les procédures d'escalade et la confidentialité. Les indicateurs (téléchargements massifs, impression, copie sur USB, envoi vers des e-mails personnels) proviennent de Microsoft 365 et des appareils.
+!: Alertes Insider Risk : pseudonymisation possible ; coordination RH/juridique.
+
+### Chasse sur les activités Microsoft 365 dans Sentinel
+@ niveau=I ref=la-t-OfficeActivity
+?: Vous recherchez dans Sentinel les partages anonymes (liens « Tout le monde ») créés sur SharePoint/OneDrive au cours des dernières 24 heures. Quelle requête est la plus appropriée ?
++: ```kql
+OfficeActivity
+| where TimeGenerated > ago(1d)
+| where OfficeWorkload in ("SharePoint", "OneDrive")
+| where Operation in ("AnonymousLinkCreated", "AnonymousLinkUsed")
+| project TimeGenerated, UserId, Operation, OfficeObjectId, ClientIP
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where AppDisplayName == "SharePoint"
+```
+|| Liste des connexions, pas des créations de liens anonymes.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where OperationNameValue has "AnonymousLink"
+```
+|| AzureActivity ne contient pas les opérations SharePoint.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 5140
+```
+|| L'événement 5140 concerne l'accès à des partages réseau Windows (SMB).
+=: Les opérations SharePoint/OneDrive du journal d'audit Microsoft 365 sont dans **OfficeActivity** (connecteur Office 365), avec `OfficeWorkload`, `Operation` (AnonymousLinkCreated, FileDownloaded, SharingSet…), `UserId`, `ClientIP`, `OfficeObjectId` (URL de l'élément).
+T: Les liens anonymes sont un vecteur d'exfiltration. Côté XDR, CloudAppEvents fournit des informations similaires. Prévention : restreindre le partage externe au niveau du locataire ou des sites, étiquettes de confidentialité.
+R: Les créations et utilisations de liens anonymes avec l'utilisateur, l'objet et l'IP.
+!: Activités SharePoint/OneDrive/Exchange dans Sentinel = OfficeActivity (Operation, OfficeWorkload, OfficeObjectId).
+
+@@ section=Règles de détection personnalisées Defender XDR
+
+### Colonnes requises d'une détection personnalisée
+@ niveau=I ref=xdr-custom-det,xdr-custom-det-manage obj=1
+?: Vous transformez une requête de chasse avancée sur DeviceProcessEvents en règle de détection personnalisée. L'assistant refuse la requête ou les alertes ne sont pas correctement rattachées aux appareils. Quelles colonnes la requête doit-elle renvoyer ?
++: Timestamp (ou TimeGenerated), ainsi que DeviceId et ReportId pour les tables Defender for Endpoint.
+-: Uniquement DeviceName. || DeviceName seul ne permet pas d'identifier l'événement d'origine ; DeviceId et ReportId sont attendus pour les tables MDE.
+-: SHA256 et FileName uniquement. || Ces colonnes décrivent le fichier, pas l'événement ni l'appareil de façon unique.
+-: Aucune colonne particulière : toute requête est acceptée telle quelle. || La documentation impose des colonnes requises.
+=: D'après la documentation, les résultats doivent comporter **Timestamp ou TimeGenerated** (horodatage de l'alerte) et, pour les tables **Defender for Endpoint**, **DeviceId** et **ReportId** ; pour les autres tables Defender, **Timestamp et ReportId** du même événement. Cela permet d'identifier l'événement d'origine, de rattacher l'alerte aux bonnes entités et d'appliquer les actions.
+T: Pour une requête agrégée, on récupère l'événement le plus récent avec `arg_max` : `summarize (Timestamp, ReportId) = arg_max(Timestamp, ReportId), count() by DeviceId`. Chaque exécution d'une règle peut générer au maximum **150 alertes**. Les autorisations de gestion dépendent des tables utilisées (par exemple, gérer les deux services pour IdentityLogonEvents).
+X: ```kqlx
+DeviceEvents
+| where ActionType == "AntivirusDetection"
+| summarize (Timestamp, ReportId) = arg_max(Timestamp, ReportId), Detections = count() by DeviceId
+| where Detections > 5
+```
+!: Détection personnalisée : Timestamp/TimeGenerated + DeviceId + ReportId (tables MDE) ; 150 alertes max par exécution.
+
+### Fréquence d'une détection personnalisée
+@ niveau=A ref=xdr-custom-det obj=1
+?: Une règle de détection personnalisée Defender XDR porte sur une seule table (DeviceProcessEvents) et utilise uniquement des opérateurs simples. Vous voulez la détection la plus rapide possible, sans impact notable sur les ressources. Quelle fréquence choisir ?
++: Continuous (NRT), qui évalue les événements en quasi-temps réel au fur et à mesure de leur collecte.
+-: Toutes les 24 heures. || Délai de détection beaucoup trop long.
+-: Personnalisée à 5 minutes. || La fréquence personnalisée n'est proposée que pour les règles portant uniquement sur des données ingérées par Microsoft Sentinel.
+-: Toutes les 3 heures. || Possible, mais plus lent que le mode continu, alors que la requête y est éligible.
+=: La fréquence **Continuous (NRT)** est recommandée pour toute règle éligible : requête sur **une seule table prise en charge**, opérateurs pris en charge, colonnes en disponibilité générale. Selon la documentation, elle a un impact minimal sur les ressources.
+T: Fréquences disponibles : toutes les 24 h, 12 h, 3 h, 1 h, Continuous (NRT), et **Custom** (de 5 minutes à 14 jours) pour les règles fondées uniquement sur des données Sentinel. À l'enregistrement, une nouvelle règle vérifie les 30 derniers jours de données. Microsoft recommande de ne pas filtrer inutilement sur Timestamp, le service préfiltrant selon la fenêtre de la règle. Les règles peuvent déclencher des actions automatiques (isoler l'appareil, collecter un package, mettre en quarantaine un fichier, désactiver un utilisateur…).
+!: Détection personnalisée éligible = Continuous (NRT) ; Custom (5 min–14 j) réservé aux données Sentinel.

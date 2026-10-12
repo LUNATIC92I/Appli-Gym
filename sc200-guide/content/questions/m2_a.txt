@@ -1,0 +1,279 @@
+@@ module=2
+@@ section=Portail Defender XDR : incidents, alertes, corrélation et notifications
+
+### Incident et alerte dans Defender XDR
+@ niveau=D ref=xdr-incidents,xdr-alert-tuning
+?: Quelle est la relation entre alertes et incidents dans Microsoft Defender XDR ?
++: Les alertes sont des signaux individuels produits par les différents services ; Defender XDR les corrèle automatiquement en incidents qui représentent l'histoire complète d'une attaque.
+-: Un incident est toujours constitué d'une seule alerte. || Un incident peut regrouper de nombreuses alertes de plusieurs produits.
+-: Les alertes sont créées manuellement par les analystes à partir des incidents. || Les alertes proviennent des détections ; l'incident est l'agrégat.
+-: Les incidents ne concernent que Defender for Endpoint. || Les incidents agrègent des alertes de MDE, MDO, MDI, MDCA, Entra ID Protection, Purview DLP, Defender for Cloud, Sentinel, etc.
+=: Les **alertes** sont des éléments de preuve individuels ; Defender XDR les **corrèle** (entités communes, chronologie, logique d'attaque) en **incidents** qui racontent l'attaque de bout en bout et regroupent les ressources touchées (appareils, utilisateurs, boîtes aux lettres, applications).
+T: La file des incidents est priorisée (gravité, score de priorité, balises). La page d'incident présente l'histoire de l'attaque, les alertes, les ressources, les enquêtes automatisées, les preuves et réponses. Les alertes peuvent être déplacées d'un incident à un autre et des incidents peuvent être fusionnés automatiquement par le moteur ; la gestion des cas (incident cases) apporte en préversion une expérience de cas recommandée.
+!: Alerte = signal ; incident = corrélation multi-produits d'alertes et de ressources racontant l'attaque.
+
+### Notifications par e-mail des incidents
+@ niveau=D ref=xdr-notif-incidents
+?: Le responsable de l'astreinte veut recevoir un e-mail uniquement pour les nouveaux incidents de gravité élevée provenant de Defender for Identity et de Defender for Endpoint, pour un groupe d'appareils précis. Où configurer cela ?
++: Dans les paramètres Microsoft Defender XDR > Notifications par e-mail > Incidents, en créant une règle de notification filtrée par gravité, source de service et groupe d'appareils.
+-: Dans les règles d'automatisation de Sentinel uniquement. || Elles peuvent lancer un playbook d'envoi de mail, mais la fonctionnalité native de notification d'incident est dans les paramètres Defender XDR.
+-: Dans les stratégies anti-hameçonnage de Defender for Office 365. || Ces stratégies protègent la messagerie, elles ne notifient pas des incidents.
+-: Dans le Centre d'administration Microsoft Entra. || Entra ne configure pas les notifications d'incidents Defender.
+=: Les **notifications d'incidents par e-mail** se configurent dans Defender XDR et peuvent être filtrées par **gravité d'alerte**, **sources de service** (et sources de détection précises), **groupe d'appareils**, avec une gravité par source.
+T: D'autres notifications existent : **alertes** (Configurer les notifications d'alerte, par gravité et groupe d'appareils), **actions de réponse** (e-mail lors d'actions comme l'isolation) et **analyse des menaces** (nouveaux rapports ou mises à jour). Le référentiel 2026 cite explicitement ces notifications.
+!: Notifications Defender XDR : incidents, alertes, actions de réponse, analyse des menaces — filtrables (gravité, source, groupe d'appareils).
+
+### Notification lors d'actions de réponse
+@ niveau=I ref=xdr-action-notif,xdr-ta-notif
+?: Le RSSI veut être averti par e-mail chaque fois qu'un appareil est isolé ou qu'un package d'investigation est collecté, que l'action soit manuelle ou automatique. Quelle fonctionnalité utiliser ?
++: Les notifications par e-mail des actions de réponse (response actions) dans les paramètres Defender XDR.
+-: Les notifications de l'analyse des menaces. || Elles concernent la publication de rapports d'analyse des menaces.
+-: Une règle de suppression d'alerte. || Elle masque des alertes, à l'opposé du besoin.
+-: Le journal d'audit Microsoft Purview uniquement. || Il conserve la trace mais n'envoie pas de notification dédiée.
+=: Defender XDR permet de configurer des **notifications par e-mail pour les actions de réponse** (isolation, restriction d'exécution, collecte de package, analyse antivirus, etc.), avec filtrage par type d'action et groupe d'appareils.
+T: Les notifications d'**analyse des menaces** (threat analytics) préviennent quand un rapport est publié ou mis à jour, éventuellement filtrés par type de menace ou de rapport — utile pour lancer une chasse rapide.
+!: E-mail sur isolation, collecte de package… = notifications d'actions de réponse ; nouveaux rapports = notifications d'analyse des menaces.
+
+### Ajustement des alertes (alert tuning)
+@ niveau=I ref=xdr-tuning,mde-alert-suppression
+?: Un outil d'administration légitime déclenche quotidiennement une alerte MDE « Suspicious PowerShell command line » sur 30 serveurs. Après analyse, il s'agit d'une activité attendue. Quelle solution réduit le bruit sans désactiver la détection pour le reste du parc ?
++: Créer une règle d'ajustement des alertes (alert tuning) qui masque ou résout automatiquement les alertes correspondant à des conditions précises (titre, appareils, ligne de commande ou processus parent).
+-: Désactiver l'antivirus Microsoft Defender sur ces serveurs. || Cela réduirait gravement la protection.
+-: Ajouter une exclusion antivirus sur powershell.exe pour tout le parc. || Exclusion beaucoup trop large, qui ouvre une voie d'attaque majeure.
+-: Classer chaque incident comme faux positif manuellement chaque jour. || Le bruit persiste et consomme du temps d'analyste.
+=: L'**ajustement des alertes** (anciennement règles de suppression) crée des règles qui **masquent** ou **résolvent** automatiquement des alertes correspondant à des **conditions précises** (source, titre, preuves : fichier, processus, ligne de commande, IP, URL, appareils, utilisateurs). On peut créer une règle depuis une alerte existante.
+T: Les règles s'appliquent aux nouvelles alertes (et optionnellement aux alertes existantes). Il faut garder des conditions restrictives et revoir périodiquement les règles. Classer les incidents (faux positif, activité attendue) aide aussi Microsoft à améliorer les détections.
+!: Bruit connu et légitime = alert tuning ciblé, jamais d'exclusion antivirus globale.
+
+### Classification d'un incident
+@ niveau=D ref=xdr-manage-incidents
+?: Un incident de type « activité suspecte » s'avère être un exercice d'équipe rouge autorisé par la direction. Quelle classification attribuer à la fermeture ?
++: Informationnel, activité attendue (Informational, expected activity) avec la détermination « Test de sécurité » (Security testing).
+-: Vrai positif – attaque multiétape. || L'activité est réelle mais autorisée ; il ne s'agit pas d'une attaque malveillante.
+-: Faux positif – pas assez de données. || La détection était correcte : elle a bien vu l'activité.
+-: Ne pas classer l'incident. || La classification améliore les statistiques et le réglage des détections.
+=: Defender XDR propose trois classifications : **Vrai positif** (activité malveillante), **Informationnel, activité attendue** (activité réelle mais légitime : test de sécurité, application métier, activité confirmée) et **Faux positif** (la détection s'est trompée). Un exercice d'équipe rouge relève de « Informationnel, activité attendue » – **Security testing**.
+T: Déterminations du vrai positif : attaque multiétape, activité utilisateur malveillante, hameçonnage, compte compromis, malware, logiciel indésirable, autre. Faux positif : non malveillant, pas assez de données, autre. Côté Sentinel, l'équivalent est True Positive / Benign Positive / False Positive / Undetermined.
+!: Activité réelle mais autorisée = « Informationnel, activité attendue » (Benign Positive) ; détection erronée = Faux positif.
+
+### Fusion et scission d'incidents
+@ niveau=I ref=xdr-correlation,xdr-manage-incidents
+?: Deux incidents concernent manifestement la même attaque (même utilisateur et même IP de commande et contrôle), mais n'ont pas été corrélés automatiquement. Que peut faire l'analyste dans le portail Defender ?
++: Déplacer les alertes de l'un vers l'autre (ou fusionner les incidents manuellement selon l'expérience disponible) afin de centraliser l'investigation.
+-: Supprimer l'un des incidents. || La suppression d'incidents n'est pas la méthode ; on perdrait la traçabilité.
+-: Recréer manuellement toutes les alertes dans un nouvel incident. || Inutile : le portail permet de déplacer des alertes entre incidents.
+-: Rien : la corrélation est uniquement automatique. || Des actions manuelles de déplacement d'alertes et de fusion sont prévues.
+=: Le portail permet de **lier une alerte à un autre incident** (déplacement) et, dans l'expérience des cas d'incident, de **fusionner manuellement** des cas. Le moteur de corrélation fusionne aussi automatiquement des incidents quand de nouvelles preuves les relient.
+T: Les critères de corrélation automatique incluent les entités partagées, la proximité temporelle, la logique d'attaque et des modèles ML. La fusion automatique ne se produit pas, par exemple, si un incident est fermé ou dépasse certaines limites (nombre d'alertes). Documentez la raison dans un commentaire.
+!: Incidents liés non corrélés → déplacer les alertes / fusionner manuellement, avec un commentaire.
+
+### Priorisation de la file d'incidents
+@ niveau=I ref=xdr-incidents,xdr-investigate-incidents
+?: En début de poste, un analyste dispose de 45 incidents ouverts. Quelle méthode est la plus efficace pour décider lequel traiter en premier ?
++: Trier par gravité et score de priorité, puis examiner les incidents impliquant des actifs critiques (comptes à privilèges, contrôleurs de domaine), plusieurs sources de détection ou une interruption d'attaque en cours.
+-: Traiter les incidents par ordre alphabétique de titre. || Aucun lien avec le risque.
+-: Traiter d'abord les incidents les plus anciens, quelle que soit leur gravité. || Un incident critique récent doit passer avant un incident informatif ancien.
+-: Traiter d'abord ceux qui contiennent le plus grand nombre d'alertes informatives. || Le volume d'alertes informatives n'indique pas la criticité.
+=: Le triage s'appuie sur la **gravité**, le **score de priorité** calculé par Defender, la **criticité des ressources** (Security Exposure Management permet de marquer des actifs critiques), le **nombre de produits** impliqués, les **balises** (par exemple « Attack disruption ») et l'impact métier.
+T: Utilisez les filtres enregistrés de la file (statut, gravité, sources, catégories, balises, propriétaire). Les incidents affichent aussi la catégorie MITRE et les ressources impactées. Copilot peut produire un résumé pour accélérer la compréhension.
+!: Triage = gravité + score de priorité + criticité des actifs + multi-sources + étiquettes d'interruption.
+
+### Analyse des menaces (Threat analytics)
+@ niveau=D ref=xdr-threat-analytics
+?: Un nouveau rapport d'analyse des menaces décrit une campagne d'un groupe de rançongiciel. Quelles informations ce rapport fournit-il spécifiquement pour votre organisation ?
+@ multi=2
++: Les incidents et alertes liés à la menace dans votre locataire, ainsi que les ressources impactées.
++: L'état d'exposition : mitigations recommandées et vulnérabilités ou configurations de votre environnement concernées.
+-: Le mot de passe des comptes compromis. || Aucune solution ne divulgue de mots de passe.
+-: La liste nominative des membres du groupe criminel. || Le rapport décrit les TTP et indicateurs, pas l'identité des attaquants.
+-: Le remboursement automatique des pertes financières. || Sans rapport avec la fonctionnalité.
+=: L'**analyse des menaces** combine un **rapport d'analyste** Microsoft (TTP, indicateurs, requêtes de chasse) et des données propres au locataire : **incidents/alertes associés**, **ressources impactées**, **exposition et mitigations** (configurations sécurisées, vulnérabilités, état des protections).
+T: Les rapports proposent souvent des requêtes de chasse avancée prêtes à l'emploi. Le référentiel cite « Interpréter l'analyse des menaces dans Microsoft Defender XDR ». Les notifications par e-mail d'analyse des menaces permettent d'être prévenu des nouveaux rapports.
+!: Threat analytics = rapport d'analyste + incidents liés + ressources impactées + exposition/mitigations.
+
+### Chasse avancée : portée et rétention
+@ niveau=D ref=xdr-ah-overview,xdr-ah-sentinel
+?: Quelle affirmation sur la chasse avancée (advanced hunting) du portail Defender est exacte ?
++: Elle permet d'interroger en KQL jusqu'à 30 jours de données brutes Defender XDR et, lorsque Sentinel est connecté, les tables de l'espace Sentinel dans la même interface.
+-: Elle utilise le langage SQL. || La chasse avancée utilise le Kusto Query Language (KQL).
+-: Elle conserve par défaut 2 ans de données brutes. || Les données de chasse avancée XDR sont conservées 30 jours par défaut.
+-: Elle ne permet pas de créer des détections. || On peut créer des règles de détection personnalisées à partir d'une requête de chasse avancée.
+=: La **chasse avancée** interroge en **KQL** les tables Defender XDR (Device*, Email*, Identity*, CloudAppEvents, Alert*…) sur **30 jours** et, avec Sentinel intégré au portail Defender, les tables Sentinel. On peut créer des **règles de détection personnalisées** et agir sur les résultats (Take action).
+T: Les tables XDR utilisent **Timestamp** comme colonne temporelle ; les tables Sentinel utilisent **TimeGenerated**. Des quotas protègent le service (durée d'exécution, ressources). Le **mode guidé** aide à construire des requêtes sans écrire de KQL. Copilot peut générer du KQL à partir d'une demande en langage naturel.
+!: Chasse avancée = KQL, 30 jours de données XDR, tables Sentinel intégrées, détections personnalisées et actions.
+
+### Agir depuis les résultats de chasse
+@ niveau=I ref=xdr-ah-take-action
+?: Une requête de chasse avancée renvoie 12 appareils où un binaire malveillant (SHA256 connu) a été exécuté. L'analyste veut isoler ces appareils et mettre le fichier en quarantaine directement depuis les résultats. Est-ce possible ?
++: Oui : la fonctionnalité « Prendre des mesures » (Take action) des résultats de chasse avancée permet d'appliquer des actions sur les appareils (isolation, analyse antivirus, package d'investigation…) et sur les fichiers (quarantaine, indicateur).
+-: Non : il faut obligatoirement passer par Live Response sur chaque appareil. || Live Response n'est pas nécessaire pour ces actions.
+-: Non : la chasse avancée est en lecture seule. || Des actions sont disponibles sur les résultats lorsque la requête renvoie les colonnes d'identification requises.
+-: Oui, mais uniquement pour les e-mails. || Les actions couvrent appareils, fichiers, e-mails et utilisateurs selon les colonnes renvoyées.
+=: **Take action** propose des actions selon les colonnes de résultats : **appareils** (DeviceId : isoler, collecter un package, analyse AV, restreindre l'exécution, lancer une enquête), **fichiers** (SHA1/SHA256 : quarantaine, ajout d'indicateur), **e-mails** (NetworkMessageId + RecipientEmailAddress : déplacer, supprimer), **utilisateurs**.
+T: Les actions sont tracées dans le **Centre de notifications** (Action center > Historique). Les autorisations requises dépendent des actions (rôles de réponse). Pour automatiser, transformez la requête en **règle de détection personnalisée** avec actions automatiques.
+!: Résultats de chasse → Take action (appareils, fichiers, e-mails, utilisateurs) ; tout est tracé dans l'Action center.
+
+### Investiguer avec Security Copilot dans Defender
+@ niveau=I ref=xdr-copilot-summary,xdr-copilot-agents
+?: Un analyste junior doit comprendre rapidement un incident de 18 alertes et rédiger un rapport pour la direction. Quelles capacités de Microsoft Security Copilot intégré au portail Defender l'aident directement ?
+@ multi=2
++: Le résumé d'incident et les réponses guidées (guided responses).
++: La génération d'un rapport d'incident et l'analyse de scripts ou de lignes de commande suspects.
+-: La désactivation automatique de toutes les règles d'analyse bruyantes. || Copilot ne désactive pas des règles de détection de sa propre initiative.
+-: La garantie qu'aucune vérification humaine n'est nécessaire. || Les sorties de l'IA doivent être validées par l'analyste.
+-: Le remplacement du moteur de corrélation XDR. || Copilot assiste l'analyste ; il ne remplace pas la corrélation.
+=: **Copilot dans Defender** propose : **résumé d'incident**, **réponses guidées** (actions de tri, de confinement, d'investigation, de remédiation), **analyse de scripts** et de lignes de commande, **analyse de fichiers**, **résumés d'appareils et d'identités**, **génération de KQL** et **création de rapports d'incident**. Des **agents** Security Copilot (par exemple l'agent de tri de l'hameçonnage) automatisent certaines tâches.
+T: Le référentiel 2026 inclut « Examiner les incidents à l'aide d'une IA agentique, y compris Microsoft Security Copilot intégré ». Copilot respecte les autorisations de l'utilisateur ; ses conclusions sont des aides à la décision, à vérifier. L'usage dépend de la disponibilité de capacités Security Copilot (unités de calcul) dans le locataire.
+!: Copilot dans Defender = résumés, réponses guidées, analyse de scripts/fichiers, KQL, rapports ; validation humaine nécessaire.
+
+@@ section=Defender for Endpoint : configuration et politiques
+
+### Fonctionnalités avancées requises pour les indicateurs réseau
+@ niveau=I ref=mde-advanced-features,mde-indicators-ip
+?: Vous créez des indicateurs personnalisés pour bloquer une adresse IP et un domaine de commande et contrôle. Ils fonctionnent dans Microsoft Edge mais pas dans Google Chrome. Quelle configuration manque ?
++: L'activation de « Custom network indicators » dans les fonctionnalités avancées et la protection réseau (network protection) en mode bloc sur les appareils.
+-: L'activation de l'analyse approfondie (deep analysis). || Elle analyse des fichiers en bac à sable, sans lien avec le blocage réseau.
+-: L'isolation de tous les appareils. || Disproportionné et non lié au mécanisme d'indicateur.
+-: Le niveau d'automatisation « No automated response ». || Le niveau d'automatisation n'intervient pas dans l'application des indicateurs réseau.
+=: Dans Edge, les indicateurs d'URL/IP sont appliqués via **SmartScreen**. Pour les autres navigateurs et processus, l'application repose sur la **protection réseau** en **mode bloc**, et il faut activer **« Custom network indicators »** dans les fonctionnalités avancées.
+T: Actions possibles sur un indicateur : Autoriser, Auditer, Avertir (Warn), Bloquer l'exécution, Bloquer et corriger (fichiers). Les indicateurs de fichiers exigent l'antivirus Microsoft Defender en mode actif et la protection cloud. Il existe une limite de 15 000 indicateurs par locataire (vérifier la documentation en vigueur).
+!: Indicateurs IP/URL hors Edge = protection réseau en mode bloc + « Custom network indicators ».
+
+### Indicateur de fichier : prérequis
+@ niveau=I ref=mde-indicator-file
+?: Un indicateur « Bloquer et corriger » sur un hachage SHA256 ne bloque pas le fichier sur certains appareils Windows. Quel prérequis est le plus probablement absent sur ces appareils ?
++: L'antivirus Microsoft Defender n'est pas en mode actif (par exemple mode passif à cause d'un antivirus tiers) ou la protection cloud est désactivée.
+-: L'appareil n'est pas membre d'un groupe Microsoft Entra dynamique. || L'appartenance à un groupe Entra n'est pas un prérequis des indicateurs de fichiers.
+-: La table DeviceFileEvents n'est pas ingérée dans Sentinel. || L'ingestion SIEM n'intervient pas dans le blocage local.
+-: Le connecteur Defender for Cloud Apps est désactivé. || Sans lien avec le blocage de fichiers par MDE.
+=: La documentation des indicateurs de fichiers exige que l'**antivirus Microsoft Defender soit en mode actif** et que la **protection cloud** soit activée. Le calcul de hachage (`EnableFileHashComputation`) améliore la précision du blocage.
+T: En cas de conflit entre indicateurs de fichiers de même type, le **hachage le plus sûr l'emporte** : SHA-256 > SHA-1 > MD5. Les certificats peuvent aussi servir d'indicateurs (autoriser ou bloquer des applications signées). Les indicateurs s'appliquent selon les groupes d'appareils ciblés.
+!: Indicateur de fichier = AV Defender actif + protection cloud ; SHA-256 prioritaire sur SHA-1 et MD5.
+
+### Règles de réduction de la surface d'attaque (ASR)
+@ niveau=D ref=mde-asr,mde-asr-overview
+?: Les attaques par macros Office qui lancent PowerShell sont fréquentes dans votre secteur. Quelle règle ASR cible directement ce comportement ?
++: « Bloquer toutes les applications Office pour créer des processus enfants » (Block all Office applications from creating child processes).
+-: « Bloquer le vol d'informations d'identification à partir de LSASS ». || Cette règle protège la mémoire de LSASS, pas les macros Office.
+-: « Bloquer les créations de processus provenant des commandes PSExec et WMI ». || Utile contre le mouvement latéral, mais ne vise pas les processus enfants d'Office.
+-: « Bloquer l'abus de pilotes signés vulnérables exploités ». || Vise les pilotes vulnérables (BYOVD).
+=: La règle **« Bloquer toutes les applications Office pour créer des processus enfants »** empêche Word, Excel, PowerPoint… de lancer cmd.exe, powershell.exe, etc., ce qui coupe une technique très courante (T1204 / T1059).
+T: Les règles ASR se déploient d'abord en **mode Audit** pour mesurer l'impact (événements ASR dans DeviceEvents, par exemple ActionType `AsrOfficeChildProcessAudited`), puis en **Bloquer** ou **Avertir**. Des exclusions par fichier/dossier sont possibles. Le déploiement se fait via Intune, GPO, Configuration Manager ou PowerShell.
+X: ```kqlx
+DeviceEvents
+| where Timestamp > ago(7d)
+| where ActionType startswith "AsrOfficeChildProcess"
+| summarize Evenements = count() by ActionType, DeviceName, InitiatingProcessFileName, FileName
+| order by Evenements desc
+```
+!: Macro Office → processus enfant = règle ASR « Bloquer les applications Office pour créer des processus enfants » (Audit puis Bloquer).
+
+### Déploiement progressif des règles ASR
+@ niveau=I ref=mde-asr-overview
+?: Vous voulez activer 8 règles ASR sur 5 000 postes sans perturber les applications métier. Quelle démarche est recommandée ?
++: Déployer les règles en mode Audit, analyser les événements (rapports ASR, chasse avancée) pendant une période représentative, créer les exclusions nécessaires, puis passer en mode Bloquer (ou Avertir) par vagues.
+-: Activer directement toutes les règles en mode Bloquer pour tout le parc. || Risque élevé d'interruption d'applications métier.
+-: Laisser les règles désactivées tant qu'aucune attaque n'est constatée. || Approche réactive contraire à la réduction de surface d'attaque.
+-: Activer le mode Avertir uniquement sur les serveurs. || Le mode Avertir s'adresse aux utilisateurs pouvant débloquer ; la démarche par audit reste nécessaire.
+=: Bonne pratique documentée : **Audit → analyse → exclusions → Bloquer/Avertir**, par anneaux de déploiement (pilote puis généralisation).
+T: Le mode **Warn** affiche une notification permettant à l'utilisateur de débloquer temporairement : utile pour les règles susceptibles de gêner. Le rapport « Règles de réduction de la surface d'attaque » du portail facilite l'analyse des détections et la gestion des exclusions.
+!: ASR : toujours Audit d'abord, puis exclusions ciblées, puis Bloquer/Avertir par vagues.
+
+### Groupes d'appareils et ordre de priorité
+@ niveau=I ref=mde-device-groups
+?: Un serveur correspond aux critères de deux groupes d'appareils : « Serveurs Paris » (rang 3) et « Serveurs critiques » (rang 1). Dans quel groupe sera-t-il placé ?
++: Dans « Serveurs critiques », car un appareil appartient au groupe de rang le plus élevé (le plus petit numéro) dont il satisfait les critères.
+-: Dans les deux groupes simultanément. || Un appareil n'appartient qu'à un seul groupe d'appareils.
+-: Dans « Serveurs Paris », car c'est le plus récent. || La date de création ne détermine pas l'appartenance.
+-: Dans « Appareils non groupés ». || Ce groupe par défaut ne s'applique que si aucun autre groupe ne correspond.
+=: Les **groupes d'appareils** sont évalués par **rang** ; un appareil est affecté au **premier groupe correspondant** (rang 1 = priorité maximale). Le groupe détermine le **niveau d'automatisation**, l'**accès** (groupes d'utilisateurs Entra autorisés) et sert de filtre (indicateurs, notifications, rapports).
+T: Critères : nom, domaine, système d'exploitation, balises. Un groupe par défaut « Appareils non groupés (par défaut) » existe. Avec le RBAC unifié, les groupes d'appareils servent d'étendue pour les autorisations.
+!: Un seul groupe par appareil : le premier correspondant par rang ; le groupe porte niveau d'automatisation et accès.
+
+### Niveau d'automatisation recommandé
+@ niveau=D ref=mde-automation-levels
+?: Pour un groupe d'appareils de postes de travail standards, quel niveau d'automatisation de l'investigation et de la réponse automatisées (AIR) Microsoft recommande-t-il ?
++: « Full – remediate threats automatically » (automatisation complète).
+-: « No automated response ». || Prive l'organisation de la remédiation automatique.
+-: « Semi – require approval for all folders ». || Toutes les remédiations attendent une approbation ; les actions en attente expirent après 7 jours.
+-: « Semi – require approval for non-temp folders remediation ». || Approche de semi-automatisation, moins efficace que l'automatisation complète.
+=: Microsoft recommande l'**automatisation complète** : les artefacts jugés malveillants sont corrigés automatiquement. C'est la valeur par défaut des locataires créés à partir du 16 août 2020 sans groupe d'appareils défini ; Microsoft indique que les clients en automatisation complète ont retiré 40 % d'échantillons de malware à haute confiance en plus.
+T: Niveaux : Full ; Semi – approbation pour tous les dossiers ; Semi – approbation pour les dossiers principaux (Windows…) ; Semi – approbation pour les dossiers non temporaires ; No automated response. Les actions en attente se gèrent dans le **Centre de notifications** et expirent après 7 jours (comportement équivalent à un rejet).
+!: AIR : automatisation complète recommandée ; actions en attente = Action center, expiration 7 jours.
+
+### Activer Live Response pour les serveurs
+@ niveau=I ref=mde-advanced-features,mde-live-response
+?: Les analystes ne peuvent pas ouvrir de session Live Response sur des serveurs Windows Server 2022, alors que cela fonctionne sur les postes. Quelle est la cause la plus probable ?
++: L'option « Live response for servers » n'est pas activée dans les fonctionnalités avancées.
+-: Les serveurs ne sont pas joints à Microsoft Entra. || Ce n'est pas un prérequis de Live Response.
+-: Les analystes n'ont pas le rôle Microsoft Sentinel Contributor. || Les droits Live Response relèvent du RBAC Defender (droits de réponse dynamique basique/avancée).
+-: La protection contre les falsifications est activée. || La protection contre les falsifications n'empêche pas Live Response.
+=: Live Response se contrôle par deux paramètres des **fonctionnalités avancées** : **Live response** (postes) et **Live response for servers** (serveurs), plus l'option facultative **Live response unsigned script execution**.
+T: Les commandes disponibles dépendent des droits : **basiques** (consulter : `processes`, `connections`, `dir`, `fileinfo`, `registry`, `scheduledtasks`, `services`…) ou **avancées** (`getfile`, `putfile`, `run`, `remediate`, `analyze`…). Limites documentées : `getfile` 3 Go, `putfile` 300 Mo (Windows), bibliothèque 250 Mo.
+!: Live Response sur serveurs = activer « Live response for servers » ; scripts non signés = option dédiée (à éviter si possible).
+
+### Protection contre les falsifications
+@ niveau=D ref=mde-tamper
+?: Lors d'une attaque, un acteur malveillant ayant obtenu des droits administrateur local tente de désactiver la protection en temps réel de l'antivirus Microsoft Defender par le registre. Quelle fonctionnalité empêche cette modification ?
++: La protection contre les falsifications (tamper protection).
+-: Le filtrage du contenu web. || Il bloque des catégories de sites web.
+-: L'accès contrôlé aux dossiers. || Il protège des dossiers contre les modifications non autorisées (rançongiciels), pas les paramètres de l'antivirus.
+-: La découverte des appareils. || Elle inventorie les appareils non gérés du réseau.
+=: La **protection contre les falsifications** empêche la modification des paramètres de sécurité clés (protection en temps réel, protection cloud, surveillance du comportement…) par des applications, scripts, registre ou GPO locales, même avec des droits d'administrateur.
+T: Elle se gère de manière centralisée (portail Defender, Intune). Les tentatives de falsification génèrent des alertes et des événements (DeviceEvents, ActionType `TamperingAttempt`). C'est un prérequis de plusieurs scénarios d'interruption d'attaque.
+!: Empêcher la désactivation de l'antivirus par un attaquant = Tamper protection.
+
+### Mode bloc EDR
+@ niveau=I ref=mde-edr-block
+?: Une organisation utilise un antivirus tiers comme protection principale ; l'antivirus Microsoft Defender est en mode passif. Quelle fonctionnalité permet à Defender for Endpoint de bloquer et corriger des artefacts malveillants détectés par l'EDR malgré ce mode passif ?
++: Le mode bloc EDR (EDR in block mode).
+-: Le mode Audit des règles ASR. || Le mode Audit ne bloque rien.
+-: Le filtrage de contenu web. || Il concerne les catégories de sites.
+-: La restriction d'exécution d'applications. || Action de réponse manuelle sur un appareil, pas une fonctionnalité de remédiation post-violation automatique.
+=: Le **mode bloc EDR** permet à l'antivirus Microsoft Defender (même en mode passif) de **bloquer et corriger** les artefacts malveillants détectés par les capacités EDR post-violation.
+T: Il s'active dans les fonctionnalités avancées. Les détections apparaissent avec la source « EDR ». Microsoft le recommande même lorsque Defender Antivirus est la solution principale, car il ajoute une couche de détection comportementale. C'est aussi un prérequis de l'interruption automatique d'attaque.
+!: AV tiers + Defender en passif → activer EDR in block mode pour la remédiation post-violation.
+
+### Collecte de données personnalisée
+@ niveau=A ref=mde-custom-data,mde-custom-data-rules
+?: Lors d'une investigation, vous avez besoin de toutes les connexions réseau de serveurs potentiellement compromis, au-delà de l'échantillonnage par défaut de MDE, envoyées dans votre espace Sentinel. Quelle fonctionnalité utiliser ?
++: La collecte de données personnalisée de Defender for Endpoint : des règles ciblant les appareils par balises dynamiques, envoyant les événements dans des tables dédiées (par exemple DeviceCustomNetworkEvents) de l'espace Sentinel.
+-: Augmenter le niveau d'automatisation à « Full ». || Sans effet sur la télémétrie collectée.
+-: Activer la découverte des appareils en mode standard. || Elle découvre des appareils non gérés, elle n'étend pas la télémétrie.
+-: Créer une règle de détection personnalisée toutes les heures. || Une détection ne collecte pas de nouveaux événements.
+=: La **collecte de données personnalisée** permet de définir des **règles** (filtres sur chemins, noms de processus, connexions réseau…) qui collectent des événements supplémentaires sur des appareils ciblés par **balises dynamiques**, et de les router vers **Microsoft Sentinel** dans des tables dédiées (DeviceCustomProcessEvents, DeviceCustomNetworkEvents, etc.).
+T: Les balises dynamiques doivent être configurées au préalable (gestion des règles d'actifs). Les règles sont transmises aux appareils typiquement en 20 minutes à 1 heure. La collecte s'ajoute à la télémétrie standard (sans la remplacer) et a un coût d'ingestion Sentinel : filtrez finement. Fonctionnalité citée par le référentiel (« Configurer la collecte de données personnalisée »), en préversion selon la documentation.
+!: Télémétrie MDE supplémentaire ciblée → collecte de données personnalisée (balises dynamiques → tables DeviceCustom* dans Sentinel).
+
+### Accès contrôlé aux dossiers
+@ niveau=D ref=mde-cfa
+?: Quel est l'objectif principal de l'accès contrôlé aux dossiers (Controlled folder access) ?
++: Empêcher les applications non approuvées de modifier les fichiers des dossiers protégés, pour limiter l'impact des rançongiciels.
+-: Chiffrer les dossiers avec BitLocker. || BitLocker chiffre des volumes ; ce n'est pas la fonction de CFA.
+-: Bloquer les connexions réseau sortantes vers des domaines malveillants. || C'est la protection réseau.
+-: Empêcher l'exécution de macros Office. || C'est le rôle de règles ASR ou des paramètres Office.
+=: L'**accès contrôlé aux dossiers** autorise uniquement les applications approuvées (applications connues de Microsoft ou ajoutées explicitement) à modifier les fichiers des **dossiers protégés** (Documents, Images, Bureau… et dossiers ajoutés).
+T: Comme ASR, CFA dispose d'un mode **Audit**. Les blocages apparaissent dans DeviceEvents (`ControlledFolderAccessViolationBlocked`, `ControlledFolderAccessViolationAudited`). Il complète la règle ASR « Utiliser une protection avancée contre les rançongiciels ».
+!: CFA = seules les applications approuvées modifient les dossiers protégés (anti-rançongiciel).
+
+### Restreindre la corrélation aux groupes d'appareils
+@ niveau=A ref=mde-advanced-features,mde-device-groups
+?: Une multinationale a des équipes SOC régionales qui ne doivent voir que les incidents de leurs appareils. Elle constate que des incidents regroupent des alertes d'appareils de régions différentes. Quelle fonctionnalité avancée de MDE répond au besoin ?
++: « Restrict correlation to within scoped device groups » (restreindre la corrélation aux groupes d'appareils de l'étendue).
+-: « Automatically resolve alerts ». || Résout automatiquement les alertes après une enquête sans menace, sans lien avec la portée de la corrélation.
+-: « Show user details ». || Affiche des détails utilisateur issus d'Entra ID.
+-: « Download quarantined files ». || Permet de télécharger des fichiers en quarantaine.
+=: Cette option limite la **corrélation des alertes en incidents** aux alertes provenant d'appareils d'un même groupe d'appareils, ce qui préserve la séparation des périmètres régionaux.
+T: Contrepartie : une attaque qui se propage entre régions pourrait être découpée en plusieurs incidents, ce qui complique la vision globale. À utiliser lorsque la séparation des accès l'exige, en coordonnant un SOC central.
+!: Séparer les incidents par périmètre régional = « Restrict correlation to within scoped device groups » (au prix d'une vision moins globale).
+
+### Découverte des appareils non gérés
+@ niveau=I ref=mde-device-discovery
+?: Le SOC soupçonne la présence de machines non protégées sur le réseau. Quelle fonctionnalité de MDE permet d'identifier ces appareils sans installer de logiciel supplémentaire ?
++: La découverte des appareils (device discovery), en mode standard, qui utilise les appareils intégrés à MDE pour sonder et identifier les appareils non gérés.
+-: Le filtrage de contenu web. || Concerne la navigation web.
+-: La restriction d'exécution d'applications. || Action de réponse sur un appareil géré.
+-: L'analyse approfondie de fichiers. || Bac à sable de fichiers.
+=: La **découverte des appareils** utilise les appareils déjà intégrés pour collecter, écouter (mode basique) ou sonder activement (mode standard, recommandé) le réseau et lister les **appareils non intégrés** (postes, serveurs, IoT, équipements réseau), qui peuvent ensuite être intégrés.
+T: Les appareils découverts apparaissent dans l'inventaire avec un statut d'intégration. Ils peuvent faire l'objet de l'action **« Contenir l'appareil »** pour bloquer leurs communications avec les appareils gérés. Des exclusions de sondage peuvent être définies.
+!: Trouver les appareils non protégés = device discovery (mode standard) via les appareils déjà intégrés.

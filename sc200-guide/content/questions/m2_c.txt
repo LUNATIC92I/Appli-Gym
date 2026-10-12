@@ -1,0 +1,410 @@
+@@ module=2
+@@ section=Defender for Office 365 : messagerie et collaboration
+
+### Threat Explorer et licences
+@ niveau=D ref=mdo-explorer,mdo-overview
+?: Une organisation dispose de Defender for Office 365 Plan 1. Un analyste demande pourquoi il ne voit pas « Threat Explorer » mais « Détections en temps réel ». Quelle est l'explication ?
++: Threat Explorer est inclus dans Defender for Office 365 Plan 2 (ou Microsoft 365 E5) ; le Plan 1 propose les détections en temps réel, aux capacités plus limitées.
+-: Threat Explorer nécessite Microsoft Sentinel. || Explorer est une fonctionnalité de Defender for Office 365, indépendante de Sentinel.
+-: Threat Explorer n'est disponible que pour les administrateurs généraux. || C'est une question de licence (et de rôles), pas uniquement de rôle d'administrateur général.
+-: Les détections en temps réel ont été renommées Threat Explorer dans tous les plans. || Les deux expériences coexistent selon le plan.
+=: **Threat Explorer** (Plan 2) permet l'investigation approfondie, la chasse et la **remédiation** d'e-mails (suppression, déplacement), les campagnes, etc. Les **détections en temps réel** (Plan 1) offrent une vue de rapport plus limitée.
+T: Plan 1 : pièces jointes sécurisées, liens sécurisés, anti-hameçonnage avancé (usurpation d'identité), détections en temps réel. Plan 2 : Plan 1 + Threat Explorer, Threat Trackers, AIR, simulation d'attaques, vues de campagnes, chasse avancée sur les tables Email*.
+!: MDO P1 = détections en temps réel ; MDO P2 = Threat Explorer, AIR, campagnes, simulation d'attaques.
+
+### Purger un e-mail d'hameçonnage déjà distribué
+@ niveau=I ref=mdo-remediate,mdo-explorer-hunting
+?: Un e-mail d'hameçonnage a été distribué à 350 boîtes aux lettres il y a deux heures. Les filtres l'ont laissé passer. Quelle est la méthode recommandée pour le retirer de toutes les boîtes ?
++: Rechercher le message dans Threat Explorer (par expéditeur, objet ou NetworkMessageId), sélectionner les messages puis lancer une action de remédiation (par exemple suppression réversible), approuvée et suivie dans le Centre de notifications.
+-: Demander à chaque utilisateur de supprimer le message. || Lent, incomplet et non vérifiable.
+-: Bloquer l'expéditeur dans la liste d'autorisation/blocage du locataire et attendre. || Le blocage empêche les futurs messages mais ne retire pas ceux déjà distribués (sauf si ZAP intervient).
+-: Réinitialiser les mots de passe des 350 destinataires. || Mesure éventuellement nécessaire pour les utilisateurs compromis, mais elle ne supprime pas le message.
+=: Avec MDO Plan 2, **Threat Explorer** (ou la chasse avancée avec l'action « Take action ») permet de sélectionner les messages et de lancer une **remédiation** : suppression réversible (soft delete), suppression définitive, déplacement vers Courrier indésirable, Boîte de réception ou Éléments supprimés. Les actions passent par le **Centre de notifications** (approbation selon la configuration).
+T: Compléter par : blocage de l'expéditeur/de l'URL/du fichier dans la **liste d'autorisation/blocage du locataire**, soumission à Microsoft (**Soumissions**), recherche des clics (**UrlClickEvents**), et vérification des comptes ayant saisi des identifiants. **ZAP** peut aussi retirer automatiquement des messages après distribution si leur verdict change.
+!: Purger des e-mails déjà distribués = Threat Explorer / chasse avancée → remédiation (Action center) ; puis bloquer et soumettre.
+
+### Purge automatique zero-hour (ZAP)
+@ niveau=D ref=mdo-zap
+?: Un message distribué ce matin dans la boîte de réception d'un utilisateur est requalifié comme hameçonnage par Microsoft une heure plus tard. Quelle fonctionnalité peut le déplacer automatiquement hors de la boîte de réception ?
++: La purge automatique zero-hour (ZAP).
+-: Les liens sécurisés (Safe Links). || Ils vérifient les URL au clic, ils ne déplacent pas les messages.
+-: La simulation d'attaques. || Outil de sensibilisation.
+-: Les stratégies de quarantaine. || Elles définissent ce que les utilisateurs peuvent faire avec les messages en quarantaine, sans agir a posteriori.
+=: **ZAP** (Exchange Online Protection) détecte les messages déjà distribués dont le verdict devient malveillant (hameçonnage, spam, malware) et les **déplace** (dossier Courrier indésirable ou quarantaine, selon la stratégie).
+T: ZAP fonctionne sur les boîtes Exchange Online, si le message n'a pas été déplacé ou lu dans certains cas (voir les conditions). Les actions ZAP apparaissent dans **EmailPostDeliveryEvents** (ActionType « Phish ZAP », « Malware ZAP »…). ZAP existe aussi pour Teams.
+X: ```kqlx
+EmailPostDeliveryEvents
+| where Timestamp > ago(1d)
+| where ActionType in ("Phish ZAP", "Malware ZAP")
+| summarize Messages = count() by ActionType, ActionResult
+```
+!: Retrait automatique après distribution = ZAP ; traçable dans EmailPostDeliveryEvents.
+
+### Liens sécurisés et clics
+@ niveau=I ref=mdo-safe-links,xdr-t-UrlClickEvents
+?: Vous devez identifier les utilisateurs qui ont cliqué sur une URL d'hameçonnage connue, y compris ceux qui ont ignoré la page d'avertissement des liens sécurisés. Quelle requête est la plus appropriée ?
++: ```kqlx
+UrlClickEvents
+| where Timestamp > ago(7d)
+| where Url has "login-micros0ft-secure.com"
+| project Timestamp, AccountUpn, ActionType, IsClickedThrough, IPAddress, Workload
+```
+-: ```kqlx
+EmailUrlInfo
+| where Timestamp > ago(7d)
+| where Url has "login-micros0ft-secure.com"
+| project Timestamp, NetworkMessageId, Url
+```
+|| EmailUrlInfo liste les URL contenues dans les e-mails ; elle ne dit pas qui a cliqué.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemoteUrl == "login-micros0ft-secure.com"
+| summarize count() by DeviceName
+```
+|| Utile en complément, mais ne capture pas les clics protégés par Safe Links (dont ceux bloqués), ni l'option « cliquer quand même ».
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(7d)
+| where Subject has "login-micros0ft-secure.com"
+```
+|| L'objet d'un e-mail ne contient généralement pas l'URL ; aucun clic n'est enregistré dans EmailEvents.
+=: **UrlClickEvents** enregistre les clics sur des URL protégées par **Safe Links** (e-mail, Teams, applications Office) : `ActionType` (ClickAllowed, ClickBlocked, ClickBlockedByTenantPolicy…), **`IsClickedThrough`** (l'utilisateur a ignoré l'avertissement), `AccountUpn`, `IPAddress`, `Workload`.
+T: Combinez avec EmailEvents (via NetworkMessageId) pour relier clic et message, puis avec SigninLogs/AADSignInEvents pour détecter une saisie d'identifiants suivie d'une connexion suspecte. Les utilisateurs ayant cliqué doivent être traités en priorité (réinitialisation, révocation de sessions).
+R: La liste des clics avec l'utilisateur, le verdict (autorisé/bloqué) et l'indicateur de contournement de l'avertissement.
+!: Qui a cliqué ? = UrlClickEvents (IsClickedThrough = avertissement ignoré).
+
+### Pièces jointes sécurisées et remise dynamique
+@ niveau=I ref=mdo-safe-attachments
+?: Les utilisateurs se plaignent que les e-mails avec pièces jointes arrivent avec retard depuis l'activation des pièces jointes sécurisées en mode « Bloquer ». Quelle option permet de remettre immédiatement le corps du message pendant l'analyse de la pièce jointe ?
++: La remise dynamique (Dynamic Delivery).
+-: Le mode « Surveiller » (Monitor). || Le message est remis avec la pièce jointe avant la fin de l'analyse, ce qui expose l'utilisateur.
+-: Désactiver les pièces jointes sécurisées. || Supprime la protection.
+-: Les liens sécurisés. || Ils traitent les URL, pas les pièces jointes.
+=: Avec la **remise dynamique**, le corps du message est remis immédiatement avec un espace réservé pour la pièce jointe, qui est rattachée une fois l'analyse en bac à sable terminée et le fichier jugé sûr.
+T: Actions des pièces jointes sécurisées : Désactivé, Surveiller, Bloquer, Remise dynamique (selon les versions de l'interface, certaines actions ont été simplifiées). Les détections apparaissent dans EmailAttachmentInfo (ThreatTypes, ThreatNames) et Threat Explorer.
+!: Pas de retard de remise tout en analysant les pièces jointes = Dynamic Delivery.
+
+### Messages signalés par les utilisateurs
+@ niveau=I ref=mdo-user-reported,mdo-air
+?: Les utilisateurs signalent de nombreux e-mails suspects via le bouton « Signaler » d'Outlook. Vous voulez que chaque signalement déclenche automatiquement une enquête et que les messages similaires soient identifiés. Que faut-il configurer ?
++: Les paramètres des messages signalés par l'utilisateur (vers Microsoft et/ou une boîte de rapport) ; avec MDO Plan 2, l'alerte de signalement déclenche une enquête AIR qui regroupe les messages similaires (clusters) et propose des actions.
+-: Une règle de transport Exchange qui supprime les messages signalés. || Suppression aveugle, sans analyse.
+-: Une watchlist des messages signalés dans Sentinel. || Une watchlist ne déclenche pas d'enquête.
+-: Une règle ASR. || Les règles ASR concernent les terminaux.
+=: Les **paramètres de signalement** déterminent où vont les signalements (Microsoft, boîte de rapport, ou les deux). L'alerte « Email reported by user as malware or phish » déclenche une **enquête AIR** (MDO P2), qui analyse le message, identifie des **clusters** de messages similaires et propose des remédiations dans le Centre de notifications.
+T: Les administrateurs voient les signalements dans **Soumissions > Signalés par l'utilisateur**, peuvent les soumettre à Microsoft et informer l'utilisateur du résultat. L'**agent de tri de l'hameçonnage** de Security Copilot peut classer automatiquement les signalements.
+!: Signalements utilisateurs → paramètres de signalement + AIR (clusters, remédiation) ; agent de tri Copilot en option.
+
+### Soumissions administrateur
+@ niveau=D ref=mdo-submissions,mdo-tabl
+?: Un e-mail légitime d'un partenaire est systématiquement mis en quarantaine comme hameçonnage. Quelle démarche recommandée permet de corriger le verdict et d'autoriser temporairement ce type de message ?
++: Soumettre le message à Microsoft via la page Soumissions en tant que « Ne doit pas avoir été bloqué », ce qui permet d'ajouter une entrée d'autorisation temporaire dans la liste d'autorisation/blocage du locataire.
+-: Désactiver la stratégie anti-hameçonnage pour toute l'organisation. || Expose tous les utilisateurs.
+-: Créer une règle de transport qui contourne tous les filtres pour le domaine. || Risque élevé d'abus (usurpation du domaine).
+-: Ajouter le domaine à la liste des expéditeurs approuvés de chaque utilisateur. || Solution non gérée de façon centralisée et peu sûre.
+=: Les **soumissions administrateur** envoient l'élément à Microsoft pour réanalyse et, pour un faux positif, proposent de créer une **entrée « Autoriser »** dans la **liste d'autorisation/blocage du locataire** (pour une durée limitée), le temps que les filtres apprennent.
+T: La liste d'autorisation/blocage du locataire gère expéditeurs, domaines, URL, fichiers, usurpation d'identité. Les entrées « Bloquer » peuvent être créées directement ; les entrées « Autoriser » passent généralement par une soumission. L'**analyseur de configuration** aide à repérer les paramètres trop permissifs.
+!: Faux positif e-mail = soumission « Ne doit pas avoir été bloqué » → autorisation temporaire dans la Tenant Allow/Block List.
+
+### Corréler e-mail et pièce jointe
+@ niveau=I ref=xdr-t-EmailAttachmentInfo,xdr-t-EmailEvents
+?: Vous voulez lister les destinataires ayant reçu dans leur boîte de réception une pièce jointe dont le SHA256 est connu comme malveillant. Quelle requête est correcte ?
++: ```kqlx
+let hash = "a3f5c0de41b2e98f7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b";
+EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| where SHA256 == hash
+| join kind=inner (
+    EmailEvents
+    | where Timestamp > ago(7d)
+    | where DeliveryAction == "Delivered"
+  ) on NetworkMessageId, RecipientEmailAddress
+| project Timestamp, RecipientEmailAddress, SenderFromAddress, Subject, FileName, DeliveryLocation
+```
+-: ```kqlbad
+EmailEvents
+| where Timestamp > ago(7d)
+| where SHA256 == "a3f5c0de41b2e98f7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b"
+```
+|| La colonne SHA256 n'existe pas dans EmailEvents ; les hachages de pièces jointes sont dans EmailAttachmentInfo.
+-: ```kqlx
+EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| where FileName == "a3f5c0de41b2e98f7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b"
+```
+|| Compare le hachage au nom de fichier : aucun résultat pertinent, et la distribution n'est pas vérifiée.
+-: ```kqlx
+EmailUrlInfo
+| where Timestamp > ago(7d)
+| where Url has "a3f5c0de41b2e98f7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b"
+```
+|| EmailUrlInfo contient les URL des messages, pas les hachages des pièces jointes.
+=: Les hachages des pièces jointes sont dans **EmailAttachmentInfo** ; l'état de remise (**DeliveryAction**, **DeliveryLocation**) est dans **EmailEvents**. La jointure se fait sur **NetworkMessageId** (identifiant du message dans Microsoft 365) **et RecipientEmailAddress** (une ligne par destinataire).
+T: Pour l'état le plus récent (après ZAP ou remédiation), utilisez `LatestDeliveryLocation`/`LatestDeliveryAction` dans EmailEvents ou EmailPostDeliveryEvents. Vérifiez ensuite l'ouverture du fichier sur les postes (DeviceFileEvents/DeviceProcessEvents avec le même SHA256).
+R: Les destinataires ayant reçu la pièce jointe dans leur boîte, avec l'expéditeur, l'objet et le dossier de remise.
+!: Pièce jointe ↔ e-mail : jointure EmailAttachmentInfo / EmailEvents sur NetworkMessageId + RecipientEmailAddress.
+
+### Usurpation d'identité de dirigeants
+@ niveau=I ref=mdo-anti-phishing
+?: Des attaquants envoient des e-mails en se faisant passer pour le directeur financier, depuis des domaines ressemblants (par exemple contoso-finance.co au lieu de contoso.com). Quelle configuration de Defender for Office 365 cible spécifiquement cette menace ?
++: La protection contre l'usurpation d'identité d'utilisateurs et de domaines dans la stratégie anti-hameçonnage, avec le directeur financier comme utilisateur protégé et les domaines de l'organisation comme domaines protégés.
+-: Les liens sécurisés uniquement. || Ils vérifient les URL ; ils ne détectent pas l'usurpation d'expéditeur.
+-: La purge automatique ZAP uniquement. || ZAP agit après coup, sans détection spécifique de l'usurpation de dirigeants.
+-: Une règle ASR sur les postes. || Les règles ASR ne traitent pas les e-mails entrants.
+=: La **stratégie anti-hameçonnage** de MDO inclut la **protection contre l'usurpation d'identité** (utilisateurs protégés, domaines protégés, intelligence des boîtes aux lettres), distincte de la **protection contre l'usurpation** (spoofing) basée sur SPF/DKIM/DMARC.
+T: Actions configurables : mise en quarantaine, déplacement vers le courrier indésirable, conseils de sécurité (safety tips) affichés à l'utilisateur. Les **stratégies prédéfinies** (Standard/Strict) et la **protection des comptes prioritaires** simplifient la configuration pour les dirigeants.
+!: Faux dirigeants / domaines ressemblants = protection contre l'usurpation d'identité (anti-phishing MDO).
+
+### Règle de transfert suspecte
+@ niveau=A ref=mdo-compromised,la-t-OfficeActivity
+?: Après un hameçonnage réussi, vous soupçonnez qu'un attaquant a créé une règle de boîte de réception transférant les e-mails vers une adresse externe. Quelle requête Sentinel permet de rechercher la création de telles règles ?
++: ```kql
+OfficeActivity
+| where TimeGenerated > ago(7d)
+| where Operation in ("New-InboxRule", "Set-InboxRule", "UpdateInboxRules")
+| where Parameters has_any ("ForwardTo", "RedirectTo", "ForwardAsAttachmentTo")
+| project TimeGenerated, UserId, ClientIP, Operation, Parameters
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where AppDisplayName == "Outlook"
+```
+|| Les connexions ne montrent pas la création de règles de boîte aux lettres.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where EventID == 4720
+```
+|| L'événement 4720 correspond à la création d'un compte Active Directory, pas à une règle Exchange.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(7d)
+| where OperationNameValue has "InboxRule"
+```
+|| AzureActivity concerne le plan de contrôle Azure, pas Exchange Online.
+=: Le journal d'audit unifié Microsoft 365 (connecteur Office 365 → **OfficeActivity**) enregistre les opérations Exchange comme **New-InboxRule**, **Set-InboxRule** ou **UpdateInboxRules** (Outlook), avec les paramètres (ForwardTo, RedirectTo, ForwardAsAttachmentTo, DeleteMessage…).
+T: Technique MITRE **T1114.003** (Email Forwarding Rule) et **T1564.008** (Email Hiding Rules). Defender for Cloud Apps détecte aussi les « règles de transfert suspectes » et la stratégie anti-spam sortante permet de **bloquer le transfert automatique externe**. Côté XDR, CloudAppEvents contient les mêmes activités.
+!: Règles de transfert malveillantes = OfficeActivity (New-InboxRule/Set-InboxRule, ForwardTo/RedirectTo) ; bloquer le transfert externe par stratégie.
+
+### Bloquer le transfert automatique externe
+@ niveau=I ref=mdo-forwarding
+?: Pour limiter l'exfiltration par règles de transfert après une compromission de compte, quelle mesure préventive est la plus efficace au niveau de l'organisation ?
++: Configurer la stratégie anti-spam sortante pour désactiver le transfert automatique vers l'extérieur (sauf exceptions approuvées).
+-: Activer la remise dynamique des pièces jointes sécurisées. || Sans lien avec le transfert sortant.
+-: Augmenter la rétention de OfficeActivity. || Améliore l'investigation, pas la prévention.
+-: Désactiver les liens sécurisés. || Sans rapport et contre-productif.
+=: La **stratégie de filtrage du courrier indésirable sortant** contrôle le **transfert automatique externe** (Automatique, Activé, Désactivé). En le désactivant, les règles de transfert créées par un attaquant n'envoient plus de messages à l'extérieur.
+T: Des exceptions peuvent être gérées par des stratégies personnalisées ciblant certains utilisateurs. Les messages bloqués génèrent un rapport de non-remise et peuvent déclencher des alertes. Mesure complémentaire : surveiller les nouvelles règles de boîte de réception.
+!: Prévenir l'exfiltration par transfert = désactiver le transfert automatique externe (stratégie anti-spam sortante).
+
+### Campagnes et Threat Trackers
+@ niveau=I ref=mdo-campaigns
+?: Un analyste veut voir en un seul écran l'ensemble d'une vague d'hameçonnage coordonnée : messages, URL, expéditeurs, destinataires ayant cliqué, sur plusieurs jours. Quelle fonctionnalité de MDO Plan 2 fournit cette vue ?
++: Les vues de campagnes (Campaigns).
+-: Les stratégies de quarantaine. || Elles gèrent les droits sur la quarantaine.
+-: Le rapport d'état de mise à jour des appareils. || Concerne les terminaux.
+-: La simulation d'attaques. || Outil de formation.
+=: Les **campagnes** regroupent les messages d'une même attaque coordonnée (empreintes, URL, charges utiles) et affichent les destinataires, les clics, les actions de remise et les détails techniques, ce qui facilite l'évaluation d'impact et la remédiation globale.
+T: Disponibles dans MDO Plan 2. Complétées par Threat Explorer (filtrage par campagne) et la chasse avancée (EmailEvents.EmailClusterId pour les messages similaires).
+!: Vision d'ensemble d'une vague d'hameçonnage = Campaigns (MDO P2).
+
+### Simulation d'attaques
+@ niveau=D ref=mdo-attack-sim
+?: La direction veut mesurer la vulnérabilité des employés au hameçonnage et leur attribuer automatiquement une formation lorsqu'ils cliquent. Quelle fonctionnalité utiliser ?
++: La formation par simulation d'attaques (Attack simulation training) de Defender for Office 365 Plan 2.
+-: Threat Explorer. || Outil d'investigation, pas de simulation.
+-: L'analyse des menaces. || Rapports de renseignement sur les menaces.
+-: Les règles ASR en mode Audit. || Concernent les terminaux.
+=: **Attack simulation training** lance des campagnes simulées (collecte d'identifiants, pièce jointe malveillante, lien dans une pièce jointe, QR code…), mesure les comportements (clics, saisies, signalements) et affecte des **formations** aux utilisateurs concernés.
+T: Les simulations s'appuient sur des charges utiles et des modèles ; les rapports montrent les tendances. Les utilisateurs qui signalent le message via le bouton de signalement sont valorisés. Incluse dans MDO Plan 2 / Microsoft 365 E5.
+!: Mesurer et former au hameçonnage = Attack simulation training (MDO P2).
+
+### Remédiation d'un compte de messagerie compromis
+@ niveau=A ref=mdo-compromised,entra-revoke
+?: Un compte Microsoft 365 a été compromis par hameçonnage : connexions depuis une IP étrangère, règle de transfert créée, envoi de spam interne. Quelles actions immédiates sont prioritaires ? (Sélectionnez deux réponses.)
+@ multi=2
++: Réinitialiser le mot de passe, révoquer les sessions/jetons d'actualisation et vérifier les méthodes MFA enregistrées par l'attaquant.
++: Supprimer les règles de boîte de réception et de transfert malveillantes, et retirer les e-mails malveillants envoyés en interne.
+-: Supprimer définitivement le compte utilisateur. || Destructeur et inutile ; on perdrait des preuves et la continuité métier.
+-: Désactiver Defender for Office 365 pour éviter de nouvelles alertes. || Contre-productif.
+-: Attendre la fin de l'enquête complète avant toute action. || Le confinement doit commencer immédiatement.
+=: La procédure Microsoft « Répondre à un compte de messagerie compromis » prévoit de **réinitialiser le mot de passe**, **révoquer les sessions**, vérifier/retirer les **méthodes d'authentification** ajoutées, **supprimer les règles** de boîte de réception et de transfert suspectes, vérifier les **délégations** et le **transfert SMTP** de la boîte, débloquer l'envoi si l'utilisateur a été restreint, et purger les messages malveillants.
+T: Vérifier aussi : consentements OAuth accordés, inscriptions d'appareils, accès aux fichiers (SharePoint/OneDrive), activité dans Purview Audit. Marquer l'utilisateur comme compromis dans Entra ID Protection (risque élevé) déclenche les stratégies basées sur le risque.
+!: Compte de messagerie compromis : identifiants + sessions + MFA, puis règles/transferts/délégations et purge des messages.
+
+@@ section=Defender for Identity : menaces sur Active Directory
+
+### Architecture de Defender for Identity
+@ niveau=D ref=mdi-overview,mdi-sensor
+?: Quels serveurs doivent idéalement recevoir un capteur Microsoft Defender for Identity pour une couverture complète d'un environnement Active Directory hybride ?
++: Tous les contrôleurs de domaine, ainsi que les serveurs AD FS, AD CS et Microsoft Entra Connect.
+-: Uniquement les postes de travail des administrateurs. || Les capteurs MDI se déploient sur les serveurs d'identité, pas sur les postes.
+-: Uniquement le serveur Exchange. || Exchange n'est pas la cible du capteur.
+-: Uniquement un contrôleur de domaine par forêt. || Une couverture partielle laisse des angles morts ; tous les DC doivent être couverts.
+=: Les **capteurs MDI** analysent le trafic et les événements des **contrôleurs de domaine** et des serveurs d'identité (**AD FS**, **AD CS**, **Entra Connect**) pour détecter reconnaissance, vol d'identifiants, mouvement latéral et persistance.
+T: Le capteur **v3.x** s'active sur les contrôleurs de domaine déjà intégrés à Defender for Endpoint (intégration unifiée) ; le capteur classique (v2.x) s'installe séparément. Un **compte de service d'annuaire** (gMSA recommandé) est nécessaire pour certaines requêtes. La configuration de l'**audit Windows avancé** (par exemple 4662, 4726, 4728, 4776, 8004) est requise pour certaines détections.
+!: MDI = capteurs sur tous les DC + AD FS + AD CS + Entra Connect ; gMSA et audit avancé à configurer.
+
+### Reconnaissance par énumération SAMR
+@ niveau=I ref=mdi-alerts,xdr-t-IdentityQueryEvents
+?: MDI lève l'alerte « User and Group membership reconnaissance (SAMR) » depuis le poste PC-0423. Que traduit cette alerte ?
++: Un acteur interroge le contrôleur de domaine via SAMR pour énumérer des utilisateurs et des appartenances aux groupes (par exemple Admins du domaine), étape typique de découverte avant un mouvement latéral.
+-: Une tentative de déchiffrement de la base NTDS.dit sur le poste. || Ce n'est pas ce que décrit l'alerte SAMR.
+-: Une connexion RDP réussie vers le contrôleur de domaine. || Il s'agit d'une requête d'énumération, pas d'une ouverture de session RDP.
+-: Une modification de stratégie de groupe. || Sans rapport avec l'énumération SAMR.
+=: L'alerte **SAMR reconnaissance** signale l'énumération d'utilisateurs et de groupes via le protocole SAM-R (outils comme `net user /domain`, BloodHound/SharpHound). Elle correspond à la tactique **Découverte** (T1087 Account Discovery, T1069 Permission Groups Discovery).
+T: En chasse avancée, **IdentityQueryEvents** enregistre ces requêtes (ActionType « SAMR query », QueryTarget, Query, DeviceName, AccountName). Évaluer si l'activité est légitime (outil d'administration) ; sinon investiguer le poste source avec MDE.
+X: ```kqlx
+IdentityQueryEvents
+| where Timestamp > ago(1d)
+| where ActionType == "SAMR query"
+| summarize Cibles = dcount(QueryTarget), Requetes = count() by DeviceName, AccountName
+| where Cibles > 20
+| order by Cibles desc
+```
+!: Alerte SAMR = énumération d'utilisateurs/groupes (Découverte) ; données dans IdentityQueryEvents.
+
+### Attaque DCSync
+@ niveau=A ref=mdi-alerts
+?: MDI signale « Suspected DCSync attack (replication of directory services) » depuis un poste de travail utilisant le compte d'un administrateur. Pourquoi cette alerte est-elle critique ?
++: Un acteur imite un contrôleur de domaine pour demander la réplication des secrets (hachages de mots de passe, dont celui de krbtgt), ce qui permet le vol massif d'identifiants et la création de Golden Tickets.
+-: Elle indique seulement une synchronisation horaire anormale. || La réplication d'annuaire n'est pas une synchronisation horaire.
+-: Elle signale une indisponibilité du contrôleur de domaine. || Il s'agit d'une activité malveillante, pas d'un problème de disponibilité.
+-: Elle concerne exclusivement Microsoft Entra Connect et est toujours légitime. || Entra Connect peut avoir des droits de réplication, mais une demande depuis un poste de travail est anormale.
+=: **DCSync** (T1003.006) utilise les droits « Replicating Directory Changes (All) » pour demander à un DC les données de mots de passe via le protocole de réplication (DRSUAPI). Depuis une machine qui n'est pas un DC, c'est un indicateur fort de compromission d'un compte à privilèges.
+T: Réponse : identifier le compte et la machine source, isoler/contenir, réinitialiser les identifiants concernés (et **deux fois krbtgt** si le compromis est avéré, selon les procédures), auditer les droits de réplication dans l'annuaire. Côté journaux, l'événement 4662 avec les GUID de réplication permet aussi la détection.
+!: DCSync depuis une machine non-DC = vol d'identifiants massif probable (dont krbtgt) → priorité maximale.
+
+### Kerberoasting
+@ niveau=A ref=mdi-alerts,la-t-SecurityEvent
+?: Un attaquant demande des tickets de service Kerberos pour de nombreux comptes ayant un SPN, afin de les casser hors ligne. Quelle technique et quelle détection MDI correspondent ?
++: Kerberoasting (T1558.003) ; MDI détecte notamment l'exposition suspecte de SPN Kerberos (Suspected Kerberos SPN exposure).
+-: Pass-the-hash (T1550.002) ; alerte « Suspected identity theft (pass-the-hash) ». || Le pass-the-hash réutilise un hachage NTLM, sans demande massive de tickets de service.
+-: DCShadow (T1207) ; alerte « Suspected DCShadow attack ». || DCShadow enregistre un faux DC pour pousser des modifications.
+-: Password spraying (T1110.003) ; alerte de force brute. || Le spraying teste des mots de passe, il ne demande pas de tickets de service.
+=: Le **Kerberoasting** demande des **tickets TGS** pour des comptes de service (SPN), chiffrés avec le hachage du mot de passe du compte, puis tente de les **casser hors ligne**. MDI détecte l'**énumération/exposition de SPN** et les requêtes de tickets suspectes.
+T: Dans SecurityEvent, l'événement **4769** (demande de ticket de service) avec un chiffrement **RC4 (0x17)** et de nombreux services demandés par un même compte est un signal classique. Prévention : mots de passe longs et gérés (gMSA), AES uniquement, suppression des SPN inutiles, comptes de service avec privilèges minimaux.
+X: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4769
+| where Status == "0x0"
+| summarize Services = dcount(ServiceName), Tickets = count() by TargetUserName, IpAddress
+| where Services > 15
+```
+!: Kerberoasting = tickets TGS massifs (4769, RC4) cassés hors ligne ; parade : gMSA, AES, mots de passe longs.
+
+### Chemins de mouvement latéral
+@ niveau=I ref=mdi-overview,mdi-sensitive
+?: Defender for Identity indique qu'un utilisateur standard, via des sessions ouvertes d'administrateurs sur certains postes, pourrait obtenir les identifiants d'un compte Admins du domaine en trois sauts. Comment s'appelle cette information et quel est son usage ?
++: Un chemin de mouvement latéral (Lateral Movement Path, LMP), utilisé de manière proactive pour réduire l'exposition des comptes sensibles.
+-: Une alerte de pass-the-ticket confirmée. || Le LMP décrit un chemin potentiel, pas une attaque avérée.
+-: Un rapport de Secure Score Azure. || Il s'agit d'une analyse propre à MDI sur l'annuaire.
+-: Une règle d'automatisation Sentinel. || Sans rapport.
+=: Les **LMP** montrent comment un attaquant pourrait progresser d'un compte non sensible vers un compte **sensible** en exploitant des sessions et des droits d'administration locale. Ils servent à **prioriser la réduction d'exposition** (supprimer les droits d'admin locaux excessifs, limiter les connexions d'administrateurs sur les postes, déployer LAPS).
+T: Les comptes sensibles (Admins du domaine, Entreprise, etc.) sont marqués automatiquement ; on peut en ajouter via les **balises d'entités** (Sensitive, Honeytoken, Exchange server). Les évaluations de posture d'identité (ISPM) et Security Exposure Management proposent aussi des chemins d'attaque.
+!: LMP = chemin potentiel vers un compte sensible ; sert à réduire l'exposition (droits locaux, sessions d'admin).
+
+### Compte leurre (honeytoken)
+@ niveau=I ref=mdi-sensitive,mdi-alerts
+?: Vous créez un compte « adm_backup_old » jamais utilisé, avec un nom attractif, pour détecter les attaquants. Comment exploiter MDI pour être alerté si quelqu'un tente de l'utiliser ?
++: Marquer le compte avec la balise « Honeytoken » dans Defender for Identity ; toute authentification ou activité sur ce compte déclenche une alerte.
+-: Ajouter le compte au groupe Admins du domaine. || Dangereux : un vrai compte à privilèges.
+-: Désactiver la journalisation des connexions pour ce compte. || Empêcherait la détection.
+-: Créer une watchlist Sentinel contenant le nom du compte, sans autre configuration. || Une watchlist seule ne déclenche rien sans règle.
+=: La balise **Honeytoken** dans MDI déclenche une alerte d'activité (« Honeytoken authentication activity » / « Honeytoken was queried via SAM-R ») dès que le compte est utilisé ou interrogé, signal de haute fidélité d'activité malveillante.
+T: Les comptes leurres doivent paraître crédibles mais n'avoir aucun usage légitime ni privilège réel. Ils complètent la tromperie (deception) disponible dans Defender XDR.
+!: Compte leurre = balise Honeytoken dans MDI → alerte à la moindre utilisation.
+
+### Force brute sur Active Directory
+@ niveau=I ref=mdi-alerts,xdr-t-IdentityLogonEvents
+?: Vous recherchez des adresses IP qui ont échoué à s'authentifier sur plus de 30 comptes différents du domaine en une heure (pulvérisation de mots de passe vers AD). Quelle requête de chasse avancée est la plus appropriée ?
++: ```kqlx
+IdentityLogonEvents
+| where Timestamp > ago(1d)
+| where ActionType == "LogonFailed"
+| summarize Comptes = dcount(AccountUpn), Echecs = count() by IPAddress, bin(Timestamp, 1h)
+| where Comptes > 30
+| order by Comptes desc
+```
+-: ```kqlx
+IdentityLogonEvents
+| where Timestamp > ago(1d)
+| where ActionType == "LogonFailed"
+| summarize Echecs = count() by AccountUpn
+| where Echecs > 30
+```
+|| Détecte la force brute sur un compte, pas la pulvérisation (beaucoup de comptes, peu d'essais chacun) depuis une même source.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName == "lsass.exe"
+| summarize count() by DeviceName
+```
+|| Compte des exécutions de lsass.exe, sans lien avec des échecs d'authentification.
+-: ```kqlx
+IdentityQueryEvents
+| where Timestamp > ago(1d)
+| summarize dcount(QueryTarget) by IPAddress
+```
+|| IdentityQueryEvents décrit des requêtes de reconnaissance, pas des échecs d'authentification.
+=: La **pulvérisation de mots de passe** (T1110.003) se caractérise par **beaucoup de comptes distincts** et **peu d'essais par compte** depuis une même source. `dcount(AccountUpn)` par IP et par heure (`bin`) la met en évidence. **IdentityLogonEvents** contient les authentifications vues par MDI (et Entra ID selon les sources).
+T: MDI fournit aussi des alertes natives « Suspected brute-force attack (Kerberos, NTLM) » et « Password spray ». Côté cloud, la même logique s'applique à SigninLogs (ResultType 50126). Exclure les sources légitimes connues (serveurs d'applications, VPN).
+R: Une ligne par IP et par heure où plus de 30 comptes différents ont échoué.
+!: Spraying = dcount(comptes) élevé par source ; force brute = beaucoup d'échecs sur un compte.
+
+### Actions de remédiation MDI
+@ niveau=I ref=mdi-remediation
+?: Un compte Active Directory local est confirmé compromis. Quelles actions de remédiation sont disponibles directement depuis le portail Defender grâce à Defender for Identity ? (Sélectionnez deux réponses.)
+@ multi=2
++: Désactiver l'utilisateur dans Active Directory.
++: Réinitialiser le mot de passe de l'utilisateur (forcer le changement).
+-: Réinstaller le système d'exploitation du contrôleur de domaine. || Action d'infrastructure hors du périmètre des actions MDI.
+-: Supprimer la forêt Active Directory. || Action absurde et destructrice.
+-: Chiffrer la base NTDS.dit. || Sans rapport avec les actions de réponse disponibles.
+=: MDI propose des **actions de remédiation** sur les comptes AD : **désactiver l'utilisateur**, **réinitialiser le mot de passe**, (selon la configuration) **marquer comme compromis** côté Entra ID Protection, **suspendre** dans Entra ID, **exiger une nouvelle connexion**. Elles s'exécutent via un **compte d'action** (gMSA recommandé) disposant des droits nécessaires.
+T: Ces actions sont aussi utilisées par l'interruption automatique d'attaque. Elles sont journalisées dans le Centre de notifications. Pour un compte synchronisé, agir à la fois dans AD (source d'autorité) et dans Entra ID (sessions cloud).
+!: MDI : désactiver le compte AD, réinitialiser le mot de passe (via un compte d'action gMSA).
+
+### Pass-the-ticket et Golden Ticket
+@ niveau=A ref=mdi-alerts
+?: MDI signale « Suspected Golden Ticket usage (encryption downgrade) ». Quelle mesure d'éradication est indispensable si l'attaque est confirmée ?
++: Réinitialiser deux fois le mot de passe du compte krbtgt (en respectant l'intervalle de réplication), après avoir contenu l'attaquant et identifié la source de la compromission.
+-: Réinitialiser uniquement le mot de passe de l'utilisateur qui a déclenché l'alerte. || Un Golden Ticket est forgé avec le hachage de krbtgt : il reste valide tant que krbtgt n'est pas changé.
+-: Redémarrer tous les postes de travail. || Sans effet sur la validité des tickets forgés.
+-: Supprimer le compte krbtgt. || Impossible et destructeur pour Kerberos.
+=: Un **Golden Ticket** (T1558.001) est un TGT forgé grâce au hachage du compte **krbtgt**. Pour invalider les tickets forgés, il faut **réinitialiser deux fois** le mot de passe de krbtgt (l'historique conserve le mot de passe précédent), en respectant le délai de réplication pour éviter les interruptions.
+T: Avant l'éradication : déterminer comment le hachage de krbtgt a été obtenu (DCSync, accès au DC, sauvegarde), supprimer les accès de l'attaquant, sinon il pourra recommencer. Microsoft fournit des scripts et procédures pour cette opération sensible.
+!: Golden Ticket confirmé = double réinitialisation de krbtgt (après confinement et identification de la cause).
+
+### Événements d'annuaire dans la chasse avancée
+@ niveau=I ref=xdr-t-IdentityDirectoryEvents
+?: Vous voulez lister les ajouts de membres aux groupes sensibles (Admins du domaine, Administrateurs de l'entreprise) observés par Defender for Identity au cours des 7 derniers jours. Quelle table de chasse avancée utiliser ?
++: IdentityDirectoryEvents (ActionType « Group Membership changed »).
+-: DeviceRegistryEvents. || Modifications de registre sur les appareils.
+-: EmailEvents. || Événements de messagerie.
+-: UrlClickEvents. || Clics sur des URL.
+=: **IdentityDirectoryEvents** enregistre les événements d'annuaire capturés par MDI : modifications d'appartenance aux groupes, changements de mot de passe, modifications d'attributs, création de comptes, etc. Les détails (groupe cible, ajout/retrait) figurent dans **AdditionalFields**.
+T: Dans Sentinel, l'équivalent côté journaux Windows est SecurityEvent (4728, 4732, 4756). En chasse avancée, l'analyse de `AdditionalFields` (type dynamique) se fait avec `parse_json()` ou l'accès par propriété (par exemple `AdditionalFields["TO.GROUP"]`).
+X: ```kqlx
+IdentityDirectoryEvents
+| where Timestamp > ago(7d)
+| where ActionType == "Group Membership changed"
+| extend GroupeCible = tostring(AdditionalFields["TO.GROUP"])
+| where GroupeCible in~ ("Domain Admins", "Enterprise Admins", "Admins du domaine")
+| project Timestamp, AccountName, TargetAccountUpn, GroupeCible, DeviceName
+```
+!: Changements d'annuaire vus par MDI = IdentityDirectoryEvents (détails dans AdditionalFields).
+
+### Santé des capteurs MDI
+@ niveau=D ref=mdi-overview
+?: Plusieurs alertes MDI attendues ne se déclenchent plus depuis une semaine. Quelle est la première vérification à effectuer ?
++: Consulter les problèmes d'intégrité (health issues) de Defender for Identity : capteurs arrêtés, problèmes de connectivité, audit Windows mal configuré, compte de service d'annuaire en erreur.
+-: Réinstaller Microsoft Sentinel. || Sans rapport avec la collecte MDI.
+-: Augmenter la rétention de IdentityLogonEvents. || Sans effet sur la génération des alertes.
+-: Réduire le niveau d'automatisation de MDE. || Sans lien avec MDI.
+=: La page des **problèmes d'intégrité** de MDI signale les capteurs déconnectés ou en erreur, les configurations d'audit manquantes, les problèmes de compte de service d'annuaire, les capteurs obsolètes, etc. Un capteur arrêté crée un angle mort.
+T: Des notifications par e-mail des problèmes d'intégrité peuvent être configurées. Vérifiez aussi la couverture : tous les DC doivent avoir un capteur.
+!: Alertes MDI absentes → vérifier d'abord les problèmes d'intégrité des capteurs.

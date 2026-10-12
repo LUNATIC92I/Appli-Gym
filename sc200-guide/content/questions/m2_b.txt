@@ -1,0 +1,309 @@
+@@ module=2
+@@ section=Defender for Endpoint : configuration et politiques
+
+### Filtrage du contenu web
+@ niveau=D ref=mde-web-content
+?: La direction veut empêcher l'accès aux sites de jeux d'argent et de partage de fichiers peer-to-peer depuis les postes gérés, quel que soit le navigateur. Quelle fonctionnalité de Defender for Endpoint utiliser ?
++: Le filtrage du contenu web (web content filtering), qui s'appuie sur la protection réseau et SmartScreen.
+-: Les règles ASR. || Elles bloquent des comportements de processus, pas des catégories de sites.
+-: L'accès contrôlé aux dossiers. || Il protège des dossiers contre les modifications.
+-: Les indicateurs de fichiers. || Ils bloquent des fichiers par hachage.
+=: Le **filtrage du contenu web** bloque ou audite l'accès à des **catégories** de sites (contenu pour adultes, haute consommation de bande passante, responsabilité juridique, loisirs…) par stratégie appliquée à des groupes d'appareils.
+T: Dans Edge, l'application passe par SmartScreen ; pour les autres navigateurs, par la **protection réseau** (qui doit être activée en mode bloc). Les rapports de filtrage web montrent les catégories et domaines les plus bloqués.
+!: Bloquer des catégories de sites = filtrage du contenu web (protection réseau requise hors Edge).
+
+### Rôles personnalisés et Live Response avancé
+@ niveau=A ref=mde-rbac,mde-live-response
+?: Un analyste N1 doit pouvoir consulter les processus et connexions d'un appareil via Live Response, mais ne doit jamais télécharger de fichiers ni exécuter de scripts. Comment configurer ses droits ?
++: Lui attribuer un rôle personnalisé n'autorisant que les commandes Live Response de base (sans la permission « advanced »).
+-: Lui attribuer le rôle Administrateur général Entra. || Rôle bien trop privilégié.
+-: Désactiver Live Response dans les fonctionnalités avancées. || Plus personne ne pourrait utiliser Live Response.
+-: Activer « Live response unsigned script execution ». || Cela élargirait au contraire les capacités d'exécution de scripts.
+=: Les droits Live Response sont gérés par des **rôles** (RBAC MDE ou RBAC unifié) : **de base** (commandes d'investigation en lecture : `processes`, `connections`, `dir`, `registry`, `services`, `scheduledtasks`…) ou **avancés** (`getfile`, `putfile`, `run`, `remediate`…).
+T: Principe du moindre privilège : réserver les commandes avancées aux analystes N2/N3 et aux comptes formés. Toutes les commandes Live Response sont journalisées (historique de session dans le Centre de notifications) et téléchargeables comme journal.
+!: Live Response : droits « basiques » (lecture) vs « avancés » (fichiers, scripts, remédiation) à attribuer par rôle.
+
+@@ section=Defender for Endpoint : investigation et réponse sur les appareils
+
+### Isolation sélective
+@ niveau=I ref=mde-response-device
+?: Un poste est soupçonné de compromission. Vous voulez couper ses communications réseau tout en permettant à l'utilisateur de continuer à communiquer avec l'équipe sécurité via Outlook et Teams. Quelle action choisir ?
++: Isoler l'appareil avec l'option d'isolation sélective (selective isolation).
+-: Isolation complète (full). || Elle bloquerait aussi Outlook et Teams.
+-: Restreindre l'exécution d'applications. || Les communications réseau restent ouvertes.
+-: Lancer une analyse antivirus rapide. || Elle ne coupe aucune communication.
+=: L'**isolation de l'appareil** coupe ses connexions réseau sauf celles vers le service Defender for Endpoint (l'appareil reste pilotable). L'option **sélective** autorise en plus Outlook, Teams et Skype for Business pour communiquer avec l'utilisateur.
+T: L'isolation se lève par l'action « Libérer de l'isolation ». Elle est disponible sur Windows, macOS et Linux selon les versions prises en charge. Elle peut aussi être déclenchée automatiquement par une règle de détection personnalisée ou par l'interruption automatique d'attaque. L'appareil isolé peut toujours faire l'objet d'un package d'investigation ou de Live Response.
+!: Isolation = coupure réseau sauf le service MDE ; « sélective » = Outlook/Teams autorisés.
+
+### Package d'investigation
+@ niveau=I ref=mde-response-device
+?: Pour une analyse forensique, vous devez récupérer rapidement, sans connaissance préalable de l'appareil, les tâches planifiées, les services, les connexions réseau, les fichiers Prefetch et le journal des événements de sécurité d'un poste Windows. Quelle action est la plus efficace ?
++: Collecter le package d'investigation (Collect investigation package).
+-: Lancer une analyse antivirus complète. || Elle recherche des malwares mais ne collecte pas d'artefacts forensiques.
+-: Ajouter un indicateur de fichier. || Sans rapport avec la collecte d'artefacts.
+-: Ouvrir une session Live Response et taper `getfile` sur chaque artefact. || Possible mais beaucoup plus long ; le package collecte tout en une action.
+=: Le **package d'investigation** est une archive ZIP rassemblant notamment : autoruns, programmes installés, connexions réseau, Prefetch, liste des processus, tâches planifiées, journal des événements de sécurité, services, sessions SMB, informations système, dossiers temporaires, utilisateurs et groupes, et un rapport de synthèse.
+T: Le package se télécharge depuis le Centre de notifications ou la page de l'appareil. Il est possible de le collecter sur un appareil isolé. Pour des artefacts spécifiques (fichier précis, image mémoire), on utilise Live Response (`getfile`, scripts de la bibliothèque).
+!: Artefacts forensiques standard en une action = Collect investigation package.
+
+### Restreindre l'exécution d'applications
+@ niveau=I ref=mde-response-device
+?: Pendant l'analyse d'un poste compromis, vous voulez empêcher le lancement de tout outil d'attaque non signé par Microsoft, tout en gardant l'appareil connecté au réseau pour poursuivre la collecte. Quelle action utiliser ?
++: Restreindre l'exécution d'applications (Restrict app execution).
+-: Isoler l'appareil. || L'appareil serait coupé du réseau, ce qui n'est pas souhaité ici.
+-: Contenir l'appareil. || Cette action s'applique aux appareils non intégrés pour les isoler des appareils gérés.
+-: Exécuter « Offboard device ». || L'appareil ne serait plus surveillé : contre-productif.
+=: **Restreindre l'exécution d'applications** applique une stratégie d'intégrité du code qui n'autorise que les fichiers **signés par un certificat Microsoft**. Les outils d'attaque tiers non signés ne peuvent plus être lancés.
+T: L'utilisateur est notifié de la restriction. L'action se lève par « Supprimer les restrictions d'application ». Combinée à l'isolation si nécessaire, elle limite la progression de l'attaquant pendant l'investigation.
+!: Seuls les binaires signés Microsoft peuvent s'exécuter = Restrict app execution (l'appareil reste en réseau).
+
+### Contenir un appareil non géré
+@ niveau=A ref=mde-response-device,mde-device-discovery
+?: La découverte des appareils signale un ancien serveur Windows non intégré à MDE qui tente des connexions SMB vers de nombreux postes. Vous ne pouvez pas y installer d'agent rapidement. Quelle action limite immédiatement sa capacité de mouvement latéral ?
++: Contenir l'appareil (Contain device) : les appareils intégrés à MDE bloquent les communications entrantes et sortantes avec cet appareil.
+-: Isoler l'appareil. || L'isolation exige que l'appareil soit intégré à MDE.
+-: Collecter un package d'investigation. || Impossible sur un appareil non intégré.
+-: Lancer une analyse antivirus. || Impossible sur un appareil sans agent Defender.
+=: **Contenir l'appareil** s'applique aux **appareils non intégrés** : les appareils gérés par MDE (Windows pris en charge) bloquent les communications avec l'appareil contenu, ce qui freine le mouvement latéral.
+T: De même, **Contenir l'utilisateur** (en lien avec l'interruption automatique d'attaque et Defender for Identity) bloque l'usage d'un compte compromis depuis les appareils gérés. Ces actions sont réversibles et tracées dans le Centre de notifications.
+!: Appareil non intégré dangereux → Contain device (les appareils gérés le mettent en quarantaine réseau).
+
+### Chronologie d'un appareil
+@ niveau=D ref=mde-investigate-machine,mde-timeline
+?: Lors d'une investigation sur un poste, un analyste veut voir dans l'ordre chronologique les processus créés, connexions réseau, fichiers et modifications de registre survenus autour de l'heure d'une alerte, et marquer les événements intéressants. Quelle vue utiliser ?
++: La chronologie (Timeline) de la page de l'appareil, avec ses filtres et la possibilité de marquer des événements (flag).
+-: Le Secure Score de l'appareil. || Il mesure la posture de configuration.
+-: L'inventaire logiciel. || Il liste les logiciels installés.
+-: Le rapport de filtrage web. || Il concerne la navigation par catégories.
+=: La **chronologie de l'appareil** affiche les événements et alertes dans l'ordre temporel, avec filtres (type d'événement, gravité, technique MITRE…), recherche, export, et **marquage d'événements** (drapeau) pour construire la séquence de l'attaque.
+T: Depuis un événement, on peut ouvrir l'arborescence du processus, chercher l'événement en chasse avancée, voir les techniques MITRE associées. Le référentiel cite « Analyser les historiques des appareils ».
+!: Reconstituer la séquence sur un poste = chronologie de l'appareil (filtres + marquage d'événements).
+
+### Analyse approfondie d'un fichier
+@ niveau=I ref=mde-response-file
+?: Un fichier inconnu signé par un éditeur douteux apparaît sur trois postes. L'antivirus ne le détecte pas. Vous voulez observer son comportement (connexions, fichiers créés, registre) dans un environnement contrôlé. Quelle action choisir ?
++: Soumettre le fichier à l'analyse approfondie (Deep analysis).
+-: Restaurer le fichier depuis la quarantaine. || Sans objet : il n'est pas en quarantaine.
+-: Ajouter un indicateur « Autoriser ». || Contraire à la prudence.
+-: Lancer une analyse antivirus rapide. || Elle ne fournit pas de rapport comportemental.
+=: L'**analyse approfondie** exécute le fichier dans un **bac à sable cloud** et produit un rapport comportemental (processus, connexions, fichiers déposés, modifications de registre, IOC observés).
+T: L'analyse approfondie requiert que le fichier soit disponible (collecté auprès d'un appareil ou déjà échantillonné) ; elle concerne principalement les exécutables Windows (PE). Selon le résultat, on ajoute un **indicateur** de blocage, on met le fichier en **quarantaine** sur tous les appareils et on recherche ses occurrences en chasse avancée.
+!: Comportement d'un fichier inconnu = Deep analysis (bac à sable) ; ensuite indicateur + quarantaine.
+
+### Arrêter et mettre en quarantaine un fichier
+@ niveau=D ref=mde-response-file
+?: Un fichier malveillant est présent sur 40 appareils et un processus associé est en cours d'exécution sur certains. Quelle action unique arrête les processus et met le fichier en quarantaine sur tous les appareils où il a été vu ?
++: « Arrêter et mettre en quarantaine le fichier » (Stop and quarantine file) depuis la page du fichier.
+-: Isoler les 40 appareils un par un. || Disproportionné et ne supprime pas le fichier.
+-: Ajouter un indicateur « Auditer ». || L'audit ne bloque ni ne supprime.
+-: Lancer Live Response sur chaque appareil. || Possible mais beaucoup plus lent.
+=: **Stop and quarantine file** arrête les processus en cours liés au fichier et le place en quarantaine sur les appareils où il a été observé (dans une période récente, selon la documentation).
+T: L'action est réversible (restauration depuis la quarantaine). Pour empêcher les futures exécutions sur tout le parc, on ajoute un **indicateur de fichier** « Bloquer et corriger ». Les actions apparaissent dans le Centre de notifications.
+!: Fichier malveillant sur plusieurs appareils = Stop and quarantine file + indicateur de blocage pour l'avenir.
+
+### Live Response : collecter une image mémoire avec un script
+@ niveau=A ref=mde-live-response
+?: Pour une analyse mémoire, vous devez exécuter sur un serveur un script PowerShell interne qui crée un dump de processus, puis récupérer le fichier produit. Quelle séquence Live Response est correcte ?
++: Charger le script dans la bibliothèque Live Response, l'exécuter avec `run`, puis récupérer le fichier généré avec `getfile`.
+-: Utiliser `processes` pour copier la mémoire du processus. || `processes` liste les processus, il ne crée pas de dump.
+-: Utiliser `putfile` pour télécharger le dump vers le portail. || `putfile` copie un fichier de la bibliothèque **vers** l'appareil, pas l'inverse.
+-: Utiliser `remediate` sur le processus. || `remediate` supprime/corrige une entité, à l'opposé d'une collecte de preuves.
+=: Les scripts doivent être présents dans la **bibliothèque** Live Response (`library` pour lister) ; `run <script>` les exécute ; `getfile <chemin>` récupère un fichier (jusqu'à 3 Go). Ces commandes sont **avancées** et nécessitent les droits adéquats ; les scripts non signés exigent l'option dédiée.
+T: Autres commandes utiles : `connections`, `scheduledtasks`, `services`, `registry`, `findfile`, `fileinfo`, `analyze`, `collect` (package d'investigation), `trace`. L'historique de la session est conservé pour la traçabilité de la chaîne de preuves.
+X: ```powershell
+library
+run DumpProcess.ps1 -parameters "-ProcessId 4812 -Output C:\Temp\p4812.dmp"
+getfile C:\Temp\p4812.dmp
+```
+!: Live Response : bibliothèque → `run` → `getfile` ; `putfile` va vers l'appareil.
+
+### Arborescence de processus d'une alerte
+@ niveau=I ref=mde-investigate-machine,xdr-alert-tuning
+?: Une alerte « Suspicious process injection » est levée. Pour comprendre comment le processus malveillant a été lancé, quel élément de la page d'alerte est le plus utile ?
++: L'arborescence du processus (process tree) et l'histoire de l'alerte, qui montrent les processus parents, enfants et les preuves associées.
+-: Le Secure Score de l'appareil. || Il ne décrit pas la chaîne d'exécution.
+-: La liste des vulnérabilités logicielles. || Utile pour l'exposition, pas pour la chaîne de processus.
+-: Le rapport d'intégrité du capteur. || Il indique l'état de l'agent.
+=: La page d'alerte présente une **histoire de l'alerte** avec l'**arborescence des processus** (parent → enfant), les lignes de commande, les fichiers, connexions et clés de registre associés. On remonte ainsi au vecteur initial (par exemple winword.exe → powershell.exe → rundll32.exe).
+T: Chaque nœud propose des actions (ouvrir la page du fichier, chercher en chasse avancée, voir dans la chronologie). En chasse avancée, les colonnes `InitiatingProcess*` de DeviceProcessEvents reproduisent cette relation parent-enfant.
+!: Comprendre l'origine d'un processus = arborescence de processus de l'alerte (colonnes InitiatingProcess* en KQL).
+
+### Rechercher l'exécution d'un hachage sur le parc
+@ niveau=I ref=xdr-t-DeviceProcessEvents,xdr-ah-overview
+?: Un rapport de renseignement fournit le SHA256 d'un outil d'accès à distance malveillant. Quelle requête de chasse avancée liste les appareils où il a été exécuté au cours des 30 derniers jours ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(30d)
+| where SHA256 == "4f8a1c9e0d2b7a6f5e3c1b9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e"
+| summarize PremiereExecution = min(Timestamp), DerniereExecution = max(Timestamp) by DeviceName, AccountName
+```
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(30d)
+| where RemoteUrl == "4f8a1c9e0d2b7a6f5e3c1b9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e"
+```
+|| Un hachage de fichier ne se recherche pas dans les URL distantes.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(30d)
+| where AccountName == "4f8a1c9e0d2b7a6f5e3c1b9a8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e"
+```
+|| DeviceLogonEvents décrit des ouvertures de session, pas des exécutions de fichiers.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(30d)
+| where InitiatingProcessCommandLine has "SHA256"
+```
+|| Cherche la chaîne littérale « SHA256 » dans une ligne de commande, sans rapport avec le hachage recherché.
+=: **DeviceProcessEvents** enregistre les créations de processus avec les hachages du fichier exécuté (**SHA1**, **SHA256**, MD5) ; filtrer sur `SHA256` puis résumer par appareil et compte donne la portée de l'exécution.
+T: Pour savoir si le fichier est simplement **présent** (écrit sur disque sans exécution), interrogez **DeviceFileEvents** (FileCreated, FileRenamed…). Pour l'avoir vu **en tant que processus parent**, utilisez `InitiatingProcessSHA256`. La fonction `FileProfile()` enrichit avec la prévalence mondiale et la signature.
+R: Une ligne par couple appareil/compte avec la première et la dernière exécution observées.
+S: Requête de chasse avancée Defender XDR (colonne temporelle `Timestamp`). Dans Sentinel, la même table utilise `TimeGenerated`.
+!: Exécution d'un hachage = DeviceProcessEvents.SHA256 ; présence sur disque = DeviceFileEvents.
+
+### Investigation d'un compte utilisateur sur les appareils
+@ niveau=I ref=xdr-t-DeviceLogonEvents
+?: Vous devez savoir sur quels appareils le compte « svc_backup » s'est connecté de manière interactive ou via RDP au cours des 7 derniers jours. Quelle requête est la plus appropriée ?
++: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(7d)
+| where AccountName =~ "svc_backup"
+| where ActionType == "LogonSuccess"
+| where LogonType in ("Interactive", "RemoteInteractive")
+| summarize Connexions = count(), Derniere = max(Timestamp) by DeviceName, LogonType, RemoteIP
+```
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(7d)
+| where AccountName == "svc_backup"
+| where LogonType == 10
+```
+|| Dans DeviceLogonEvents, LogonType est une chaîne (« RemoteInteractive »), pas le code numérique Windows 10.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName == "svc_backup"
+```
+|| FileName désigne un fichier exécuté, pas un compte.
+-: ```kqlx
+IdentityQueryEvents
+| where Timestamp > ago(7d)
+| where QueryTarget == "svc_backup"
+```
+|| IdentityQueryEvents décrit des requêtes de reconnaissance (LDAP, DNS, SAMR), pas des ouvertures de session.
+=: **DeviceLogonEvents** contient les ouvertures de session sur les appareils intégrés : `ActionType` (LogonSuccess, LogonFailed, LogonAttempted), `LogonType` sous forme de **chaîne** (Interactive, RemoteInteractive, Network, Batch, Service…), `AccountName`, `RemoteIP`, `IsLocalAdmin`. L'opérateur `=~` compare sans tenir compte de la casse.
+T: Le type « RemoteInteractive » correspond aux sessions RDP. Pour les authentifications vues par les contrôleurs de domaine (Kerberos, NTLM), on utilise **IdentityLogonEvents** (Defender for Identity). Dans SecurityEvent (Sentinel), LogonType est numérique (2, 3, 10…).
+R: Une ligne par appareil, type d'ouverture de session et IP distante, avec le nombre de connexions et la plus récente.
+!: DeviceLogonEvents.LogonType est textuel (RemoteInteractive = RDP) ; SecurityEvent.LogonType est numérique (10 = RDP).
+
+### Évaluer la prévalence d'un fichier
+@ niveau=A ref=xdr-ah-fileprofile
+?: Pendant la chasse, vous voulez enrichir une liste de fichiers exécutés récemment avec leur prévalence mondiale, leur signataire et leur réputation, afin d'identifier les binaires rares. Quelle fonction de chasse avancée utiliser ?
++: La fonction `FileProfile()`, appelée avec `invoke` sur les colonnes de hachage.
+-: La fonction `ago()`. || Elle calcule une date relative.
+-: L'opérateur `mv-expand`. || Il développe des tableaux dynamiques en lignes.
+-: La fonction `geo_info_from_ip_address()`. || Elle géolocalise des adresses IP.
+=: **`FileProfile()`** enrichit des résultats contenant un hachage (SHA1 ou SHA256) avec des informations de fichier : **GlobalPrevalence**, GlobalFirstSeen, Signer, IsCertificateValid, IsRootSignerMicrosoft, ThreatName, etc.
+T: Syntaxe : `| invoke FileProfile(SHA1, 1000)` (colonne de hachage, nombre maximal d'enregistrements enrichis). Un binaire non signé, de faible prévalence mondiale et récemment apparu est un bon candidat d'investigation. La fonction est propre à la chasse avancée Defender XDR.
+X: ```kqlnv
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| summarize Appareils = dcount(DeviceId) by SHA1, FileName
+| invoke FileProfile(SHA1, 1000)
+| where GlobalPrevalence < 50 and IsCertificateValid != true
+| project FileName, SHA1, Appareils, GlobalPrevalence, Signer, ThreatName
+```
+!: Prévalence/signature d'un hachage en chasse avancée = `invoke FileProfile(SHA1|SHA256, max)`.
+
+### Analyse antivirus à distance
+@ niveau=D ref=mde-response-device
+?: Après la suppression d'un malware, vous voulez vérifier qu'aucune autre menace n'est présente sur un poste. Quelle action de réponse est la plus adaptée ?
++: Lancer une analyse antivirus Microsoft Defender complète (full scan) depuis la page de l'appareil.
+-: Libérer l'appareil de l'isolation. || À faire après vérification, pas à la place.
+-: Collecter un package d'investigation. || Il collecte des artefacts mais ne recherche pas de menaces.
+-: Ajouter une balise « Nettoyé » à l'appareil. || Une balise ne vérifie rien.
+=: L'action **Exécuter une analyse antivirus** permet une analyse **rapide** (emplacements courants de malwares) ou **complète** (tous les fichiers). Le résultat apparaît dans le Centre de notifications et la chronologie.
+T: Pour les investigations, l'analyse complète est plus longue mais plus exhaustive. L'analyse fonctionne même si Defender est en mode passif (l'analyse est alors effectuée sans remédiation selon la configuration). Une nouvelle enquête automatisée (AIR) peut aussi être lancée.
+!: Vérification post-nettoyage = analyse AV complète à distance (+ enquête automatisée si besoin).
+
+@@ section=Investigation et réponse automatisées (AIR) et interruption d'attaque
+
+### Approuver une action en attente
+@ niveau=D ref=xdr-action-center,mde-air
+?: Une enquête automatisée sur un poste propose de mettre en quarantaine un fichier situé dans C:\Windows\System32, mais l'action est « en attente ». Où l'analyste approuve-t-il ou rejette-t-il cette action ?
++: Dans le Centre de notifications (Action center), onglet « En attente » (Pending), ou dans l'onglet Enquêtes de l'incident.
+-: Dans les paramètres des règles ASR. || Sans rapport avec les actions AIR.
+-: Dans la page Watchlists de Sentinel. || Sans rapport.
+-: Dans le Centre d'administration Microsoft Entra. || Les actions AIR se gèrent dans Defender XDR.
+=: Le **Centre de notifications** unifié liste les actions de remédiation **en attente** (à approuver ou rejeter) et l'**historique** des actions (y compris manuelles). L'action est en attente car le niveau d'automatisation exige une approbation pour les dossiers principaux (« core folders »).
+T: Les actions en attente expirent après 7 jours (traité comme un rejet). L'historique permet d'annuler certaines actions (par exemple restaurer un fichier mis en quarantaine). Les actions AIR de Defender for Office 365 (suppression d'e-mails) apparaissent aussi dans le Centre de notifications.
+!: Approuver/rejeter les remédiations AIR = Action center (Pending) ; historique et annulation = onglet History.
+
+### Déclenchement d'une enquête automatisée
+@ niveau=I ref=mde-air,xdr-air
+?: Quelle affirmation décrit correctement l'investigation et la réponse automatisées (AIR) de Defender XDR ?
++: Une alerte déclenche une enquête automatisée qui examine les preuves (fichiers, processus, services, pilotes, adresses IP, e-mails…), leur attribue un verdict et propose ou applique des actions de remédiation selon le niveau d'automatisation.
+-: AIR ne fonctionne que sur demande manuelle d'un analyste. || Les enquêtes se lancent automatiquement à partir d'alertes (et peuvent aussi être lancées manuellement).
+-: AIR remplace l'antivirus Microsoft Defender. || AIR s'appuie sur les protections existantes ; il ne les remplace pas.
+-: AIR ne traite que les e-mails. || AIR couvre les terminaux (MDE) et la messagerie (MDO), avec des enquêtes au niveau de l'incident.
+=: **AIR** imite les étapes d'un analyste : il collecte les **preuves**, les analyse avec des modèles et des renseignements, attribue un **verdict** (malveillant, suspect, aucune menace) et produit des **actions de remédiation**, appliquées automatiquement ou mises en attente d'approbation.
+T: Une enquête peut s'étendre à d'autres appareils (« entités associées »). L'état de l'enquête (en cours, remédiée, partiellement remédiée, aucune menace) s'affiche dans l'incident. Côté MDO, AIR se déclenche notamment sur les signalements d'hameçonnage par les utilisateurs ou sur des alertes de clics malveillants.
+!: AIR = collecte de preuves → verdicts → remédiations automatiques ou en attente (Action center).
+
+### Prérequis de l'interruption automatique d'attaque
+@ niveau=A ref=xdr-disruption-config,xdr-disruption
+?: Vous voulez maximiser l'efficacité de l'interruption automatique d'attaque contre les rançongiciels opérés par des humains. Quelles configurations sont recommandées ? (Sélectionnez deux réponses.)
+@ multi=2
++: Déployer Defender for Endpoint avec la découverte des appareils et le mode bloc EDR / la protection contre les falsifications, sur un maximum d'appareils.
++: Déployer Defender for Identity sur les contrôleurs de domaine (pour permettre les actions sur les comptes Active Directory, comme la désactivation de l'utilisateur).
+-: Configurer tous les groupes d'appareils en « No automated response ». || L'interruption s'appuie sur des actions automatiques ; des niveaux d'automatisation faibles limitent la réponse.
+-: Désactiver l'antivirus Microsoft Defender au profit d'un pare-feu tiers. || Cela supprime des capacités de protection et de confinement.
+-: Supprimer tous les comptes de service. || Sans rapport et irréaliste ; on peut en revanche exclure des comptes critiques de l'interruption.
+=: L'interruption automatique repose sur la couverture XDR : **MDE** (découverte des appareils, EDR en mode bloc, protection contre les falsifications) pour **contenir les appareils**, et **MDI** pour **désactiver/contenir les comptes** Active Directory. Les niveaux d'automatisation appropriés et l'audit des exclusions sont également recommandés.
+T: Il est possible d'**exclure** des utilisateurs (comptes de service critiques) ou des appareils de certaines actions d'interruption. Les incidents portent l'étiquette « Attack Disruption » et le Centre de notifications montre les actions, que l'analyste peut annuler après analyse. Le référentiel cite « Configurer l'interruption automatique des attaques ».
+!: Attack disruption efficace = MDE largement déployé (bloc EDR, anti-falsification) + MDI sur les DC + automatisation suffisante ; exclusions possibles.
+
+### Incident portant l'étiquette d'interruption d'attaque
+@ niveau=I ref=xdr-disruption
+?: Un incident affiche l'étiquette « Attack Disruption » : un utilisateur a été désactivé et deux appareils contenus automatiquement. Quelle est la conduite à tenir de l'analyste ?
++: Prioriser l'incident, analyser l'histoire de l'attaque, poursuivre l'investigation et la remédiation, puis lever le confinement et réactiver le compte une fois la menace éliminée.
+-: Annuler immédiatement toutes les actions automatiques pour éviter les perturbations. || Risque de laisser l'attaquant reprendre la main ; il faut d'abord analyser.
+-: Fermer l'incident, car l'interruption a résolu l'attaque. || L'interruption contient l'attaque mais ne l'éradique pas.
+-: Attendre qu'une règle d'automatisation ferme l'incident. || L'incident nécessite une investigation humaine.
+=: L'interruption automatique **contient** l'attaque pour gagner du temps ; elle ne remplace ni l'**investigation** (périmètre, vecteur initial, persistance) ni l'**éradication**. Les actions (désactivation d'utilisateur, confinement d'appareil) sont réversibles depuis le Centre de notifications ou la page de l'entité.
+T: Ces incidents sont à haute fidélité : les traiter en priorité. Communiquer avec les équipes métier sur les comptes/appareils contenus. Documenter la levée des mesures.
+!: « Attack Disruption » = attaque contenue, pas terminée : enquêter, éradiquer, puis lever le confinement.
+
+### Résolution automatique des alertes
+@ niveau=I ref=mde-advanced-features,mde-air
+?: Après une enquête automatisée concluant à « aucune menace trouvée », les alertes associées restent ouvertes et encombrent la file. Quelle fonctionnalité avancée de MDE permet de les résoudre automatiquement ?
++: « Automatically resolve alerts » (résoudre automatiquement les alertes).
+-: « Allow or block file ». || Permet les indicateurs de fichiers.
+-: « Live response unsigned script execution ». || Concerne l'exécution de scripts non signés.
+-: « Custom network indicators ». || Concerne les indicateurs IP/URL.
+=: Avec **Automatically resolve alerts**, les alertes pour lesquelles l'enquête automatisée ne trouve aucune menace ou a terminé la remédiation sont résolues automatiquement.
+T: Bonne pratique : garder cette option activée pour réduire le bruit, tout en surveillant les enquêtes « partiellement remédiées » ou en échec. Les alertes résolues restent consultables.
+!: Fermer automatiquement les alertes « sans menace » après AIR = Automatically resolve alerts.
+
+### Enquête manuelle à la demande
+@ niveau=D ref=mde-response-device,mde-air
+?: Un appareil présente des comportements anormaux sans alerte associée. L'analyste veut que Defender for Endpoint lance une enquête automatisée complète sur cet appareil. Quelle action utiliser ?
++: « Lancer une enquête automatisée » (Initiate automated investigation) depuis la page de l'appareil.
+-: « Contenir l'appareil ». || Action de confinement pour appareils non intégrés.
+-: « Signaler l'imprécision de l'appareil ». || Sert à corriger des informations d'inventaire.
+-: « Offboard device ». || Retire l'appareil de la surveillance.
+=: L'action **Initiate automated investigation** démarre une enquête AIR sur l'appareil même sans alerte préalable ; les résultats et éventuelles actions apparaissent dans l'onglet Enquêtes et le Centre de notifications.
+T: Les enquêtes manuelles suivent le niveau d'automatisation du groupe d'appareils. Elles complètent la chasse avancée et la chronologie de l'appareil.
+!: Enquête AIR sans alerte = Initiate automated investigation.
+
+### Désactiver l'interruption pour un compte de service critique
+@ niveau=A ref=xdr-disruption-config
+?: Un compte de service critique pour la production a été désactivé à tort par l'interruption automatique d'attaque à cause d'un comportement atypique mais légitime. Comment éviter que cela se reproduise, sans désactiver la fonctionnalité pour le reste du locataire ?
++: Ajouter le compte aux exclusions de l'interruption automatique d'attaque (exclusion d'identité), après validation que son comportement est légitime.
+-: Désactiver Defender for Identity. || On perdrait les détections et la protection des identités.
+-: Supprimer le compte et le recréer. || Ne change rien au comportement et perturbe la production.
+-: Passer tous les groupes d'appareils en « No automated response ». || Supprime l'automatisation pour tout le parc.
+=: Les paramètres de l'interruption automatique permettent d'**exclure des utilisateurs** (et des appareils selon les actions) des actions automatiques de confinement, pour protéger des comptes critiques.
+T: Les exclusions doivent rester rares, documentées et revues, car un compte exclu pourrait être exploité par un attaquant sans être contenu. Préférez le durcissement du compte (mot de passe long géré, restriction des connexions, gMSA).
+!: Faux positif d'interruption sur un compte critique = exclusion ciblée dans les paramètres d'attack disruption.
