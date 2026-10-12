@@ -1,0 +1,259 @@
+@@ module=5
+@@ section=Architecture, plans et posture de sécurité
+
+### Rôle de Microsoft Defender for Cloud
+@ niveau=D ref=mdc-overview
+?: Quelle description correspond le mieux à Microsoft Defender for Cloud ?
++: Une plateforme de protection des applications cloud natives (CNAPP) combinant la gestion de la posture (CSPM) et la protection des charges de travail cloud (CWP) pour Azure, AWS, GCP et les environnements locaux.
+-: Le SIEM de Microsoft destiné à collecter tous les journaux de l'entreprise. || C'est Microsoft Sentinel.
+-: Un antivirus pour postes de travail Windows. || C'est l'antivirus Microsoft Defender / Defender for Endpoint.
+-: Le service d'authentification des utilisateurs Microsoft 365. || C'est Microsoft Entra ID.
+=: **Defender for Cloud** est une **CNAPP** : **CSPM** (évaluation de la configuration, recommandations, Secure Score, conformité réglementaire, chemins d'attaque) et **CWP** (plans Defender for Servers, Storage, SQL, Containers, App Service, Key Vault, Resource Manager, APIs, AI services…) générant des **alertes de sécurité**.
+T: Il couvre Azure nativement, AWS et GCP via des connecteurs, et les machines locales via Azure Arc. Ses alertes et incidents sont intégrés à Defender XDR et peuvent être ingérés dans Sentinel.
+!: Defender for Cloud = CNAPP (CSPM + protection des charges) multicloud ; ne pas confondre avec Sentinel (SIEM) ni Defender XDR.
+
+### CSPM gratuit et Defender CSPM
+@ niveau=I ref=mdc-cspm
+?: Une organisation utilise uniquement les fonctionnalités gratuites de gestion de la posture de Defender for Cloud. Quelle capacité nécessite d'activer le plan payant Defender CSPM ?
++: L'analyse des chemins d'attaque (attack path analysis) et l'explorateur de sécurité cloud (cloud security explorer).
+-: Le Secure Score. || Le Secure Score est inclus dans la CSPM de base (gratuite).
+-: Les recommandations de sécurité du Microsoft Cloud Security Benchmark. || Incluses dans la CSPM de base.
+-: L'inventaire des ressources. || Inclus dans la CSPM de base.
+=: La **CSPM de base** (Foundational CSPM, gratuite) fournit les recommandations (MCSB), le Secure Score et l'inventaire. **Defender CSPM** (payant) ajoute notamment l'**analyse des chemins d'attaque**, l'**explorateur de sécurité cloud** (requêtes sur le graphe de sécurité), l'analyse sans agent, la posture des données sensibles, les règles de gouvernance et des normes de conformité supplémentaires.
+T: Les chemins d'attaque combinent vulnérabilités, expositions Internet, identités et accès aux données pour prioriser les risques exploitables. La disponibilité des fonctionnalités évolue : consulter la page de comparaison des plans.
+!: Gratuit = recommandations + Secure Score + inventaire ; Defender CSPM = chemins d'attaque, explorateur, posture des données…
+
+### Secure Score
+@ niveau=D ref=mdc-secure-score
+?: Comment le Secure Score de Defender for Cloud évolue-t-il ?
++: Il augmente lorsque les recommandations de sécurité sont corrigées sur les ressources concernées, en fonction du poids des contrôles de sécurité.
+-: Il augmente avec le nombre d'alertes résolues. || Le Secure Score mesure la posture (configuration), pas le traitement des alertes.
+-: Il diminue automatiquement chaque mois. || Il dépend de l'état des recommandations.
+-: Il est calculé uniquement sur les machines virtuelles Windows. || Il couvre toutes les ressources évaluées.
+=: Le **Secure Score** reflète la proportion de recommandations satisfaites, pondérée par l'importance des contrôles. Corriger une recommandation sur toutes les ressources concernées fait gagner les points associés.
+T: Les recommandations peuvent être **exemptées** (atténuée par un tiers, risque accepté) avec justification. Les règles de **gouvernance** attribuent des propriétaires et des échéances. Ne pas confondre avec le Secure Score Microsoft (Microsoft 365/Defender XDR).
+!: Secure Score Defender for Cloud = posture de configuration ; augmente en corrigeant les recommandations.
+
+### Choix du plan Defender for Servers
+@ niveau=I ref=mdc-servers,mdc-servers-plans
+?: Vous devez protéger des machines virtuelles Azure avec l'EDR de Defender for Endpoint, l'analyse des vulnérabilités sans agent, la surveillance de l'intégrité des fichiers et l'accès juste-à-temps. Quel plan choisir ?
++: Defender for Servers Plan 2.
+-: Defender for Servers Plan 1. || P1 fournit l'intégration MDE (EDR) mais pas l'analyse sans agent, la FIM ni le JIT.
+-: Foundational CSPM uniquement. || La CSPM de base n'inclut pas la protection des charges de serveurs.
+-: Defender for Storage. || Plan dédié aux comptes de stockage.
+=: **Plan 1** : intégration et déploiement automatique de **Defender for Endpoint** (EDR), alertes et incidents intégrés, inventaire logiciel, analyse de vulnérabilités avec agent. **Plan 2** : tout P1 + **analyse sans agent** (vulnérabilités, secrets, malware), **FIM**, **accès juste-à-temps**, alertes Defender for DNS, détection au niveau réseau Azure, carte réseau, **500 Mo/jour d'ingestion gratuite** pour certaines données, fonctionnalités premium de Defender Vulnerability Management.
+T: Defender for Servers n'utilise plus l'agent Log Analytics ni (pour la plupart des fonctionnalités) AMA : l'analyse sans agent et l'intégration MDE les remplacent. P1 peut être activé par ressource ; P2 s'active au niveau de l'abonnement.
+!: P1 = EDR MDE ; P2 = P1 + sans agent, FIM, JIT, DNS, 500 Mo d'ingestion.
+
+### Protection des machines locales et multicloud
+@ niveau=I ref=mdc-arc,mdc-aws
+?: Une entreprise souhaite que Defender for Cloud évalue et protège des serveurs locaux et des instances EC2 d'AWS. Quelles méthodes d'intégration sont appropriées ? (Sélectionnez deux réponses.)
+@ multi=2
++: Connecter le compte AWS via le connecteur multicloud natif (avec, si nécessaire, le déploiement automatique d'Azure Arc pour les EC2).
++: Connecter les serveurs locaux à Azure via Azure Arc.
+-: Installer Microsoft Sentinel sur chaque serveur local. || Sentinel n'est pas un agent ; il ne protège pas les serveurs.
+-: Créer des watchlists contenant les noms des serveurs. || Une watchlist n'intègre rien à Defender for Cloud.
+-: Exporter manuellement les configurations dans un fichier CSV. || Aucune évaluation continue.
+=: Les **connecteurs multicloud** (AWS, GCP) permettent l'évaluation de la posture et l'activation des plans de protection pour les ressources de ces clouds. Les **serveurs locaux** sont intégrés via **Azure Arc**, ce qui les rend gérables comme des ressources Azure.
+T: Certaines fonctionnalités de Defender for Servers sur AWS/GCP nécessitent Arc (par exemple FIM, mises à jour OS). Les ressources multicloud apparaissent dans l'inventaire, les recommandations et le Secure Score.
+!: Multicloud = connecteurs AWS/GCP ; local = Azure Arc.
+
+### Accès juste-à-temps aux machines virtuelles
+@ niveau=I ref=mdc-jit
+?: Les ports RDP et SSH des VM Azure sont ouverts en permanence sur Internet pour l'administration. Quelle fonctionnalité de Defender for Cloud réduit cette exposition tout en permettant l'administration ?
++: L'accès juste-à-temps (JIT), qui ferme les ports de gestion par défaut et ne les ouvre, sur demande approuvée, que pour une durée et une IP source limitées.
+-: La surveillance de l'intégrité des fichiers. || Elle détecte les modifications de fichiers et registre.
+-: L'analyse de malware sans agent. || Elle détecte des malwares sur les disques.
+-: Le Secure Score. || Il mesure la posture sans modifier les règles réseau.
+=: L'**accès JIT** (Defender for Servers P2) configure des règles **NSG** ou **Azure Firewall** qui bloquent les ports de gestion (22, 3389, 5985/5986…). Une demande d'accès ouvre temporairement le port pour l'IP du demandeur, pendant une durée maximale définie.
+T: Les demandes JIT sont journalisées (AzureActivity) et peuvent être restreintes par RBAC. Alternative complémentaire : Azure Bastion. Les ports de gestion ouverts sur Internet font l'objet de recommandations et d'alertes (force brute).
+!: Ports de gestion exposés = JIT (ouverture temporaire, IP source, durée limitée) ou Bastion.
+
+### Surveillance de l'intégrité des fichiers
+@ niveau=D ref=mdc-fim
+?: L'équipe conformité exige d'être alertée en cas de modification des fichiers système critiques et de clés de registre sensibles sur des serveurs. Quelle fonctionnalité utiliser ?
++: La surveillance de l'intégrité des fichiers (File Integrity Monitoring) de Defender for Servers Plan 2.
+-: L'accès juste-à-temps. || Il contrôle l'ouverture des ports de gestion.
+-: Les règles d'automatisation de Sentinel. || Elles agissent sur les incidents.
+-: L'analyse des chemins d'attaque. || Elle analyse des combinaisons de risques, pas les modifications de fichiers.
+=: La **FIM** surveille les changements de fichiers, de registre (Windows) et de configurations critiques, et signale les modifications potentiellement malveillantes. Dans sa version actuelle, elle s'appuie sur l'intégration Defender for Endpoint.
+T: Définir des règles ciblées (fichiers système, binaires d'applications, fichiers de configuration) pour limiter le bruit. Les événements peuvent être analysés dans l'espace de travail associé et corrélés dans Sentinel.
+!: Modifications de fichiers/registre critiques = File Integrity Monitoring (Servers P2).
+
+### Exemption d'une recommandation
+@ niveau=I ref=mdc-exemption,mdc-recommendations
+?: Une recommandation « Le chiffrement de disque doit être appliqué » concerne une VM dont le chiffrement est assuré par une solution tierce approuvée. Comment la traiter pour ne pas pénaliser le Secure Score à tort ?
++: Créer une exemption pour cette ressource avec la catégorie « Atténué » (mitigated) et une justification documentée.
+-: Supprimer la VM. || Disproportionné.
+-: Désactiver Defender for Cloud sur l'abonnement. || On perdrait toute la protection.
+-: Ignorer la recommandation sans la documenter. || Le score reste pénalisé et la décision n'est pas tracée.
+=: Les **exemptions** retirent une ressource de l'évaluation d'une recommandation pour un motif : **atténué** (contrôle compensatoire) ou **risque accepté** (dérogation), avec date d'expiration éventuelle et justification.
+T: Les exemptions sont des objets Azure Policy et sont auditées. Les **règles de gouvernance** servent, à l'inverse, à assigner des propriétaires et des échéances de correction.
+!: Contrôle compensatoire ou risque accepté = exemption justifiée (atténué / risque accepté).
+
+### Règles de gouvernance
+@ niveau=I ref=mdc-governance
+?: Le RSSI veut que chaque recommandation de gravité élevée soit automatiquement assignée au propriétaire de la ressource avec une échéance de 14 jours et des rappels hebdomadaires. Quelle fonctionnalité utiliser ?
++: Les règles de gouvernance de Defender for Cloud.
+-: Les règles de suppression d'alertes. || Elles masquent des alertes, elles n'assignent pas de recommandations.
+-: Les playbooks Sentinel uniquement. || Possibles mais inutiles : la fonctionnalité native existe.
+-: Les watchlists. || Elles stockent des données de référence.
+=: Les **règles de gouvernance** attribuent automatiquement des **propriétaires** (par exemple via une balise de ressource) et des **échéances** aux recommandations correspondant à des critères (gravité, type), avec **notifications** par e-mail et suivi dans un rapport de gouvernance.
+T: Elles favorisent la responsabilisation des équipes propriétaires et alimentent le suivi de la remédiation (respect des échéances). Fonctionnalité associée au plan Defender CSPM.
+!: Propriétaires + échéances automatiques pour les recommandations = règles de gouvernance.
+
+### Conformité réglementaire
+@ niveau=D ref=mdc-mcsb
+?: Un auditeur demande l'état de conformité de l'environnement Azure par rapport à la norme ISO 27001. Où trouver cette information dans Defender for Cloud ?
++: Dans le tableau de bord de conformité réglementaire, après avoir ajouté la norme ISO 27001 aux normes évaluées.
+-: Dans la file d'alertes de sécurité. || Les alertes concernent les menaces, pas la conformité.
+-: Dans le Centre de notifications de Defender XDR. || Il trace les actions de réponse.
+-: Dans la table Heartbeat. || Disponibilité des agents.
+=: Le **tableau de bord de conformité réglementaire** évalue les ressources par rapport à des normes (Microsoft Cloud Security Benchmark par défaut, et d'autres comme ISO 27001, PCI DSS, NIST…), en associant leurs contrôles aux recommandations.
+T: Un état « conforme » technique ne vaut pas certification : certains contrôles sont organisationnels. Les rapports peuvent être téléchargés pour l'audit. Les normes supplémentaires dépendent du plan activé (Defender CSPM pour certaines).
+!: Conformité aux normes = tableau de bord de conformité réglementaire (MCSB par défaut + normes ajoutées).
+
+### Analyse des chemins d'attaque
+@ niveau=A ref=mdc-attack-path,mdc-explorer
+?: Defender CSPM signale un chemin d'attaque : « VM exposée à Internet avec une vulnérabilité critique, disposant d'une identité managée qui a accès à un compte de stockage contenant des données sensibles ». Quelle action est la plus efficace ?
++: Briser le chemin au point le plus efficace (par exemple corriger la vulnérabilité ou supprimer l'exposition Internet, et réduire les permissions de l'identité managée), en traitant les recommandations associées.
+-: Ignorer le chemin tant qu'aucune alerte n'a été générée. || Le chemin décrit un risque exploitable avant toute attaque.
+-: Supprimer toutes les identités managées de l'abonnement. || Disproportionné et perturbant.
+-: Augmenter la rétention des journaux de stockage. || Utile pour l'investigation mais ne réduit pas le risque.
+=: L'**analyse des chemins d'attaque** relie plusieurs faiblesses (exposition, vulnérabilité, identité, accès aux données) en scénarios exploitables et indique les **points d'étranglement** (choke points) où une correction coupe plusieurs chemins.
+T: L'**explorateur de sécurité cloud** permet de rechercher proactivement des combinaisons de risques (par exemple « VM exposées avec vulnérabilités élevées et accès à Key Vault »). Ces informations alimentent aussi Microsoft Security Exposure Management.
+!: Chemin d'attaque = combinaison exploitable ; corriger au point d'étranglement.
+
+### Analyse sans agent
+@ niveau=I ref=mdc-agentless
+?: Quel est l'avantage principal de l'analyse sans agent (agentless scanning) de Defender for Cloud pour les machines virtuelles ?
++: Elle évalue les vulnérabilités, l'inventaire logiciel, les secrets et les malwares à partir d'instantanés de disques, sans installer ni gérer d'agent et sans impact sur les performances de la VM.
+-: Elle bloque en temps réel les processus malveillants sur la VM. || La prévention en temps réel relève de l'EDR (MDE) ; l'analyse sans agent est une évaluation périodique.
+-: Elle remplace la MFA des administrateurs. || Sans rapport.
+-: Elle chiffre automatiquement les disques. || Elle analyse, elle ne chiffre pas.
+=: L'**analyse sans agent** prend des **instantanés** des disques et les analyse hors de la VM : vulnérabilités logicielles, **secrets** (clés, mots de passe en clair), **malware**, inventaire. Elle couvre aussi des machines où un agent n'est pas déployé.
+T: Disponible avec Defender CSPM et Defender for Servers P2 (selon les fonctionnalités). Elle complète, sans remplacer, la protection en temps réel de Defender for Endpoint.
+!: Sans agent = évaluation par instantanés de disques (vulnérabilités, secrets, malware), sans impact sur la VM.
+
+### Defender for Storage
+@ niveau=I ref=mdc-storage
+?: Une application permet aux clients de déposer des fichiers dans un compte de stockage Blob. Vous voulez détecter les fichiers malveillants dès leur chargement et les accès anormaux au compte. Quel plan activer ?
++: Defender for Storage, avec l'analyse des malwares au chargement (on-upload malware scanning) et la surveillance des activités.
+-: Defender for Key Vault. || Plan dédié aux coffres de clés.
+-: Defender for Resource Manager. || Surveille les opérations du plan de contrôle Azure.
+-: Defender for SQL. || Plan dédié aux bases de données.
+=: **Defender for Storage** détecte les activités suspectes (accès depuis une IP malveillante ou Tor, anomalies d'accès, exfiltration potentielle), propose l'**analyse des malwares au chargement** (et à la demande) et la détection des menaces sur les données sensibles.
+T: Les résultats d'analyse de malware peuvent déclencher des actions (suppression ou mise en quarantaine du blob via automatisation, étiquetage par index tags). Les alertes remontent dans Defender for Cloud, Defender XDR et Sentinel.
+!: Fichiers déposés dans un stockage = Defender for Storage (analyse des malwares au chargement + détection d'activités suspectes).
+
+### Defender for Key Vault
+@ niveau=D ref=mdc-keyvault
+?: Une alerte Defender for Cloud indique « Volume inhabituel d'opérations dans un coffre de clés » depuis une IP inconnue. Quel plan a généré cette alerte et que vérifier en priorité ?
++: Defender for Key Vault ; vérifier l'identité appelante, les secrets lus et l'origine de l'IP, puis faire tourner les secrets exposés si l'accès est illégitime.
+-: Defender for DNS ; vérifier les enregistrements DNS. || Le plan concerné est Key Vault.
+-: Defender for Containers ; redémarrer les pods. || Sans rapport.
+-: Defender CSPM ; ignorer car c'est une recommandation. || Il s'agit d'une alerte de menace, pas d'une recommandation.
+=: **Defender for Key Vault** détecte les accès inhabituels ou potentiellement malveillants aux coffres (volume anormal, accès depuis Tor ou une IP suspecte, utilisateur inhabituel). La réponse consiste à identifier l'appelant (journaux de diagnostic du coffre), révoquer son accès et **faire tourner les secrets** potentiellement compromis.
+T: Les journaux d'audit de Key Vault (via paramètres de diagnostic) permettent l'investigation dans Log Analytics. Les identités ayant accès au coffre doivent suivre le moindre privilège (RBAC Azure ou stratégies d'accès).
+!: Alerte Key Vault = identifier l'appelant, révoquer l'accès, faire tourner les secrets.
+
+### Defender for Resource Manager
+@ niveau=I ref=mdc-arm
+?: Quel plan Defender for Cloud détecte des opérations suspectes sur le plan de contrôle Azure, comme l'utilisation d'outils d'exploitation (MicroBurst, PowerZure) ou des opérations de gestion depuis des IP malveillantes ?
++: Defender for Resource Manager.
+-: Defender for App Service. || Surveille les applications web hébergées.
+-: Defender for Storage. || Surveille les comptes de stockage.
+-: Foundational CSPM. || Évalue la configuration sans détection de menaces.
+=: **Defender for Resource Manager** analyse les opérations de gestion des ressources (via Azure Resource Manager : portail, API REST, CLI, PowerShell) et détecte les comportements suspects : boîtes à outils d'exploitation, opérations depuis des IP malveillantes, persistance, mouvement latéral entre abonnements.
+T: Complément naturel d'AzureActivity dans Sentinel. Les alertes indiquent les opérations, l'appelant et l'IP, à corréler avec les connexions Entra ID.
+!: Opérations suspectes sur le plan de contrôle Azure = Defender for Resource Manager.
+
+### Defender for Containers
+@ niveau=I ref=mdc-containers
+?: Quelles capacités offre Defender for Containers pour des clusters AKS ? (Sélectionnez deux réponses.)
+@ multi=2
++: La détection des menaces à l'exécution sur les nœuds et le plan de contrôle Kubernetes (par exemple conteneur privilégié, exécution de commandes suspectes, accès à l'API depuis une IP malveillante).
++: L'évaluation des vulnérabilités des images de conteneurs (registres et images en cours d'exécution) et le durcissement de la posture Kubernetes.
+-: La protection des boîtes aux lettres Exchange Online. || C'est Defender for Office 365.
+-: La gestion des mots de passe des utilisateurs Entra ID. || Sans rapport.
+-: L'analyse des tables SQL. || C'est Defender for SQL.
+=: **Defender for Containers** couvre la **posture** (recommandations Kubernetes, Azure Policy pour Kubernetes), l'**évaluation des vulnérabilités** des images (registres ACR/ECR/GCR et images en exécution) et la **protection à l'exécution** (capteur Defender sur les nœuds, analyse des journaux d'audit Kubernetes).
+T: Le capteur Defender (DaemonSet) collecte les événements d'exécution ; l'analyse sans agent découvre les clusters. Les alertes incluent les techniques de la matrice Kubernetes (par exemple « Container with a sensitive volume mount »).
+!: Defender for Containers = posture K8s + vulnérabilités des images + détection à l'exécution.
+
+### Defender for SQL
+@ niveau=D ref=mdc-sql
+?: Une alerte « Potential SQL injection » est levée sur une base Azure SQL. Quel plan l'a générée et quelles informations permettent d'investiguer ?
++: Defender for SQL (Defender for Azure SQL Database) ; l'alerte fournit la requête suspecte, l'application cliente, l'IP et l'heure, à recouper avec les journaux d'audit SQL et les journaux de l'application.
+-: Defender for Storage ; vérifier les blobs. || La cible est une base SQL.
+-: Defender for DNS ; vérifier les résolutions. || Sans rapport.
+-: Foundational CSPM ; c'est une recommandation de configuration. || C'est une alerte de menace.
+=: **Defender for SQL** détecte les tentatives d'**injection SQL**, les accès anormaux (emplacement, application, principal inhabituels), les attaques par force brute et les tentatives d'exfiltration ; il propose aussi l'évaluation des vulnérabilités de la base.
+T: Une injection signalée oriente vers l'application (code vulnérable), pas seulement vers la base : impliquer les développeurs, examiner les journaux du WAF et de l'application, et vérifier ce qui a été lu (audit SQL).
+!: Injection SQL / accès anormal à une base = Defender for SQL ; investiguer aussi l'application.
+
+### Defender for DNS et domaines malveillants
+@ niveau=I ref=mdc-dns,mdc-servers-plans
+?: Une alerte Defender for Cloud indique « Communication with suspicious domain identified by threat intelligence » pour une VM Azure, détectée au niveau DNS. Quelle est la source de cette détection pour les nouveaux clients ?
++: Les alertes Defender for DNS, désormais incluses dans Defender for Servers Plan 2.
+-: Defender for Key Vault. || Sans rapport avec les requêtes DNS des VM.
+-: Les règles ASR de MDE. || Elles ne génèrent pas cette alerte.
+-: La conformité réglementaire. || Elle ne génère pas d'alertes de menace.
+=: Les détections **Defender for DNS** analysent les requêtes DNS des ressources Azure vers le résolveur Azure et signalent les communications avec des domaines malveillants, le tunneling DNS, etc. La documentation de Defender for Servers indique que ces alertes sont incluses dans le **Plan 2**.
+T: Investiguer avec MDE (processus à l'origine de la requête, DeviceNetworkEvents) si l'agent est présent, et bloquer le domaine (indicateurs, pare-feu DNS). Le plan autonome Defender for DNS reste pour les clients existants selon la documentation.
+!: Requêtes DNS malveillantes de VM Azure = alertes Defender for DNS (incluses dans Servers P2).
+
+### Defender for App Service
+@ niveau=D ref=mdc-appservice
+?: Une alerte signale « Web shell detected » sur une application Azure App Service. Quel plan l'a générée et quelle est la priorité ?
++: Defender for App Service ; isoler/retirer le fichier malveillant, analyser comment il a été déposé (vulnérabilité, identifiants de déploiement) et faire tourner les secrets de l'application.
+-: Defender for DNS ; vider le cache DNS. || Sans rapport.
+-: Defender for Key Vault ; supprimer le coffre. || Disproportionné et sans rapport direct.
+-: Defender CSPM ; ignorer car c'est une recommandation. || C'est une alerte de compromission.
+=: **Defender for App Service** surveille les applications et l'infrastructure App Service : web shells, exécution de commandes suspectes, scans, accès à des URL dangereuses, réutilisation de domaines. Un **web shell** (T1505.003) donne un accès persistant à l'attaquant.
+T: Revoir les journaux de déploiement (FTP, Kudu, pipelines), les identifiants de publication, les journaux HTTP et le code. Reconstruire depuis une source fiable si l'intégrité n'est pas garantie.
+!: Web shell sur App Service = Defender for App Service ; trouver le vecteur de dépôt et faire tourner les secrets.
+
+### Protection des charges d'IA
+@ niveau=I ref=mdc-ai
+?: Une organisation déploie des applications d'IA générative sur Azure OpenAI / Azure AI. Quelle protection de Defender for Cloud permet de détecter des tentatives d'injection de prompt (jailbreak) ou des fuites de données sensibles via ces applications ?
++: La protection contre les menaces pour les charges de travail d'IA (Defender for AI services).
+-: Defender for DNS. || Ne détecte pas les attaques de prompt.
+-: Les règles ASR. || Concernent les terminaux Windows.
+-: Le filtrage de contenu web de MDE. || Concerne la navigation des postes.
+=: La **protection contre les menaces des services d'IA** de Defender for Cloud s'appuie sur les signaux d'Azure AI (dont Prompt Shields) pour détecter les **injections de prompt**, le **jailbreak**, l'exposition de données sensibles et les usages anormaux, et génère des alertes intégrées à Defender XDR.
+T: Les alertes peuvent inclure des preuves (extraits de prompts) selon la configuration. Le référentiel SC-200 2026 mentionne l'IA (agents, Copilot) dans le profil du candidat ; Defender XDR propose aussi des fonctionnalités de sécurité des agents IA.
+!: Menaces sur les applications d'IA générative = protection des charges d'IA de Defender for Cloud.
+
+### Recommandation ou alerte
+@ niveau=D ref=mdc-recommendations,mdc-alerts
+?: Quelle différence fondamentale y a-t-il entre une recommandation et une alerte de sécurité dans Defender for Cloud ?
++: Une recommandation signale une faiblesse de configuration à corriger (posture, prévention), alors qu'une alerte signale une activité suspecte ou malveillante détectée (menace, réponse).
+-: Elles sont identiques ; seule la couleur change. || Elles relèvent de processus différents.
+-: Une alerte est toujours moins grave qu'une recommandation. || Les deux ont leurs propres niveaux de gravité.
+-: Les recommandations ne concernent que les machines locales. || Elles concernent toutes les ressources évaluées.
+=: **Recommandations** = gestion de la **posture** (CSPM) : configurations à risque à corriger, influençant le Secure Score. **Alertes** = **détection de menaces** (CWP) : activité suspecte en cours ou passée, à investiguer et traiter selon un processus de réponse aux incidents.
+T: Les alertes de Defender for Cloud sont corrélées en incidents et intégrées à Defender XDR ; les recommandations sont suivies par les équipes propriétaires (gouvernance). Les chemins d'attaque relient les deux mondes en hiérarchisant les risques exploitables.
+!: Recommandation = faiblesse à corriger (posture) ; alerte = menace à investiguer (réponse).
+
+### Rôles pour Defender for Cloud
+@ niveau=I ref=mdc-overview,mdc-manage-alerts
+?: Un analyste SOC doit consulter les recommandations et les alertes Defender for Cloud dans le portail Azure et pouvoir gérer les alertes (par exemple les ignorer). Parmi les rôles intégrés proposés, lequel répond au besoin avec le moins de privilèges ?
++: Security Admin (Administrateur de la sécurité, rôle Azure).
+-: Owner sur l'abonnement. || Privilèges très excessifs (gestion complète des ressources et des accès).
+-: Security Reader. || Il permet de consulter recommandations et alertes, mais pas de les gérer.
+-: Reader. || Lecture générale des ressources, sans gestion des alertes de sécurité.
+=: Dans Azure, **Security Reader** donne la **lecture** des recommandations, alertes et stratégies de sécurité ; **Security Admin** permet en plus de **gérer les stratégies** de sécurité et de **gérer/ignorer les alertes**. Pour un périmètre encore plus restreint, un **rôle personnalisé** est possible.
+T: Dans le portail Defender, l'accès aux alertes Defender for Cloud passe par le **RBAC unifié** de Defender XDR (ou, sans URBAC, par les rôles Entra Administrateur de la sécurité ou Administrateur général) ; selon la documentation, il s'applique à l'ensemble du locataire, un filtre par abonnement servant uniquement à l'affichage.
+!: Defender for Cloud (Azure) : Security Reader = lecture ; Security Admin = gestion des stratégies et des alertes.
+
+### Intégration avec Defender XDR
+@ niveau=I ref=mdc-xdr
+?: Depuis l'intégration de Defender for Cloud avec Defender XDR, où les analystes SOC investiguent-ils principalement les alertes de charges de travail cloud ?
++: Dans le portail Microsoft Defender, où les alertes et incidents Defender for Cloud sont intégrés et corrélés avec les autres signaux (terminaux, identités, messagerie).
+-: Uniquement dans une feuille Excel exportée chaque semaine. || Aucune corrélation ni temps réel.
+-: Uniquement dans le portail Azure, sans aucune corrélation possible. || L'intégration XDR fournit précisément la corrélation.
+-: Dans le Centre d'administration Microsoft 365, onglet facturation. || Sans rapport.
+=: La documentation indique que **tous les incidents et alertes** de Defender for Cloud (y compris multicloud) sont intégrés à **Defender XDR** : file d'alertes, histoire de l'attaque avec les **ressources cloud**, corrélation automatique avec les autres produits, et accès via l'API publique de Defender XDR.
+T: Pour Sentinel, Microsoft recommande sur l'espace principal le connecteur **Tenant-based Microsoft Defender for Cloud** (incidents corrélés via Defender XDR) plutôt que l'ancien connecteur par abonnement, en évitant de combiner les deux.
+!: Alertes Defender for Cloud → intégrées et corrélées dans le portail Defender (Defender XDR).

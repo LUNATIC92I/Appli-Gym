@@ -1,0 +1,57 @@
+@@ module=5
+@@ section=Compléments : déploiement et détections avancées
+
+### Activer les plans à l'échelle
+@ niveau=I ref=mdc-overview,mdc-servers
+?: Une organisation possède 120 abonnements Azure et en crée régulièrement de nouveaux. Comment garantir que Defender for Servers et Defender for Storage sont activés partout, y compris sur les futurs abonnements ?
++: Activer les plans au niveau des groupes d'administration via Azure Policy (stratégies d'activation des plans Defender) avec des tâches de correction pour l'existant.
+-: Activer manuellement chaque plan sur chaque abonnement une fois par an. || Les nouveaux abonnements resteraient non protégés jusqu'à la revue.
+-: Activer les plans dans Microsoft Sentinel. || Les plans Defender for Cloud ne s'activent pas dans Sentinel.
+-: Créer une watchlist des abonnements. || Une watchlist n'active rien.
+=: **Azure Policy** (stratégies intégrées « Configurer Microsoft Defender for … pour être activé ») appliquée à un **groupe d'administration** active automatiquement les plans sur les abonnements existants (tâche de correction) et futurs.
+T: La même approche s'applique à l'export continu, à l'automatisation des workflows et aux paramètres de diagnostic. Surveiller les désactivations de plans (`Microsoft.Security/pricings/write` dans AzureActivity).
+!: Plans Defender à l'échelle = Azure Policy au niveau des groupes d'administration + correction.
+
+### Secrets dans le code
+@ niveau=I ref=mdc-cspm
+?: Un audit révèle des clés d'accès de comptes de stockage dans des dépôts GitHub de l'entreprise. Quelle capacité de Defender for Cloud aide à détecter ce type d'exposition de façon continue ?
++: La sécurité DevOps de Defender for Cloud (connecteurs GitHub/Azure DevOps/GitLab) avec l'analyse des secrets dans le code, associée à la posture Defender CSPM.
+-: Les règles ASR de Defender for Endpoint. || Elles protègent les terminaux, pas les dépôts de code.
+-: L'accès juste-à-temps. || Il contrôle les ports de gestion des VM.
+-: Le tableau de bord de conformité réglementaire uniquement. || Il ne parcourt pas le code source.
+=: La **sécurité DevOps** connecte les plateformes de code (GitHub, Azure DevOps, GitLab) à Defender for Cloud pour remonter des recommandations : **secrets exposés**, vulnérabilités du code et des dépendances, mauvaises configurations de l'infrastructure as code. Defender CSPM relie ces résultats aux ressources cloud déployées.
+T: Remédiation d'un secret exposé : **le faire tourner immédiatement** (le supprimer de l'historique ne suffit pas), vérifier son usage (StorageBlobLogs, AzureActivity), puis prévenir (Key Vault, identités managées, analyse avant validation).
+!: Secrets dans les dépôts = sécurité DevOps de Defender for Cloud ; toujours faire tourner le secret exposé.
+
+### Incidents de sécurité dans Defender for Cloud
+@ niveau=D ref=mdc-alerts
+?: Que représente un « incident de sécurité » dans Defender for Cloud ?
++: Un regroupement d'alertes corrélées (par exemple selon une même ressource et une logique de chaîne d'attaque) qui décrit une campagne multi-étapes, plutôt qu'une alerte isolée.
+-: Une recommandation de gravité élevée. || Les recommandations concernent la posture.
+-: Une interruption de service Azure. || Il s'agit d'événements de sécurité, pas de disponibilité.
+-: Un ticket de support Microsoft. || Sans rapport.
+=: Defender for Cloud **corrèle** les alertes (analyse des intentions de la chaîne d'attaque, ressources communes) en **incidents de sécurité**, ce qui aide à comprendre une attaque multi-étapes. Ces incidents sont intégrés à Defender XDR, où la corrélation s'étend aux autres produits.
+T: Dans le portail Defender, les ressources cloud apparaissent dans l'histoire de l'attaque et l'onglet Ressources de l'incident.
+!: Incident Defender for Cloud = alertes corrélées décrivant une attaque multi-étapes.
+
+### Alerte d'attaque sans fichier sur une VM
+@ niveau=I ref=mdc-servers,xdr-t-DeviceProcessEvents
+?: Defender for Servers génère une alerte concernant un comportement suspect en mémoire (technique sans fichier) sur une VM Windows. Quelle source de données permet d'approfondir l'analyse des processus impliqués ?
++: La chasse avancée Defender XDR (DeviceProcessEvents, DeviceEvents, DeviceNetworkEvents) sur l'appareil intégré à Defender for Endpoint.
+-: Le tableau de bord de conformité réglementaire. || Il n'enregistre pas l'activité des processus.
+-: La table Usage. || Elle mesure les volumes ingérés.
+-: Les journaux de facturation Azure. || Sans rapport.
+=: Defender for Servers s'appuie sur **Defender for Endpoint** : les événements détaillés de l'appareil (processus, lignes de commande, connexions, événements AMSI/PowerShell) sont interrogeables en **chasse avancée**, ce qui permet de reconstituer la chaîne d'exécution liée à l'alerte.
+T: Si les tables Device* sont ingérées dans Sentinel, les mêmes analyses y sont possibles (colonne TimeGenerated). Croiser avec AzureActivity pour vérifier si une action du plan de contrôle (Run Command, extension) a lancé le processus.
+!: Alerte de serveur protégé = approfondir avec la chasse avancée MDE (Device*).
+
+### Protéger les API publiées
+@ niveau=I ref=mdc-overview
+?: Une organisation publie des API via Azure API Management et craint des abus (énumération, exfiltration via les API, appels depuis des IP malveillantes). Quel plan Defender for Cloud est conçu pour ce besoin ?
++: Defender for APIs.
+-: Defender for DNS. || Il analyse les requêtes DNS des ressources.
+-: Defender for Key Vault. || Il protège les coffres de clés.
+-: Foundational CSPM uniquement. || Il ne fournit pas de détection de menaces à l'exécution sur les API.
+=: **Defender for APIs** inventorie les API publiées via **Azure API Management**, évalue leur posture (authentification, exposition, données sensibles) et détecte les **menaces à l'exécution** (anomalies d'appels, accès depuis des IP suspectes, abus de type OWASP API Top 10).
+T: Les alertes sont intégrées à Defender for Cloud et à Defender XDR. Compléter par un WAF (Application Gateway, Front Door) et une authentification robuste (OAuth 2.0, identités managées).
+!: Abus d'API publiées via API Management = Defender for APIs.

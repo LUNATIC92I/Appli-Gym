@@ -1,0 +1,349 @@
+@@ module=5
+@@ section=Alertes, investigation et réponse dans le cloud
+
+### Lire une alerte Defender for Cloud
+@ niveau=D ref=mdc-manage-alerts,mdc-alerts
+?: En ouvrant une alerte Defender for Cloud, quelles informations aident directement à décider de la réponse ? (Sélectionnez deux réponses.)
+@ multi=2
++: La ressource affectée, les entités impliquées (IP, compte, processus) et l'intention de la chaîne d'attaque (tactique MITRE).
++: L'onglet « Prendre des mesures » (Take action) : étapes d'atténuation, prévention des menaces futures, automatisation et suppression d'alertes similaires.
+-: Le montant de la facture Azure du mois. || Sans rapport avec la réponse.
+-: La liste des utilisateurs Microsoft 365 du locataire. || Information non pertinente pour cette alerte.
+-: Le Secure Score Microsoft 365. || Indicateur de posture, pas de réponse.
+=: La page d'alerte présente la **gravité**, la **ressource**, les **entités**, l'**intention MITRE**, les **détails** de l'activité, puis l'onglet **Take action** : **Atténuer la menace** (étapes recommandées), **Prévenir les attaques futures** (recommandations liées), **Déclencher une réponse automatisée** (Logic App), **Supprimer les alertes similaires**.
+T: Les alertes peuvent être corrélées en **incidents** de sécurité (attaques multi-étapes) et apparaissent dans Defender XDR. Le lien vers les recommandations associées permet de corriger la cause (par exemple un port de gestion exposé).
+!: Alerte Defender for Cloud : ressource + entités + intention MITRE, puis Take action (atténuer, prévenir, automatiser, supprimer).
+
+### Force brute RDP sur une VM Azure
+@ niveau=I ref=mdc-alerts-ref,mdc-jit
+?: Une alerte signale une attaque par force brute RDP réussie sur une VM Azure exposée sur Internet. Quelle séquence de réponse est la plus appropriée ?
++: Contenir la VM (restreindre le NSG/isoler via MDE), désactiver ou réinitialiser le compte compromis, investiguer l'activité post-connexion (processus, persistance), puis fermer l'exposition (JIT ou Bastion).
+-: Ignorer l'alerte car RDP est un service légitime. || Une force brute réussie signifie qu'un attaquant a probablement accès à la VM.
+-: Supprimer la VM sans investigation. || Perte de preuves et de compréhension du périmètre.
+-: Augmenter la taille de la VM. || Sans rapport.
+=: Une **force brute réussie** implique un accès probable de l'attaquant : il faut **contenir** (règles réseau, isolation MDE), **invalider** les identifiants, **investiguer** (MDE, journaux de sécurité Windows), puis **corriger la cause** (exposition RDP) avec **JIT** ou **Azure Bastion**.
+T: La recommandation « Les ports de gestion doivent être fermés sur vos machines virtuelles » est souvent liée à ce type d'alerte. Rechercher la même IP source sur les autres VM (SecurityEvent, DeviceLogonEvents).
+!: Force brute RDP réussie : contenir, invalider les identifiants, investiguer, puis fermer l'exposition (JIT/Bastion).
+
+### Suppression des alertes Defender for Cloud
+@ niveau=I ref=mdc-suppression
+?: Une alerte de Defender for Cloud se déclenche à chaque test d'intrusion autorisé mené depuis l'adresse IP du prestataire. Comment réduire ce bruit sans masquer les attaques réelles ?
++: Créer une règle de suppression d'alertes limitée au type d'alerte concerné, à l'IP du prestataire et éventuellement à une date d'expiration.
+-: Désactiver le plan Defender concerné sur l'abonnement. || Toutes les détections de ce plan seraient perdues.
+-: Supprimer manuellement chaque alerte. || Laborieux et sans effet sur les prochaines alertes.
+-: Ajouter l'IP du prestataire en exclusion antivirus sur toutes les VM. || Mécanisme inadapté et dangereux.
+=: Les **règles de suppression** de Defender for Cloud ignorent automatiquement les alertes correspondant à des critères précis (nom d'alerte, entités comme l'IP ou l'utilisateur, ressources), avec une **date d'expiration** possible.
+T: Les alertes supprimées restent consultables (état « Ignoré »). Comme pour l'ajustement des alertes Defender XDR, privilégier des critères très ciblés et documenter le motif.
+!: Faux positif connu = règle de suppression ciblée (type d'alerte + entités + expiration).
+
+### Automatisation des workflows
+@ niveau=I ref=mdc-workflow
+?: Vous souhaitez qu'à chaque alerte Defender for Cloud de gravité élevée, un message soit publié dans Teams et un ticket créé, sans dépendre de Sentinel. Quelle fonctionnalité utiliser ?
++: L'automatisation des workflows (workflow automation) de Defender for Cloud, qui déclenche une Logic App selon des conditions sur les alertes.
+-: Les règles d'automatisation de Microsoft Sentinel. || Elles nécessitent que les alertes soient dans Sentinel, alors que le besoin exclut cette dépendance.
+-: Les règles de suppression. || Elles masquent des alertes, à l'opposé du besoin.
+-: Le tableau de bord de conformité réglementaire. || Il n'envoie pas de notifications.
+=: L'**automatisation des workflows** lance des **Logic Apps** sur des **alertes**, des **recommandations** ou des **changements de conformité réglementaire**, avec des filtres (gravité, type). Elle permet aussi l'exécution manuelle depuis une alerte (Take action).
+T: Les Logic Apps utilisent l'identité managée et des connecteurs (Teams, ServiceNow, Outlook). La configuration peut être déployée à l'échelle avec Azure Policy.
+!: Automatisation native sur alertes/recommandations Defender for Cloud = workflow automation (Logic Apps).
+
+### Export continu
+@ niveau=I ref=mdc-export
+?: L'équipe veut conserver l'historique des alertes et des recommandations de Defender for Cloud dans un espace Log Analytics, et les transmettre à un SIEM tiers via Event Hubs. Quelle fonctionnalité utiliser ?
++: L'export continu (continuous export) vers Log Analytics et/ou Event Hubs.
+-: Les règles de gouvernance. || Elles assignent des propriétaires aux recommandations.
+-: Le JIT. || Il contrôle les ports de gestion.
+-: L'analyse sans agent. || Elle évalue les VM.
+=: L'**export continu** envoie en continu les **alertes**, **recommandations**, scores et évaluations de conformité vers un **espace Log Analytics** (tables SecurityAlert, SecurityRecommendation, etc.) et/ou **Event Hubs** (pour des SIEM tiers).
+T: Pour Sentinel, le connecteur Defender for Cloud (de préférence basé sur le locataire via Defender XDR) gère les alertes et incidents ; l'export continu reste utile pour les recommandations et pour l'historique de posture. Configuration déployable par Azure Policy.
+!: Historiser/transmettre alertes et recommandations = export continu (Log Analytics, Event Hubs).
+
+### Connecteur Defender for Cloud dans Sentinel
+@ niveau=A ref=mdc-sentinel-connector,sent-onboard-defender
+?: Un client connecte Sentinel au portail Defender et utilise aussi Defender for Cloud sur 30 abonnements. Quelle configuration de connecteur est recommandée pour l'espace principal ?
++: Le connecteur « Tenant-based Microsoft Defender for Cloud », qui ingère les incidents corrélés via Defender XDR pour tout le locataire, en déconnectant le connecteur par abonnement hérité.
+-: Le connecteur par abonnement sur chaque espace, en plus du connecteur basé sur le locataire. || Doublons d'alertes et d'incidents ; la documentation recommande de déconnecter le connecteur hérité si l'on utilise le connecteur basé sur le locataire.
+-: Aucun connecteur : les alertes Defender for Cloud arrivent dans Syslog. || Elles n'arrivent pas par Syslog.
+-: Le connecteur Common Event Format. || Inadapté.
+=: Selon la documentation de connexion de Sentinel au portail Defender, pour diffuser les incidents Defender for Cloud **corrélés pour tout le locataire** vers l'espace principal, on connecte **Tenant-based Microsoft Defender for Cloud** et on **déconnecte** le connecteur **Subscription-based (Legacy)** de tous les espaces. Sinon, on peut conserver l'ancien connecteur par abonnement.
+T: L'ancien connecteur par abonnement prend en charge la synchronisation bidirectionnelle de l'état des alertes. Dans le modèle unifié, la corrélation des alertes Defender for Cloud se fait dans Defender XDR.
+!: Sentinel + portail Defender : connecteur Defender for Cloud basé sur le locataire (et retrait du connecteur hérité par abonnement).
+
+### Investiguer une alerte Defender for Cloud dans Sentinel
+@ niveau=I ref=la-t-SecurityAlert
+?: Vous voulez lister dans Sentinel les alertes Defender for Cloud de gravité élevée des 7 derniers jours avec la ressource compromise. Quelle requête convient ?
++: ```kql
+SecurityAlert
+| where TimeGenerated > ago(7d)
+| where ProductName in ("Azure Security Center", "Microsoft Defender for Cloud")
+| where AlertSeverity == "High"
+| summarize arg_max(TimeGenerated, *) by SystemAlertId
+| project TimeGenerated, AlertName, CompromisedEntity, ResourceId, Tactics, Status
+```
+-: ```kql
+SecurityRecommendation
+| where TimeGenerated > ago(7d)
+| where RecommendationSeverity == "High"
+```
+|| Liste des recommandations (posture), pas des alertes de menace.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(7d)
+| where Level == "Error"
+```
+|| Opérations en erreur du plan de contrôle, sans lien avec les alertes de sécurité.
+-: ```kql
+SecurityAlert
+| where TimeGenerated > ago(7d)
+| where ProductName == "Microsoft Defender for Endpoint"
+```
+|| Filtre sur MDE au lieu de Defender for Cloud.
+=: Les alertes ingérées dans Sentinel sont dans **SecurityAlert**. Les alertes Defender for Cloud portent historiquement le **ProductName « Azure Security Center »** ; filtrer sur les deux valeurs couvre les variantes. La table étant mise à jour à chaque changement d'état, on garde la dernière version par **SystemAlertId**.
+T: Vérifier les valeurs réelles de ProductName dans votre espace (`summarize count() by ProductName`). Les colonnes **ResourceId** et **CompromisedEntity** identifient la ressource ; **Entities** et **ExtendedProperties** contiennent les détails.
+R: Les alertes Defender for Cloud élevées dédupliquées, avec la ressource et les tactiques.
+S: Hypothèse sur les valeurs de ProductName selon le connecteur utilisé.
+!: Alertes Defender for Cloud dans Sentinel = SecurityAlert (ProductName « Azure Security Center ») dédupliquée par SystemAlertId.
+
+### Accès anormal à un compte de stockage
+@ niveau=A ref=mdc-storage,la-t-StorageBlobLogs
+?: Defender for Storage signale « Access from a suspicious IP address » sur un compte de stockage. Quelle démarche d'investigation est la plus complète ?
++: Identifier le mode d'authentification utilisé (clé de compte, SAS, Entra ID), les objets consultés et le volume (StorageBlobLogs), l'origine de l'identifiant (fuite de clé/SAS dans un dépôt de code, identité compromise), puis faire tourner les clés/SAS et restreindre l'accès réseau.
+-: Supprimer le compte de stockage immédiatement. || Destruction des données et des preuves.
+-: Changer uniquement le nom du conteneur. || Les identifiants exposés restent valides.
+-: Attendre une deuxième alerte. || L'exfiltration peut être en cours.
+=: L'**authentification** détermine la remédiation : une **clé de compte** ou un **SAS** divulgués doivent être **renouvelés/révoqués** ; une identité Entra compromise doit être traitée côté identité. Les **journaux de ressources** (StorageBlobLogs) indiquent les opérations, objets et volumes.
+T: Prévention : désactiver l'accès par clé partagée lorsque possible (Entra ID uniquement), SAS de courte durée avec stratégies d'accès stockées, pare-feu de stockage/points de terminaison privés, analyse des secrets dans le code (Defender for DevOps / CSPM).
+!: Accès suspect au stockage : identifier le type d'authentification, mesurer les accès, faire tourner clés/SAS, restreindre le réseau.
+
+### Minage de cryptomonnaie dans le cloud
+@ niveau=I ref=mdc-alerts-ref
+?: Defender for Cloud signale une activité de minage de cryptomonnaie sur plusieurs VM récemment créées dans un abonnement de développement. Quelle hypothèse d'attaque vérifier en priorité ?
++: La compromission d'une identité ou d'un secret disposant de droits de création de ressources (Resource Hijacking, T1496), à vérifier dans AzureActivity (créations de VM, appelant, IP).
+-: Une panne matérielle des hôtes Azure. || Le minage est une activité logicielle.
+-: Une mise à jour automatique de Windows. || Sans rapport.
+-: Un problème de facturation. || Le coût est une conséquence, pas la cause.
+=: Le **détournement de ressources** (T1496) consiste à utiliser la puissance de calcul de la victime. Des VM **récemment créées** pointent vers un **abus des droits de création** (identifiants volés, principal de service exposé, clé d'API dans un dépôt).
+T: Investiguer AzureActivity (`Microsoft.Compute/virtualMachines/write`, Caller, CallerIpAddress), les connexions de l'identité (SigninLogs, AADServicePrincipalSignInLogs), les quotas modifiés. Réponse : supprimer les ressources malveillantes après collecte, révoquer les identifiants, appliquer des stratégies Azure Policy (régions/SKU autorisés) et des alertes budgétaires.
+!: Minage sur des VM nouvelles = identifiants de création de ressources compromis (T1496) → AzureActivity.
+
+### Exécution de commande sur une VM via Azure
+@ niveau=A ref=mdc-arm,la-t-AzureActivity
+?: Un attaquant disposant du rôle Contributor exécute des scripts sur des VM via la fonction « Run Command » d'Azure, sans se connecter en RDP. Quelle requête permet de repérer cette activité ?
++: ```kql
+AzureActivity
+| where TimeGenerated > ago(7d)
+| where OperationNameValue =~ "Microsoft.Compute/virtualMachines/runCommand/action"
+| where ActivityStatusValue == "Success"
+| project TimeGenerated, Caller, CallerIpAddress, ResourceGroup, _ResourceId
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where EventID == 4624 and LogonType == 10
+```
+|| Ouvertures de session RDP : l'attaquant n'utilise pas RDP ici.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where AppDisplayName == "Remote Desktop"
+```
+|| Connexions Entra à une application Bureau à distance, sans lien avec Run Command.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(7d)
+| summarize count() by Computer
+```
+|| Disponibilité des agents.
+=: **Run Command** (T1651 – Cloud Administration Command) exécute des scripts dans la VM via l'agent Azure, en tant que SYSTEM/root, à partir du **plan de contrôle**. L'opération apparaît dans **AzureActivity** (`runCommand/action`). Defender for Resource Manager peut aussi alerter.
+T: Côté VM, le script est exécuté par l'agent invité (traces dans DeviceProcessEvents si MDE est présent). Restreindre le rôle Contributor et surveiller les identités qui l'utilisent ; Run Command est un outil d'administration légitime à encadrer.
+R: Les exécutions réussies de Run Command avec l'appelant, l'IP et la VM ciblée.
+!: Exécution de code sur VM via Azure = AzureActivity « runCommand/action » (T1651).
+
+### Suppression des paramètres de diagnostic
+@ niveau=I ref=la-diag-settings,la-t-AzureActivity
+?: Un attaquant supprime les paramètres de diagnostic d'un coffre de clés pour ne plus laisser de traces. Quelle requête Sentinel détecte cette action d'évasion ?
++: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where OperationNameValue =~ "Microsoft.Insights/diagnosticSettings/delete"
+| project TimeGenerated, Caller, CallerIpAddress, _ResourceId, ActivityStatusValue
+```
+-: ```kql
+AuditLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "Delete user"
+```
+|| Suppression d'utilisateurs Entra, pas de paramètres de diagnostic.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 1102
+```
+|| Effacement du journal Windows, pas des paramètres de diagnostic Azure.
+-: ```kql
+StorageBlobLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "DeleteBlob"
+```
+|| Suppression de blobs.
+=: La suppression des **paramètres de diagnostic** (T1562.008 – Disable or Modify Cloud Logs) est une opération du plan de contrôle visible dans **AzureActivity** (`Microsoft.Insights/diagnosticSettings/delete`).
+T: Prévention : Azure Policy (DeployIfNotExists) pour réappliquer automatiquement les paramètres, verrous de ressources, RBAC restreint. Alerter aussi sur la désactivation des plans Defender (`Microsoft.Security/pricings/write`).
+R: Les suppressions de paramètres de diagnostic avec l'auteur et la ressource.
+!: Désactivation des journaux cloud = AzureActivity « diagnosticSettings/delete » (T1562.008).
+
+### Alertes Kubernetes
+@ niveau=A ref=mdc-containers
+?: Defender for Containers signale « Privileged container detected » puis « Escape to host attempt » dans un cluster AKS. Quelle réponse est la plus appropriée ?
++: Isoler la charge (supprimer ou mettre à l'échelle zéro le pod, appliquer une politique réseau restrictive), examiner le nœud (possible compromission de l'hôte), identifier qui a déployé le conteneur et renforcer les politiques d'admission (interdire les conteneurs privilégiés).
+-: Ignorer : les conteneurs privilégiés sont nécessaires à toutes les applications. || C'est rarement nécessaire et très risqué.
+-: Redémarrer le cluster sans investigation. || Perte de preuves ; le déploiement malveillant pourrait revenir.
+-: Désactiver Defender for Containers. || Supprimerait la détection.
+=: Un **conteneur privilégié** permet d'accéder aux ressources de l'hôte ; une **tentative d'évasion** (T1611 – Escape to Host) indique une progression vers le nœud. La réponse cible la charge, le nœud et le vecteur (identité ou pipeline ayant déployé le pod).
+T: Sources : alertes Defender for Containers, journaux d'audit Kubernetes (via paramètres de diagnostic AKS), AzureActivity. Prévention : Azure Policy pour Kubernetes (pod security), images signées et analysées, RBAC Kubernetes minimal.
+!: Conteneur privilégié + évasion = isoler la charge, examiner le nœud, trouver qui a déployé, durcir l'admission.
+
+### Indicateurs de compromission cloud
+@ niveau=I ref=mdc-alerts,la-t-AzureActivity
+?: Parmi les éléments suivants, lesquels sont des indicateurs de compromission typiques d'un environnement Azure ? (Sélectionnez deux réponses.)
+@ multi=2
++: La création soudaine de nombreuses VM GPU dans une région jamais utilisée par l'organisation.
++: L'opération listKeys sur des comptes de stockage par une identité qui ne le fait jamais, depuis une IP inconnue.
+-: L'application mensuelle des correctifs par Azure Update Manager. || Opération de maintenance planifiée.
+-: La consultation du Secure Score par le RSSI. || Activité normale.
+-: Le redémarrage planifié d'une VM pendant la fenêtre de maintenance. || Activité normale.
+=: Les **IOC cloud** sont souvent **comportementaux** : création anormale de ressources (minage, T1496), récupération de **clés** de stockage (`listKeys`) ou de secrets Key Vault, nouvelles attributions de rôles privilégiés, désactivation des journaux ou des plans Defender, opérations depuis des IP ou des régions inhabituelles.
+T: Ces signaux se trouvent dans AzureActivity, les journaux de ressources (Key Vault, Storage) et les alertes Defender for Cloud (Resource Manager, Storage, Key Vault). Ils se corrèlent avec SigninLogs pour l'identité utilisée.
+!: IOC cloud = comportements anormaux du plan de contrôle (créations, listKeys, rôles, désactivation des journaux).
+
+### Requête de création de ressources inhabituelle
+@ niveau=A ref=la-t-AzureActivity,kql-join
+?: Vous voulez détecter les créations de VM dans des régions jamais utilisées par l'abonnement au cours des 30 jours précédents. Quelle requête est correcte ?
++: ```kql
+let RegionsConnues = AzureActivity
+| where TimeGenerated between (ago(31d) .. ago(1d))
+| where OperationNameValue =~ "Microsoft.Compute/virtualMachines/write" and ActivityStatusValue == "Success"
+| extend Region = tostring(Properties_d.resourceLocation)
+| summarize Regions = make_set(Region) by SubscriptionId;
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where OperationNameValue =~ "Microsoft.Compute/virtualMachines/write" and ActivityStatusValue == "Success"
+| extend Region = tostring(Properties_d.resourceLocation)
+| join kind=leftouter RegionsConnues on SubscriptionId
+| where isempty(Regions) or not(set_has_element(Regions, Region))
+| project TimeGenerated, Caller, CallerIpAddress, SubscriptionId, Region, _ResourceId
+```
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| summarize count() by ResourceGroup
+```
+|| Comptage par groupe de ressources, sans notion de région ni de nouveauté.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(30d)
+| where OperationNameValue has "delete"
+```
+|| Suppressions de ressources, pas créations dans de nouvelles régions.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(1d)
+| summarize by Computer, ComputerIP
+```
+|| Liste des agents actifs, sans lien avec la région de création.
+=: On construit une **référence** des régions utilisées par abonnement (30 jours), puis on compare les créations du jour. La jointure **leftouter** garde aussi les abonnements sans historique (`isempty(Regions)`), considérés comme nouveaux.
+T: La région de la ressource peut figurer dans différentes propriétés selon les opérations : vérifier `Properties_d` dans vos données (hypothèse : `resourceLocation`). Azure Policy « Emplacements autorisés » prévient ce scénario.
+R: Les créations de VM dans des régions inédites pour l'abonnement, avec l'auteur et l'IP.
+S: Hypothèse : la région figure dans `Properties_d.resourceLocation` ; selon les événements, elle peut devoir être extraite d'autres champs ou de `_ResourceId`.
+M: Ajouter la taille de VM (SKU GPU) et alerter en priorité sur les créations massives en peu de temps.
+!: Nouveauté cloud = référence par abonnement (make_set) + comparaison (set_has_element) ; prévention par Azure Policy.
+
+### Investigation croisée Defender for Cloud et Entra ID
+@ niveau=A ref=mdc-arm,la-t-SigninLogs
+?: Defender for Resource Manager signale « Suspicious invocation of a high-risk 'Credential Access' operation by a service principal ». Quelle démarche d'investigation est la plus pertinente ?
++: Identifier le principal de service (application, propriétaires, permissions et rôles), examiner ses connexions (AADServicePrincipalSignInLogs : IP, identifiants utilisés), les ajouts récents de secrets (AuditLogs) et ses opérations Azure (AzureActivity), puis révoquer les secrets si l'activité est illégitime.
+-: Réinitialiser le mot de passe de tous les utilisateurs. || Un principal de service n'utilise pas les mots de passe des utilisateurs.
+-: Désactiver Defender for Resource Manager pour éviter les faux positifs. || Supprimerait la détection.
+-: Supprimer l'abonnement Azure. || Disproportionné.
+=: Les **principaux de service** s'authentifient avec des **secrets** ou **certificats** ; leur compromission (secret exposé dans un dépôt, secret ajouté par un attaquant) donne un accès non interactif aux ressources. L'investigation croise **Defender for Cloud** (opérations), **AADServicePrincipalSignInLogs** (connexions), **AuditLogs** (gestion des identifiants) et **AzureActivity**.
+T: Remédiation : supprimer les secrets/certificats compromis, en créer de nouveaux stockés dans Key Vault, réduire les rôles (moindre privilège), préférer les identités managées. Entra ID Protection propose aussi le risque des identités de charge de travail.
+!: Principal de service suspect : connexions SP + AuditLogs (secrets) + AzureActivity, puis rotation des secrets et moindre privilège.
+
+@@ section=Defender for Cloud et Defender XDR : périmètres
+
+### Distinguer Defender for Cloud et Defender XDR
+@ niveau=D ref=mdc-overview,xdr-overview
+?: Quelle affirmation distingue correctement Microsoft Defender for Cloud de Microsoft Defender XDR ?
++: Defender for Cloud protège la posture et les charges de travail cloud (VM, conteneurs, bases, stockage, services PaaS) ; Defender XDR unifie la détection et la réponse sur les terminaux, identités, messagerie et applications SaaS, et intègre aussi les alertes de Defender for Cloud.
+-: Defender for Cloud et Defender XDR sont deux noms du même produit. || Ce sont des solutions distinctes, intégrées entre elles.
+-: Defender XDR ne fonctionne que dans Azure. || Defender XDR couvre les terminaux, Microsoft 365, les identités, etc.
+-: Defender for Cloud est réservé aux comptes Microsoft 365. || Il protège Azure, AWS, GCP et le local.
+=: **Defender for Cloud** = **CNAPP** (CSPM + CWP) centré sur les ressources cloud et hybrides. **Defender XDR** = plateforme **XDR** unifiant MDE, MDO, MDI, MDCA, Entra ID Protection, etc. Les deux sont intégrés : les alertes Defender for Cloud apparaissent et se corrèlent dans le portail Defender.
+T: Defender for Servers s'appuie sur Defender for Endpoint (composant de Defender XDR) pour l'EDR des serveurs. Sentinel complète l'ensemble comme SIEM.
+!: Defender for Cloud = ressources cloud (posture + charges) ; Defender XDR = terminaux, identités, messagerie, SaaS ; intégrés dans le portail Defender.
+
+### Où activer la protection d'un serveur SQL sur VM
+@ niveau=I ref=mdc-sql
+?: Une base SQL Server s'exécute sur une VM Azure. Quel plan Defender for Cloud détecte les attaques contre le moteur SQL (injection, force brute SQL) sur cette machine ?
++: Defender for SQL servers on machines (plan Defender for SQL couvrant les serveurs SQL sur machines).
+-: Defender for Storage. || Concerne les comptes de stockage.
+-: Defender for App Service. || Concerne les applications web App Service.
+-: Defender for Key Vault. || Concerne les coffres de clés.
+=: **Defender for SQL** comprend la protection des bases Azure SQL (PaaS) et des **serveurs SQL sur machines** (VM Azure, machines locales via Arc, autres clouds). Il fournit l'évaluation des vulnérabilités et la détection des menaces propres au moteur SQL.
+T: La protection du système d'exploitation de la VM relève de Defender for Servers ; celle du moteur SQL relève de Defender for SQL : les deux plans sont complémentaires.
+!: SQL sur VM : Defender for SQL (moteur SQL) + Defender for Servers (OS).
+
+### Alerte Defender for Cloud et réponse sur l'appareil
+@ niveau=I ref=mdc-servers,mde-response-device
+?: Une alerte de Defender for Servers signale un processus suspect sur une VM Azure intégrée à Defender for Endpoint. Où l'analyste peut-il isoler la machine et collecter un package d'investigation ?
++: Depuis la page de l'appareil dans le portail Microsoft Defender (Defender for Endpoint), l'alerte étant également visible et corrélée dans Defender XDR.
+-: Uniquement en supprimant la VM depuis le portail Azure. || L'isolation MDE est disponible sans supprimer la VM.
+-: Depuis le tableau de bord de conformité réglementaire. || Il n'offre pas d'actions de réponse.
+-: Depuis la page des recommandations du Secure Score. || Pas d'actions de réponse.
+=: Les VM protégées par **Defender for Servers** sont intégrées à **Defender for Endpoint** : les actions de réponse (isolation, package d'investigation, analyse antivirus, Live Response) sont disponibles sur la page de l'appareil du portail Defender.
+T: Côté Azure, compléter par des mesures réseau (NSG), de snapshot de disque pour la forensique, et la révocation des identités de la VM (identité managée) si nécessaire.
+!: VM protégée par Defender for Servers = actions de réponse MDE dans le portail Defender.
+
+### Recommandation liée à une alerte
+@ niveau=D ref=mdc-manage-alerts,mdc-recommendations
+?: Après le traitement d'une alerte de force brute SSH sur une VM Linux, quelle étape réduit le risque de récidive selon l'approche de Defender for Cloud ?
++: Appliquer les recommandations de prévention liées dans l'onglet « Take action » (par exemple fermer les ports de gestion, activer l'authentification par clé, JIT).
+-: Fermer l'alerte et attendre la prochaine. || Démarche réactive.
+-: Désactiver l'agent de surveillance. || Réduit la visibilité.
+-: Supprimer les journaux de la VM. || Destruction de preuves.
+=: L'onglet **Take action > Prévenir les attaques futures** relie l'alerte aux **recommandations** de posture qui en suppriment la cause (exposition des ports de gestion, authentification par mot de passe SSH, absence de JIT).
+T: La boucle alerte → recommandation → correction illustre la complémentarité CWP/CSPM. Les règles de gouvernance assurent le suivi de la correction.
+!: Après une alerte : appliquer les recommandations de prévention liées (fermer l'exposition, durcir l'authentification).
+
+### Incident multicloud
+@ niveau=A ref=mdc-aws,mdc-xdr
+?: Defender for Cloud signale des appels API AWS suspects (énumération IAM, désactivation de CloudTrail) depuis une clé d'accès d'un utilisateur IAM, au moment où MDE détecte un vol d'identifiants sur le poste d'un développeur. Que faut-il faire ?
++: Traiter les deux alertes comme un même incident probable : désactiver la clé d'accès AWS compromise, réactiver la journalisation CloudTrail, isoler le poste du développeur, puis rechercher d'autres secrets cloud exposés sur ce poste.
+-: Traiter séparément et sans lien les deux alertes, car elles concernent deux clouds différents. || Le lien (vol d'identifiants → usage de la clé) est probable et doit être investigué ensemble.
+-: Ignorer l'alerte AWS car Defender for Cloud ne surveille qu'Azure. || Defender for Cloud surveille aussi AWS et GCP via les connecteurs.
+-: Supprimer le compte AWS de l'organisation. || Disproportionné.
+=: Defender for Cloud **multicloud** analyse les événements **AWS CloudTrail** (selon les plans activés) et génère des alertes, corrélées dans Defender XDR avec les autres signaux. Le vol d'identifiants sur un poste de développeur expose souvent des **clés cloud** (fichiers de configuration, variables d'environnement).
+T: Remédiation AWS : désactiver/supprimer la clé, examiner les actions réalisées (CloudTrail : création d'utilisateurs, de clés, de ressources), réactiver la journalisation et protéger CloudTrail contre la suppression. Côté Microsoft : isolement MDE, chasse sur les autres postes.
+!: Alertes multicloud + terminal = un incident : révoquer les clés cloud, restaurer la journalisation, isoler le poste.
+
+### Choisir la bonne console pour chaque tâche
+@ niveau=I ref=mdc-overview,sent-overview,xdr-overview
+?: Associez correctement chaque besoin à l'outil le plus adapté : (1) corriger une configuration non conforme d'un compte de stockage ; (2) corréler des journaux de pare-feu tiers avec des connexions Entra ID ; (3) isoler un poste compromis.
+@ fixed
++: (1) Defender for Cloud ; (2) Microsoft Sentinel ; (3) Defender for Endpoint (Defender XDR).
+-: (1) Microsoft Sentinel ; (2) Defender for Cloud ; (3) Entra ID. || Sentinel ne corrige pas la configuration des ressources, Defender for Cloud n'est pas un SIEM, Entra ID n'isole pas les postes.
+-: (1) Defender for Endpoint ; (2) Defender for Office 365 ; (3) Defender for Cloud. || Attributions incohérentes.
+-: (1) Entra ID ; (2) Defender for Identity ; (3) Microsoft Purview. || Aucun de ces outils ne correspond aux besoins indiqués.
+=: **Defender for Cloud** gère la **posture** des ressources cloud (recommandations, corrections) ; **Sentinel** est le **SIEM** qui corrèle des journaux hétérogènes (pare-feu tiers, Entra ID) ; **Defender for Endpoint** exécute les actions de **réponse** sur les terminaux (isolation).
+T: Le portail Defender unifie l'expérience, mais les responsabilités de chaque produit restent distinctes. Une question d'examen typique consiste à choisir le bon outil pour une tâche donnée.
+!: Posture cloud = Defender for Cloud ; corrélation de journaux = Sentinel ; réponse sur terminal = MDE.
+
+### Alertes de sécurité pour les ressources AWS dans Sentinel
+@ niveau=I ref=mdc-aws,sent-connectors
+?: Une organisation veut corréler dans Sentinel les journaux CloudTrail bruts d'AWS avec ses autres journaux, en plus des alertes Defender for Cloud. Quelle approche est adaptée ?
++: Utiliser le connecteur Amazon Web Services (S3) de Sentinel pour ingérer CloudTrail dans la table AWSCloudTrail, et conserver l'intégration des alertes Defender for Cloud.
+-: Utiliser uniquement les recommandations de Defender for Cloud. || Les recommandations ne contiennent pas les événements CloudTrail bruts.
+-: Utiliser le connecteur Windows Security Events via AMA. || Inadapté aux journaux AWS.
+-: Utiliser le connecteur Microsoft Defender XDR uniquement. || Il ne transporte pas les journaux CloudTrail bruts.
+=: Les **alertes** Defender for Cloud et les **journaux bruts** sont complémentaires : le connecteur **AWS S3** de Sentinel ingère CloudTrail (et d'autres journaux AWS) dans **AWSCloudTrail**, ce qui permet des requêtes et règles personnalisées.
+T: Le connecteur AWS s'appuie sur un rôle IAM et une file SQS associée au compartiment S3. Filtrer les événements volumineux (lectures) ou utiliser un niveau de stockage moins coûteux pour les journaux secondaires.
+!: Journaux AWS bruts dans Sentinel = connecteur AWS (S3) → AWSCloudTrail ; les alertes viennent de Defender for Cloud.

@@ -240,3 +240,49 @@ T: Détection : longueur/entropie des sous-domaines, volume de requêtes uniques
 =: La page **MITRE ATT&CK** de Sentinel affiche la couverture actuelle et **simulée** (modèles disponibles). Le **hub de contenu** fournit des modèles de règles par technique ; les **optimisations SOC** proposent des recommandations de couverture par scénario de menace.
 T: Pour WinRM : processus wsmprovhost.exe lançant des commandes, connexions sur 5985/5986, événements PowerShell Remoting. Tester la règle avec un exercice (purple team) pour valider la détection.
 !: Lacune ATT&CK → page MITRE (simulée) + hub de contenu + optimisations SOC, puis test de la règle.
+
+@@ section=Compléments : préparation et analyse
+
+### Identifier le patient zéro
+@ niveau=A ref=xdr-investigate-incidents,mde-timeline
+?: Un incident regroupe des alertes sur 35 appareils. Pour comprendre le vecteur initial, l'analyste veut identifier le premier appareil compromis (patient zéro). Quelle démarche est la plus fiable ?
++: Reconstituer la chronologie à partir des premiers horodatages d'activité malveillante (première exécution des IOC, première connexion du compte compromis, premier e-mail ouvert), en remontant l'arborescence des processus et les connexions latérales jusqu'à l'activité la plus ancienne.
+-: Choisir l'appareil qui a le plus d'alertes. || Le nombre d'alertes reflète l'activité, pas l'antériorité.
+-: Choisir l'appareil de l'utilisateur le plus haut placé dans l'organigramme. || Aucun lien avec la chronologie de l'attaque.
+-: Choisir le dernier appareil sur lequel une alerte est apparue. || C'est l'inverse de ce que l'on cherche.
+=: Le **patient zéro** se déduit de la **chronologie** : premières occurrences des IOC (hachages, IP, domaines), première activité du compte compromis, origine des connexions latérales (DeviceLogonEvents RemoteIP, DeviceFileEvents RequestSourceIP). La chasse avancée avec `min(Timestamp)` par appareil aide à ordonner les événements.
+T: Le vecteur initial (hameçonnage, service exposé, identifiants volés) conditionne l'éradication et les mesures préventives. Les rapports d'analyse des menaces décrivent souvent le mode opératoire typique d'un acteur.
+!: Patient zéro = première occurrence chronologique des indicateurs et de l'activité du compte, pas l'appareil le plus bruyant.
+
+### Exercice sur table
+@ niveau=D ref=ir-planning
+?: Quel est l'objectif principal d'un exercice sur table (tabletop exercise) dans la phase de préparation ?
++: Tester, sur un scénario simulé, les rôles, décisions, communications et procédures de réponse, afin d'identifier les lacunes avant un incident réel.
+-: Mesurer les performances des serveurs. || Sans rapport avec la réponse aux incidents.
+-: Remplacer les outils de détection. || L'exercice teste l'organisation, il ne remplace pas les outils.
+-: Former uniquement les utilisateurs au hameçonnage. || C'est l'objet des simulations d'attaques.
+=: L'**exercice sur table** réunit les acteurs (SOC, IT, direction, juridique, communication) autour d'un scénario (rançongiciel, fuite de données) pour valider le **plan de réponse** : escalade, décisions, communication hors bande, obligations réglementaires.
+T: Les résultats alimentent les mises à jour des runbooks, des contacts et des outils (automatisations). Les exercices techniques (purple team) complètent en validant les détections.
+!: Exercice sur table = tester l'organisation et les procédures sur un scénario, avant l'incident réel.
+
+### IOC et TTP
+@ niveau=I ref=sent-ti,sent-mitre
+?: Pourquoi une détection fondée sur les techniques de l'attaquant (TTP) est-elle généralement plus durable qu'une détection fondée uniquement sur des indicateurs (hachages, IP) ?
++: Parce que l'attaquant peut changer facilement de hachage ou d'adresse IP, alors que modifier ses techniques (par exemple sa façon de voler des identifiants ou de se déplacer) lui coûte beaucoup plus cher.
+-: Parce que les hachages ne peuvent pas être recherchés en KQL. || Ils le sont facilement.
+-: Parce que les TTP ne génèrent jamais de faux positifs. || Les détections comportementales demandent aussi un réglage.
+-: Parce que les IOC sont interdits dans Microsoft Sentinel. || Sentinel gère les IOC (renseignement sur les menaces).
+=: Selon la « pyramide de la douleur », les **IOC atomiques** (hachages, IP, domaines) sont faciles à changer pour l'attaquant ; les **TTP** (comportements) sont plus coûteux à modifier. Les deux approches sont complémentaires : IOC pour la réaction rapide, TTP pour la résilience.
+T: Les règles comportementales s'appuient sur ATT&CK (par exemple vidage de LSASS, suppression de clichés), les IOC sur le renseignement (ThreatIntelIndicators, indicateurs MDE).
+!: IOC = réaction rapide mais éphémère ; TTP = détection durable.
+
+### Contenir un utilisateur compromis
+@ niveau=A ref=mde-response-device,xdr-disruption
+?: Lors d'un rançongiciel, un compte Active Directory compromis est utilisé pour se connecter à de nombreux appareils. Quelle action de Defender permet de bloquer l'utilisation de ce compte depuis les appareils gérés, en complément de sa désactivation ?
++: Contenir l'utilisateur (Contain user), qui bloque les activités entrantes du compte (connexions à distance, accès aux partages) sur les appareils intégrés à Defender for Endpoint.
+-: Lancer une analyse antivirus sur le compte. || Une analyse antivirus s'applique à un appareil.
+-: Ajouter le compte à une watchlist. || Une watchlist ne bloque rien.
+-: Supprimer le profil local de l'utilisateur sur son poste. || Sans effet sur les connexions latérales.
+=: **Contenir l'utilisateur** empêche un compte compromis d'être utilisé pour le **mouvement latéral** (connexions réseau, RDP, SMB) vers les appareils gérés, même si ses identifiants ou tickets restent valides un moment. Cette action est notamment utilisée par l'**interruption automatique d'attaque**.
+T: Elle complète la **désactivation** du compte (AD/Entra ID) et la réinitialisation des identifiants, car des tickets Kerberos déjà émis peuvent rester valides. L'action est réversible et tracée dans le Centre de notifications.
+!: Compte compromis utilisé latéralement = Contain user (MDE) + désactivation/réinitialisation.
