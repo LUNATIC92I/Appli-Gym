@@ -1,0 +1,495 @@
+@@ module=3
+
+### Opérateur d'égalité dans where
+@ niveau=D sub=fix ref=kql-where
+?: **Besoin :** lister les journaux d'audit effacés (événement 1102). La requête suivante échoue. Quelle est la correction ?
+```kqlbad
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where EventID = 1102
+| project TimeGenerated, Computer, Account
+```
++: Remplacer `=` par `==` : `| where EventID == 1102`.
+-: Remplacer `where` par `filter`. || `filter` est un alias de `where` ; le problème est l'opérateur d'affectation `=`.
+-: Mettre 1102 entre guillemets. || EventID est numérique ; c'est l'opérateur qui est incorrect.
+-: Ajouter `| take 100` en fin de requête. || Ne corrige pas l'erreur de syntaxe.
+=: En KQL, l'égalité s'écrit **`==`** (ou `=~` sans casse). Le signe `=` sert à l'affectation (dans `extend`, `project`, `summarize`, `let`).
+T: L'événement **1102** (« Le journal d'audit a été effacé ») est un indicateur classique d'anti-forensique (T1070.001). Il est généré dans le journal Sécurité ; l'effacement du journal Système produit l'événement 104 (dans le journal Système, hors SecurityEvent).
+X: ```kql
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| where EventID == 1102
+| project TimeGenerated, Computer, Account
+```
+R: Une ligne par effacement du journal Sécurité avec l'ordinateur et le compte.
+!: Égalité = `==` ; `=` = affectation.
+
+### Regroupement sur une colonne dynamique
+@ niveau=I sub=fix ref=kql-dynamic,la-t-SigninLogs
+?: **Besoin :** compter les connexions par ville. La requête renvoie l'erreur « The value of type 'dynamic' is not allowed in this context ». Que faut-il corriger ?
+```kqlbad
+SigninLogs
+| where TimeGenerated > ago(1d)
+| summarize Connexions = count() by LocationDetails.city
+```
++: Extraire et convertir la propriété avant le regroupement : `| extend Ville = tostring(LocationDetails.city) | summarize Connexions = count() by Ville`.
+-: Remplacer `count()` par `dcount()`. || L'agrégat n'est pas en cause ; c'est la clé de regroupement dynamique.
+-: Utiliser `LocationDetails["city"]` sans conversion. || La notation indexée renvoie toujours une valeur dynamique.
+-: Ajouter `kind=dynamic` à `summarize`. || Cette option n'existe pas.
+=: Une clé de **summarize by** ne peut pas être de type **dynamic**. On convertit la propriété avec **tostring()** (ou un autre type scalaire) dans un `extend` préalable, ou directement : `by Ville = tostring(LocationDetails.city)`.
+T: LocationDetails contient `city`, `state`, `countryOrRegion` et `geoCoordinates`. La colonne **Location** (chaîne, code pays) existe aussi dans SigninLogs et évite la conversion pour un regroupement par pays.
+X: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| extend Ville = tostring(LocationDetails.city)
+| summarize Connexions = count() by Ville
+| order by Connexions desc
+```
+!: Pas de `summarize by` / `join on` sur du dynamique : convertir avec `tostring()`.
+
+### Colonne temporelle selon l'environnement
+@ niveau=I sub=fix ref=xdr-ah-sentinel,xdr-t-DeviceProcessEvents
+?: **Besoin :** une requête copiée depuis la chasse avancée Defender XDR est exécutée dans l'espace Log Analytics de Sentinel (table ingérée via le connecteur Defender XDR) et échoue : « The name 'Timestamp' does not refer to any known column ». Quelle correction appliquer ?
+```kqlbad
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "rundll32.exe"
+| project Timestamp, DeviceName, ProcessCommandLine
+```
++: Remplacer Timestamp par TimeGenerated, la colonne temporelle des tables dans Log Analytics/Sentinel.
+-: Remplacer `ago(1d)` par `now()`. || La colonne inexistante reste le problème.
+-: Ajouter `| extend Timestamp = now()`. || On fausserait toutes les dates.
+-: Renommer la table en DeviceProcessEvents_CL. || La table standard existe ; seule la colonne diffère.
+=: Le schéma Log Analytics de DeviceProcessEvents (référence Azure Monitor) utilise **TimeGenerated** ; la chasse avancée Defender XDR utilise **Timestamp**. Adapter la colonne temporelle est la première étape de portage d'une requête entre les deux environnements.
+T: Autres différences possibles entre environnements : types de colonnes (AdditionalFields chaîne ou dynamique), fonctions propres à la chasse avancée (FileProfile, DeviceFromIP, SeenBy), tables disponibles. Dans le portail Defender unifié, la chasse avancée peut interroger à la fois les tables XDR et Sentinel.
+X: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where FileName =~ "rundll32.exe"
+| project TimeGenerated, DeviceName, ProcessCommandLine
+```
+!: Defender XDR (chasse avancée) = Timestamp ; Log Analytics/Sentinel = TimeGenerated.
+
+### Point-virgule manquant après let
+@ niveau=D sub=fix ref=kql-let
+?: **Besoin :** paramétrer une fenêtre de recherche. La requête échoue. Pourquoi ?
+```kqlbad
+let fenetre = 3d
+SecurityEvent
+| where TimeGenerated > ago(fenetre)
+| where EventID == 4740
+```
++: L'instruction `let` doit se terminer par un point-virgule : `let fenetre = 3d;`.
+-: `3d` n'est pas un littéral de durée valide ; il faut écrire `3days`. || `3d` est valide (d, h, m, s, ms…).
+-: `let` ne peut pas contenir de durée. || `let` peut nommer n'importe quel scalaire, table ou fonction.
+-: EventID 4740 n'existe pas. || 4740 (compte verrouillé) existe ; l'erreur est syntaxique.
+=: Chaque instruction **let** se termine par **`;`**. Sans lui, l'analyseur considère que la déclaration continue sur la ligne suivante.
+T: L'événement **4740** indique un verrouillage de compte, souvent consécutif à une force brute. Les littéraux timespan s'écrivent `30s`, `5m`, `1h`, `7d`, `100ms` ou `time(1.02:03:04)`.
+X: ```kql
+let fenetre = 3d;
+SecurityEvent
+| where TimeGenerated > ago(fenetre)
+| where EventID == 4740
+| summarize Verrouillages = count() by TargetAccount, Computer
+```
+!: Toute instruction `let` se termine par `;`.
+
+### Jointure sur des colonnes de noms différents
+@ niveau=I sub=fix ref=kql-join
+?: **Besoin :** relier les alertes Sentinel et les connexions d'un même utilisateur. La requête échoue car les colonnes de jointure n'ont pas le même nom. Quelle syntaxe est correcte ?
+```kqlbad
+SecurityAlert
+| where TimeGenerated > ago(1d)
+| extend Upn = tostring(CompromisedEntity)
+| join kind=inner (SigninLogs | where TimeGenerated > ago(1d)) on Upn
+```
++: `| join kind=inner (SigninLogs | where TimeGenerated > ago(1d)) on $left.Upn == $right.UserPrincipalName`
+-: `| join kind=inner (SigninLogs) on Upn = UserPrincipalName` || La syntaxe `a = b` n'est pas valide dans `on` ; il faut `$left.a == $right.b`.
+-: `| union SigninLogs on Upn` || `union` ne prend pas de clause `on` et ne réalise pas de jointure.
+-: `| lookup SigninLogs` sans clause on || Il faut une clé de correspondance.
+=: Lorsque les colonnes de jointure ont des noms différents, on utilise **`on $left.ColGauche == $right.ColDroite`**. Si les noms sont identiques, `on Col` suffit.
+T: Pour la robustesse : normaliser la casse (`tolower`) des deux côtés, limiter la droite dans le temps et en colonnes (`project`), et choisir explicitement `kind`. **CompromisedEntity** peut contenir un nom d'hôte ou un compte selon l'alerte ; extraire plutôt l'entité Account de la colonne Entities pour une jointure fiable.
+X: ```kql
+SecurityAlert
+| where TimeGenerated > ago(1d)
+| extend Upn = tolower(tostring(CompromisedEntity))
+| join kind=inner (
+    SigninLogs
+    | where TimeGenerated > ago(1d)
+    | project UserPrincipalName = tolower(UserPrincipalName), IPAddress, AppDisplayName, ResultType
+  ) on $left.Upn == $right.UserPrincipalName
+```
+!: Noms de clés différents → `on $left.A == $right.B`.
+
+### Colonne supprimée par project
+@ niveau=I sub=fix ref=kql-project
+?: **Besoin :** lister les processus enfants de winword.exe. La requête échoue : « The name 'InitiatingProcessFileName' does not refer to any known column ». Pourquoi ?
+```kqlbad
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| project TimeGenerated, DeviceName, FileName, ProcessCommandLine
+| where InitiatingProcessFileName =~ "winword.exe"
+```
++: `project` a supprimé InitiatingProcessFileName ; il faut filtrer avant `project` ou inclure la colonne dans la liste.
+-: La colonne InitiatingProcessFileName n'existe pas dans DeviceProcessEvents. || Elle existe ; elle a été retirée par `project`.
+-: `=~` ne s'applique pas aux noms de fichiers. || `=~` fonctionne sur toute chaîne.
+-: Il faut utiliser `project-away` au lieu de `project`. || `project-away` supprime des colonnes ; le problème est l'ordre des opérateurs.
+=: Chaque opérateur travaille sur la sortie du précédent. Après **project**, seules les colonnes listées existent. Bonne pratique : **filtrer tôt** (`where`) puis **projeter à la fin**.
+T: Placer les filtres les plus sélectifs au début améliore aussi les performances. Technique : T1204.002 / T1059 (Office lançant des interpréteurs).
+X: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where InitiatingProcessFileName =~ "winword.exe"
+| project TimeGenerated, DeviceName, FileName, ProcessCommandLine
+```
+!: Filtrer avant de projeter : après `project`, les autres colonnes n'existent plus.
+
+### Nom de colonne d'agrégat
+@ niveau=D sub=fix ref=kql-summarize
+?: **Besoin :** ne garder que les ordinateurs ayant plus de 100 échecs. La requête échoue : « The name 'Count' does not refer to any known column ». Quelle est la cause ?
+```kqlbad
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4625
+| summarize count() by Computer
+| where Count > 100
+```
++: `summarize count()` sans alias produit une colonne nommée `count_` ; il faut filtrer sur `count_` ou nommer l'agrégat (`Echecs = count()`).
+-: `count()` doit être écrit `Count()`. || KQL est sensible à la casse pour les fonctions : `count()` est correct.
+-: `where` ne peut pas suivre `summarize`. || On peut filtrer le résultat d'un `summarize`.
+-: La colonne Computer n'existe pas dans SecurityEvent. || Elle existe.
+=: Les agrégats non nommés reçoivent un nom généré (`count_`, `dcount_IPAddress`, `avg_DurationMs`…). **Nommer explicitement** (`Echecs = count()`) évite l'erreur et clarifie la requête. La colonne `Count` est produite par l'**opérateur** `count`, pas par la fonction.
+T: Conventions de nommage automatique : `count_`, `dcount_<colonne>`, `sum_<colonne>`, `avg_<colonne>`, `max_<colonne>`… Ces noms changent si la colonne source change ; un alias explicite rend la requête stable, notamment quand elle alimente une règle d'analyse (seuil, mappage d'entités, détails personnalisés). L'événement 4625 correspond aux échecs d'ouverture de session Windows.
+X: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4625
+| summarize Echecs = count() by Computer
+| where Echecs > 100
+```
+!: Nommer les agrégats ; `count()` non nommé = `count_`.
+
+### Colonne utilisée avant sa création
+@ niveau=D sub=fix ref=kql-extend
+?: **Besoin :** filtrer les connexions survenues hors heures ouvrées. La requête échoue. Quelle correction appliquer ?
+```kqlbad
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where Heure < 7 or Heure > 20
+| extend Heure = hourofday(TimeGenerated)
+```
++: Placer `extend Heure = hourofday(TimeGenerated)` avant le `where` qui utilise Heure.
+-: Remplacer `hourofday` par `datetime_part("hour")` uniquement. || Le nom de la fonction n'est pas en cause ; c'est l'ordre.
+-: Mettre 7 et 20 entre guillemets. || hourofday renvoie un entier ; la comparaison numérique est correcte.
+-: Remplacer `or` par `||`. || `or` est l'opérateur logique de KQL.
+=: Une colonne calculée par **extend** n'existe qu'**après** l'opérateur qui la crée. Le pipeline KQL est séquentiel.
+T: **hourofday()** renvoie l'heure (0–23) en **UTC** : pour une analyse en heure locale, décaler (`TimeGenerated + 2h`) ou utiliser `datetime_utc_to_local(TimeGenerated, "Europe/Paris")`. Combiner avec `dayofweek()` pour exclure les week-ends.
+X: ```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| extend Heure = hourofday(datetime_utc_to_local(TimeGenerated, "Europe/Paris"))
+| where Heure < 7 or Heure > 20
+| summarize Connexions = count() by UserPrincipalName
+```
+!: Créer la colonne (extend) avant de l'utiliser ; hourofday() est en UTC.
+
+### Fenêtre temporelle inversée
+@ niveau=D sub=fix ref=kql-ago
+?: **Besoin :** analyser les 24 dernières heures. La requête renvoie un volume énorme de données anciennes. Quelle est l'erreur ?
+```kqlbad
+SecurityEvent
+| where TimeGenerated < ago(1d)
+| where EventID == 4688
+| summarize count() by Computer
+```
++: Le comparateur est inversé : `< ago(1d)` sélectionne tout ce qui est plus ancien que 24 heures ; il faut `> ago(1d)`.
+-: `ago(1d)` doit être remplacé par `ago(24)`. || Une durée sans unité n'est pas valide ; `1d` est correct.
+-: Il faut ajouter `now()` dans la condition. || Ce n'est pas nécessaire : `> ago(1d)` suffit.
+-: L'EventID 4688 n'est pas collecté par défaut. || Sans lien avec l'inversion de la fenêtre.
+=: **ago(d)** = maintenant − d. `TimeGenerated > ago(1d)` sélectionne les 24 dernières heures ; `< ago(1d)` sélectionne tout ce qui est antérieur, jusqu'à la limite de rétention.
+T: Pour une plage précise : `between (datetime(2026-10-01) .. datetime(2026-10-02))` ou `> ago(2d) and < ago(1d)`. Toujours placer le filtre temporel en premier : il exploite le partitionnement temporel et réduit le coût.
+X: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4688
+| summarize Processus = count() by Computer
+```
+!: Dernières 24 h = `TimeGenerated > ago(1d)`.
+
+### Liste insensible à la casse
+@ niveau=I sub=fix ref=kql-in
+?: **Besoin :** repérer l'exécution d'outils de découverte. La requête ne renvoie pas les lignes où FileName vaut « WHOAMI.EXE » ou « Net.exe ». Quelle correction appliquer ?
+```kqlbad
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where FileName in ("whoami.exe", "net.exe", "nltest.exe", "systeminfo.exe")
+```
++: Utiliser `in~` au lieu de `in` pour une comparaison insensible à la casse.
+-: Utiliser `has` avec la liste. || `has` n'accepte qu'un terme ; pour plusieurs termes, `has_any` existe, mais il ne garantit pas une égalité exacte.
+-: Ajouter des jokers `*` dans les noms. || `in` ne gère pas les jokers.
+-: Remplacer FileName par FolderPath. || FileName est la bonne colonne ; seule la casse pose problème.
+=: **in** est sensible à la casse ; **in~** ne l'est pas. Les noms de fichiers Windows apparaissent avec des casses variées.
+T: Outils de découverte : `whoami` (T1033), `net` (T1087/T1069), `nltest /domain_trusts` (T1482), `systeminfo` (T1082). Un enchaînement rapide de ces commandes par un même processus parent est plus suspect qu'une exécution isolée.
+X: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where FileName in~ ("whoami.exe", "net.exe", "nltest.exe", "systeminfo.exe")
+| summarize Outils = make_set(FileName), Nb = dcount(FileName) by DeviceName, InitiatingProcessFileName, bin(TimeGenerated, 10m)
+| where Nb >= 3
+```
+!: `in~` = liste insensible à la casse.
+
+### Syntaxe de between
+@ niveau=I sub=fix ref=kql-between,kql-datetime
+?: **Besoin :** extraire les événements d'une période d'incident. La requête échoue. Quelle est la syntaxe correcte ?
+```kqlbad
+SecurityEvent
+| where TimeGenerated between (datetime(2026-10-01 08:00), datetime(2026-10-01 12:00))
+| where Computer == "SRV-FIC01"
+```
++: `| where TimeGenerated between (datetime(2026-10-01 08:00) .. datetime(2026-10-01 12:00))`
+-: `| where TimeGenerated between datetime(2026-10-01 08:00) and datetime(2026-10-01 12:00)` || Syntaxe de type SQL non valide en KQL.
+-: `| where TimeGenerated in (datetime(2026-10-01 08:00), datetime(2026-10-01 12:00))` || `in` teste l'égalité avec deux instants précis, pas une plage.
+-: `| where TimeGenerated between ("2026-10-01 08:00" .. "2026-10-01 12:00")` || Les bornes doivent être des datetime, pas des chaînes.
+=: **between (min .. max)** utilise l'opérateur de plage **`..`** et inclut les bornes. Les littéraux s'écrivent `datetime(AAAA-MM-JJ hh:mm:ss)` (ISO 8601) et sont interprétés en **UTC**.
+T: `!between` exclut une plage. Pour des fenêtres relatives : `between (ago(2h) .. ago(1h))`. En investigation, fixer des bornes absolues documente précisément la période analysée.
+X: ```kql
+SecurityEvent
+| where TimeGenerated between (datetime(2026-10-01 08:00) .. datetime(2026-10-01 12:00))
+| where Computer == "SRV-FIC01"
+| summarize count() by EventID
+```
+!: `between (a .. b)` avec des bornes datetime UTC.
+
+### Ordre des arguments de arg_max
+@ niveau=I sub=fix ref=kql-argmax
+?: **Besoin :** obtenir le dernier événement de chaque appareil. La requête échoue. Quelle correction appliquer ?
+```kqlbad
+Heartbeat
+| where TimeGenerated > ago(1d)
+| summarize arg_max(*, TimeGenerated) by Computer
+```
++: Inverser les arguments : `arg_max(TimeGenerated, *)` — l'expression à maximiser vient en premier, puis les colonnes à renvoyer.
+-: Remplacer `arg_max` par `max(*)`. || `max` ne renvoie pas toute la ligne et n'accepte pas `*`.
+-: Remplacer `by Computer` par `on Computer`. || `summarize` utilise `by`.
+-: Ajouter `kind=latest`. || Ce paramètre n'existe pas.
+=: Syntaxe : **arg_max(ExprAMaximiser, Col1, Col2… | *)**. Le premier argument est la valeur comparée, les suivants les colonnes renvoyées depuis la ligne gagnante.
+T: Cette requête permet de repérer les agents silencieux : `| where TimeGenerated < ago(1h)` après le `summarize` signale les ordinateurs sans battement de cœur depuis une heure.
+X: ```kql
+Heartbeat
+| where TimeGenerated > ago(1d)
+| summarize arg_max(TimeGenerated, *) by Computer
+| where TimeGenerated < ago(1h)
+| project Computer, DernierBattement = TimeGenerated, OSType, Category
+```
+!: `arg_max(Temps, *)` : d'abord la valeur à maximiser, ensuite les colonnes.
+
+### Chemin Windows et chaînes verbatim
+@ niveau=I sub=fix ref=kql-string-ops,kql-regex
+?: **Besoin :** détecter les exécutables lancés depuis le dossier Public. La requête ne renvoie aucun résultat alors que des exécutions existent. Quelle est la cause la plus probable ?
+```kqlbad
+DeviceProcessEvents
+| where TimeGenerated > ago(7d)
+| where FolderPath startswith "C:\Users\Public\"
+```
++: Dans une chaîne normale, l'antislash est un caractère d'échappement ; il faut le doubler (`"C:\\Users\\Public\\"`) ou utiliser une chaîne verbatim `@"C:\Users\Public\"`.
+-: `startswith` n'existe pas en KQL. || L'opérateur existe.
+-: FolderPath ne contient que le nom de fichier. || FolderPath contient le chemin complet.
+-: Il faut remplacer les antislashs par des barres obliques `/`. || Les chemins Windows enregistrés utilisent `\`.
+=: En KQL, `\` échappe le caractère suivant dans les chaînes entre guillemets. Les **chaînes verbatim** préfixées par **`@`** désactivent l'échappement : idéales pour les chemins Windows et les expressions régulières.
+T: Les dossiers inscriptibles par tous (`C:\Users\Public`, `C:\ProgramData`, `%TEMP%`) sont des emplacements classiques de dépôt de charges. `startswith` est insensible à la casse (variante `startswith_cs`).
+X: ```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(7d)
+| where FolderPath startswith @"C:\Users\Public\"
+| summarize Executions = count() by FileName, FolderPath, DeviceName
+```
+!: Chemins Windows et regex → chaînes verbatim `@"..."`.
+
+### top sans critère de tri
+@ niveau=D sub=fix ref=kql-top
+?: **Besoin :** afficher les 5 adresses IP sources les plus bloquées par le pare-feu. La requête échoue. Quelle correction appliquer ?
+```kqlbad
+CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| where DeviceAction == "deny"
+| summarize Blocages = count() by SourceIP
+| top 5
+```
++: Préciser le critère : `| top 5 by Blocages`.
+-: Remplacer `top 5` par `limit 5`. || `limit` renvoie 5 lignes quelconques, pas les 5 plus bloquées.
+-: Remplacer `count()` par `sum()`. || `sum` exige une colonne numérique à additionner ; ce n'est pas l'erreur.
+-: Ajouter `asc` après `top 5`. || Il manque toujours la colonne de tri, et l'ordre croissant donnerait les moins bloquées.
+=: **top N by Expression [asc|desc]** exige un critère de tri ; l'ordre par défaut est **décroissant**. `take`/`limit` ne trient pas.
+T: Pour obtenir les N premiers par groupe (par exemple les 3 IP les plus bloquées par pare-feu), utiliser `top-nested` ou `partition`.
+X: ```kql
+CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| where DeviceAction == "deny"
+| summarize Blocages = count() by SourceIP
+| top 5 by Blocages
+```
+!: `top N by col` (décroissant par défaut) ; `take`/`limit` ne trient pas.
+
+### Comparer une valeur à un tableau
+@ niveau=A sub=fix ref=kql-mvexpand,kql-dynamic
+?: **Besoin :** trouver les incidents contenant une alerte précise (SystemAlertId connu). La requête ne renvoie rien alors que l'incident existe. Quelle correction appliquer ?
+```kqlbad
+SecurityIncident
+| where TimeGenerated > ago(7d)
+| where AlertIds == "8d2f6c1a-3b4e-4f5a-9c8d-7e6f5a4b3c2d"
+```
++: AlertIds est un tableau dynamique : utiliser `set_has_element(AlertIds, "8d2f…")`, `AlertIds has "8d2f…"`, ou développer le tableau avec `mv-expand` avant de comparer.
+-: Mettre l'identifiant en majuscules. || La casse n'est pas en cause : on compare un tableau entier à une chaîne.
+-: Remplacer `==` par `=`. || `=` n'est pas un opérateur de comparaison.
+-: Utiliser la table SecurityAlert à la place, sans autre changement. || SecurityAlert n'a pas de colonne AlertIds ; il faudrait filtrer sur SystemAlertId puis relier à l'incident.
+=: Une colonne **dynamique de type tableau** ne vaut jamais une chaîne isolée. On teste l'appartenance avec **set_has_element()** / **array_index_of()** ou `has` (recherche de terme dans le contenu), ou on éclate le tableau avec **mv-expand**.
+T: SecurityIncident contient plusieurs colonnes dynamiques (AlertIds, Labels, Owner, Comments, Tasks). Pour un état fiable, dédupliquer avec `arg_max` avant de filtrer.
+X: ```kql
+SecurityIncident
+| where TimeGenerated > ago(7d)
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| where set_has_element(AlertIds, "8d2f6c1a-3b4e-4f5a-9c8d-7e6f5a4b3c2d")
+| project IncidentNumber, Title, Status, Severity
+```
+!: Tableau dynamique : `set_has_element()`, `has` ou `mv-expand`, jamais `==` avec une chaîne.
+
+### Union de colonnes aux noms différents
+@ niveau=A sub=fix ref=kql-union,kql-coalesce
+?: **Besoin :** recherche d'une adresse IP dans les journaux Windows et pare-feu. La requête suivante ne renvoie que des résultats de CommonSecurityLog, alors que SecurityEvent contient l'IP. Pourquoi ?
+```kqlbad
+union SecurityEvent, CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| where SourceIP == "203.0.113.50"
+```
++: Dans SecurityEvent, l'adresse se trouve dans la colonne IpAddress, pas SourceIP ; après l'union, SourceIP est vide pour les lignes SecurityEvent. Il faut harmoniser, par exemple `extend IP = coalesce(SourceIP, IpAddress)` puis filtrer sur IP.
+-: `union` ne fonctionne qu'avec deux tables du même connecteur. || `union` accepte n'importe quelles tables.
+-: Il faut écrire `union kind=inner`. || `kind=inner` ne garderait que les colonnes communes, sans résoudre la différence de noms.
+-: La comparaison d'IP exige `ipv4_compare()`. || L'égalité de chaînes est valide pour une IP exacte.
+=: **union** aligne les colonnes **par nom** ; une colonne absente d'une table vaut vide pour ses lignes. On harmonise avec **extend** + **coalesce()** (première valeur non vide) ou en renommant dans chaque branche.
+T: C'est exactement le problème que résout la **normalisation ASIM** (SrcIpAddr commun à toutes les sources). La recherche plein texte `search "203.0.113.50"` fonctionne aussi mais est coûteuse.
+X: ```kql
+union SecurityEvent, CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| extend IP = coalesce(SourceIP, IpAddress)
+| where IP == "203.0.113.50"
+| summarize Evenements = count() by Type, Computer, DeviceVendor
+```
+!: union aligne par nom : harmoniser les colonnes (coalesce, renommage) ou utiliser ASIM.
+
+### bin() appliqué au mauvais type
+@ niveau=I sub=fix ref=kql-bin,kql-summarize
+?: **Besoin :** histogramme horaire des connexions. La requête donne une seule tranche par utilisateur au lieu d'une série horaire. Quelle est l'erreur ?
+```kqlbad
+SigninLogs
+| where TimeGenerated > ago(1d)
+| summarize Connexions = count() by UserPrincipalName, bin(UserPrincipalName, 1h)
+```
++: `bin()` doit s'appliquer à la colonne temporelle : `by UserPrincipalName, bin(TimeGenerated, 1h)`.
+-: Il faut remplacer `1h` par `60m`. || Les deux écritures sont équivalentes.
+-: `bin()` ne peut pas être utilisé dans `summarize`. || C'est précisément son usage principal.
+-: Il manque `render timechart`. || La visualisation n'est pas la cause de l'erreur.
+=: **bin(valeur, taille)** arrondit une valeur numérique ou temporelle vers le bas au multiple de la taille. Appliqué à une chaîne, il n'a pas de sens (l'analyseur signale une erreur de type) ; pour une série horaire, on l'applique à **TimeGenerated**.
+T: `bin()` accepte des tailles en durée (`5m`, `1h`, `1d`) pour les datetime et des tailles numériques pour les nombres (par exemple `bin(SentBytes, 1000000)` pour des tranches de 1 Mo). `bin_at()` permet d'aligner les tranches sur une origine précise ; `startofday()`/`startofweek()` arrondissent au jour ou à la semaine.
+X: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| summarize Connexions = count() by UserPrincipalName, bin(TimeGenerated, 1h)
+```
+!: `bin(TimeGenerated, 1h)` pour les séries temporelles ; bin s'applique à des nombres ou des dates.
+
+### Jointure sur clé de casse différente
+@ niveau=A sub=fix ref=kql-join,kql-tolower
+?: **Besoin :** enrichir des alertes MDE avec les informations d'identité. La jointure ne renvoie que la moitié des résultats attendus. AccountName vaut « JDupont » dans une table et « jdupont » dans l'autre. Quelle correction appliquer ?
+```kqlbad
+DeviceLogonEvents
+| where TimeGenerated > ago(1d)
+| join kind=inner (IdentityInfo | where TimeGenerated > ago(14d)) on $left.AccountName == $right.AccountName
+```
++: Normaliser la casse des deux côtés avant la jointure, par exemple `extend Compte = tolower(AccountName)` dans chaque branche, puis `on Compte`.
+-: Utiliser `=~` dans la clause `on`. || La clause `on` n'accepte que `==` (égalité stricte).
+-: Remplacer `kind=inner` par `kind=leftanti`. || On obtiendrait les lignes sans correspondance, l'inverse du besoin.
+-: Remplacer `join` par `union`. || L'union n'enrichit pas les lignes.
+=: Les clés de **join** sont comparées de façon **sensible à la casse** et seule l'égalité `==` est autorisée. On normalise avec **tolower()** (ou toupper) des deux côtés.
+T: IdentityInfo (Sentinel/UEBA) est un instantané historisé : prendre la dernière ligne par compte (`summarize arg_max(TimeGenerated, *) by AccountName`) avant la jointure pour éviter les doublons. Préférer des identifiants stables (SID, ObjectId) aux noms quand ils sont disponibles.
+X: ```kql
+DeviceLogonEvents
+| where TimeGenerated > ago(1d)
+| extend Compte = tolower(AccountName)
+| join kind=inner (
+    IdentityInfo
+    | where TimeGenerated > ago(14d)
+    | summarize arg_max(TimeGenerated, *) by AccountName
+    | extend Compte = tolower(AccountName)
+    | project Compte, Department, JobTitle
+  ) on Compte
+```
+!: Clés de jointure sensibles à la casse : normaliser (tolower) ; préférer SID/ObjectId.
+
+### Expression régulière non correspondante
+@ niveau=A sub=fix ref=kql-matches-regex,kql-regex
+?: **Besoin :** repérer des noms de domaine générés aléatoirement (au moins 20 caractères alphanumériques avant .com). La requête ne trouve rien. Quelle est la correction ?
+```kqlbad
+DeviceNetworkEvents
+| where TimeGenerated > ago(1d)
+| where RemoteUrl matches regex "^[a-z0-9]{20,}\.com$"
+```
++: Utiliser une chaîne verbatim pour que `\.` soit transmis tel quel au moteur RE2 : `matches regex @"^[a-z0-9]{20,}\.com$"`, et tenir compte de la casse et des préfixes éventuels (schéma, sous-domaines).
+-: Remplacer `matches regex` par `has`. || `has` ne prend pas d'expression régulière.
+-: Remplacer `{20,}` par `{,20}`. || On chercherait au plus 20 caractères, l'inverse du besoin.
+-: Les expressions régulières ne sont pas prises en charge en KQL. || KQL utilise la syntaxe RE2.
+=: Dans une chaîne normale, `"\."` est interprété par l'analyseur de chaînes KQL avant d'arriver au moteur d'expressions régulières ; la **chaîne verbatim** `@"..."` transmet l'expression intacte. Le motif doit aussi tenir compte du format réel de RemoteUrl (qui peut contenir des sous-domaines ou un schéma).
+T: KQL utilise la syntaxe **RE2** (pas de rétroréférences ni de lookahead). `matches regex` est coûteux : filtrer d'abord avec des opérateurs indexés (`endswith ".com"`). Pour les DGA, combiner longueur, entropie et rareté du domaine.
+X: ```kql
+DeviceNetworkEvents
+| where TimeGenerated > ago(1d)
+| where RemoteUrl endswith ".com"
+| extend Domaine = tolower(RemoteUrl)
+| where Domaine matches regex @"(^|\.)[a-z0-9]{20,}\.com$"
+| summarize Appareils = dcount(DeviceId) by Domaine
+```
+!: Regex KQL = RE2 en chaîne verbatim `@"..."` ; pré-filtrer avec des opérateurs indexés.
+
+### Ordre des opérations dans une détection de seuil
+@ niveau=I sub=fix ref=kql-summarize,kql-countif
+?: **Besoin :** trouver les comptes ayant au moins 10 échecs ET au moins un succès dans la même heure (force brute réussie). La requête ne renvoie rien. Pourquoi ?
+```kqlbad
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "50126"
+| summarize Echecs = count(), Succes = countif(ResultType == "0") by UserPrincipalName, bin(TimeGenerated, 1h)
+| where Echecs >= 10 and Succes > 0
+```
++: Le premier filtre ne conserve que les échecs (50126), donc `countif(ResultType == "0")` vaut toujours 0 ; il faut retirer ce filtre et compter les deux catégories avec `countif()`.
+-: `countif` n'existe pas en KQL. || La fonction existe.
+-: Il faut utiliser `ResultType == 0` sans guillemets. || ResultType est une chaîne ; la comparaison à « 0 » est correcte.
+-: La fenêtre `bin(TimeGenerated, 1h)` doit être supprimée. || Le regroupement horaire n'est pas la cause du résultat vide.
+=: Un **filtre en amont** supprime les lignes dont on a besoin dans l'agrégation. On calcule les deux mesures dans un même `summarize` avec **countif()** sur l'ensemble des connexions de l'utilisateur.
+T: Variante plus précise : vérifier que le succès est **postérieur** aux échecs (`min`/`max` des horodatages ou jointure temporelle). Code 50126 = identifiants invalides ; « 0 » = succès.
+X: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| summarize Echecs = countif(ResultType == "50126"), Succes = countif(ResultType == "0"),
+            IPs = make_set(IPAddress, 10) by UserPrincipalName, bin(TimeGenerated, 1h)
+| where Echecs >= 10 and Succes > 0
+```
+!: Ne pas filtrer en amont ce qu'on veut compter ; utiliser countif() pour plusieurs catégories.
+
+### Opérateur search trop large
+@ niveau=I sub=fix ref=kql-search,kql-best
+?: **Besoin :** retrouver toute trace du domaine « evil-cdn.net » dans l'espace sur 30 jours. La requête suivante expire (timeout). Quelle amélioration est la plus pertinente ?
+```kqlbad
+search "evil-cdn.net"
+```
++: Restreindre la recherche dans le temps et aux tables pertinentes, par exemple `search in (DeviceNetworkEvents, CommonSecurityLog, DnsEvents) "evil-cdn.net"` précédé d'un filtre temporel, ou interroger directement les colonnes concernées.
+-: Remplacer `search` par `find` sans autre changement. || `find` reste une recherche multi-tables coûteuse sans filtre de portée.
+-: Ajouter `| take 10` à la fin. || La recherche doit toujours parcourir toutes les données avant de limiter.
+-: Exécuter la requête plusieurs fois jusqu'à ce qu'elle aboutisse. || Ne résout pas le problème de coût.
+=: **search** sans portée parcourt **toutes les colonnes de toutes les tables** sur la période sélectionnée : très coûteux. On limite la **période**, les **tables** (`search in (...)`) et, idéalement, on cible les **colonnes** (`RemoteUrl has "evil-cdn.net"`).
+T: Bonnes pratiques KQL : filtre temporel d'abord, `has` plutôt que `contains`, filtres sélectifs tôt, éviter `search *`. Pour des recherches sur de longues périodes, utiliser un **job de recherche** ou un **job KQL** (data lake).
+X: ```kql
+search in (DeviceNetworkEvents, CommonSecurityLog, DnsEvents) "evil-cdn.net"
+| where TimeGenerated > ago(30d)
+| summarize Occurrences = count() by $table
+```
+!: `search` sans portée = coûteux : limiter tables, période et colonnes.

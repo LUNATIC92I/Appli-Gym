@@ -1,0 +1,420 @@
+@@ module=3
+
+### Lire une requête de base sur les échecs de connexion
+@ niveau=D sub=comp ref=kql-where,kql-top,la-t-SigninLogs
+?: **Besoin :** repérer les comptes les plus ciblés par des échecs de connexion Entra ID. Que renvoie la requête suivante ?
+```kql
+SigninLogs
+| where TimeGenerated > ago(24h)
+| where ResultType != "0"
+| summarize Echecs = count() by UserPrincipalName
+| top 10 by Echecs
+```
++: Les 10 comptes ayant le plus d'échecs de connexion interactive au cours des dernières 24 heures, avec leur nombre d'échecs, triés par ordre décroissant.
+-: Les 10 dernières connexions réussies des dernières 24 heures. || `ResultType != "0"` exclut les succès ; `top` trie sur Echecs, pas sur l'heure.
+-: Les 10 adresses IP ayant le plus d'échecs. || Le regroupement porte sur UserPrincipalName, pas sur IPAddress.
+-: Tous les comptes ayant au moins 10 échecs. || `top 10` limite à 10 lignes ; il ne filtre pas sur un seuil d'échecs.
+=: La requête filtre la fenêtre de 24 heures, conserve les connexions dont le code de résultat n'est pas « 0 » (échecs), compte les lignes par utilisateur, puis `top 10 by Echecs` renvoie les 10 lignes ayant la plus grande valeur (tri **décroissant par défaut**).
+T: **Opérateurs :** `where` filtre les lignes ; `ago(24h)` calcule l'instant présent moins 24 heures ; `summarize count() by` agrège ; `top N by col` combine tri et limitation (équivalent de `sort by Echecs desc | take 10`). **ResultType** est une chaîne dans SigninLogs : on compare à `"0"`.
+R: 10 lignes maximum, deux colonnes : UserPrincipalName et Echecs.
+S: SigninLogs ne contient que les connexions **interactives** ; les échecs non interactifs sont dans AADNonInteractiveUserSignInLogs.
+M: Ajouter `dcount(IPAddress)` pour distinguer une attaque distribuée d'un utilisateur qui se trompe de mot de passe, et exclure les codes non liés à une attaque (par exemple 50140, interruption « Rester connecté ? »).
+!: `top N by col` = tri décroissant + limitation ; ResultType de SigninLogs est une chaîne.
+
+### Agrégation temporelle avec bin()
+@ niveau=D sub=comp ref=kql-bin,kql-summarize,kql-render
+?: **Besoin :** visualiser l'évolution du nombre d'événements de sécurité Windows. Que produit la requête ?
+```kql
+SecurityEvent
+| where TimeGenerated > ago(7d)
+| summarize Evenements = count() by bin(TimeGenerated, 1h), Computer
+| render timechart
+```
++: Une série temporelle du nombre d'événements par tranche d'une heure et par ordinateur sur 7 jours, affichée sous forme de graphique chronologique.
+-: Le nombre total d'événements des 7 derniers jours, en une seule valeur. || Le regroupement par `bin(TimeGenerated, 1h)` et Computer produit une ligne par heure et par ordinateur.
+-: Les événements arrondis à l'heure, sans agrégation. || `summarize` agrège : on obtient des comptes, pas des événements individuels.
+-: Uniquement les événements survenus à l'heure pile (minute 00). || `bin` arrondit chaque horodatage à la tranche inférieure ; il ne filtre pas.
+=: `bin(TimeGenerated, 1h)` arrondit chaque horodatage au début de sa tranche horaire ; `summarize count() by bin(...), Computer` compte les événements par tranche et par ordinateur ; `render timechart` trace une courbe par ordinateur.
+T: **bin()** (alias `floor()`) crée des intervalles réguliers : indispensable pour les agrégations temporelles et les détections de pics. `render` est une instruction de visualisation interprétée par l'interface (Log Analytics, chasse avancée, classeurs) ; elle doit être la dernière.
+R: Une ligne par (heure, ordinateur) avec la colonne Evenements, puis un graphique chronologique.
+S: Les tranches sans événement n'apparaissent pas (pas de valeur 0) ; utilisez `make-series` pour obtenir des séries complètes.
+M: Limiter aux ordinateurs les plus bavards (`top-nested` ou un `where Computer in (...)`) pour garder un graphique lisible.
+!: `bin(TimeGenerated, 1h)` = regroupement par tranches régulières ; `render timechart` pour visualiser.
+
+### Différence entre extend et project
+@ niveau=D sub=comp ref=kql-extend,kql-project
+?: **Besoin :** préparer des résultats lisibles. Quelle affirmation décrit correctement l'effet des deux requêtes suivantes ?
+```kql
+// Requête 1
+DeviceProcessEvents
+| where TimeGenerated > ago(1h)
+| extend Parent = InitiatingProcessFileName
+```
+```kql
+// Requête 2
+DeviceProcessEvents
+| where TimeGenerated > ago(1h)
+| project TimeGenerated, DeviceName, FileName, Parent = InitiatingProcessFileName
+```
++: La requête 1 ajoute la colonne Parent en conservant toutes les colonnes existantes ; la requête 2 ne conserve que les quatre colonnes listées, dont Parent.
+-: Les deux requêtes renvoient exactement les mêmes colonnes. || `extend` conserve toutes les colonnes, `project` ne garde que celles listées.
+-: La requête 2 provoque une erreur car on ne peut pas renommer dans `project`. || `project` accepte les renommages et les calculs (`Nouveau = expression`).
+-: La requête 1 supprime la colonne InitiatingProcessFileName. || `extend` ne supprime rien ; il ajoute (ou remplace) une colonne.
+=: **extend** ajoute des colonnes calculées à toutes les colonnes existantes ; **project** sélectionne, renomme ou calcule uniquement les colonnes indiquées et supprime les autres.
+T: Variantes : `project-away` (supprime des colonnes), `project-rename` (renomme sans changer les autres), `project-reorder` (réordonne), `project-keep` (conserve des colonnes par motif). Réduire tôt les colonnes avec `project` améliore les performances, surtout avant une jointure.
+R: Requête 1 : toutes les colonnes de DeviceProcessEvents + Parent. Requête 2 : TimeGenerated, DeviceName, FileName, Parent.
+S: Ces requêtes utilisent le schéma Sentinel de DeviceProcessEvents (colonne `TimeGenerated`) ; en chasse avancée, on utiliserait `Timestamp`.
+!: extend = ajoute (garde tout) ; project = sélectionne (ne garde que la liste).
+
+### Opérateur count et fonction count()
+@ niveau=D sub=comp ref=kql-count,kql-summarize
+?: **Besoin :** mesurer un volume. Que renvoie chacune des requêtes ?
+```kql
+// A
+SecurityEvent | where TimeGenerated > ago(1d) | where EventID == 4625 | count
+```
+```kql
+// B
+SecurityEvent | where TimeGenerated > ago(1d) | where EventID == 4625 | summarize count() by Computer
+```
++: A renvoie une seule ligne avec une colonne Count (nombre total d'échecs) ; B renvoie une ligne par ordinateur avec une colonne count_.
+-: A et B renvoient une ligne par ordinateur. || L'opérateur `count` produit une seule ligne sans regroupement.
+-: A renvoie une erreur car `count` doit être suivi de parenthèses. || `count` est aussi un opérateur tabulaire, utilisable sans parenthèses.
+-: B renvoie une seule ligne avec le total. || `by Computer` crée une ligne par ordinateur.
+=: L'**opérateur `count`** renvoie le nombre de lignes de l'entrée (colonne **Count**). La **fonction d'agrégation `count()`**, utilisée dans `summarize`, compte par groupe ; sans alias, la colonne s'appelle **count_**.
+T: Nommer explicitement les agrégats (`Echecs = count()`) évite de manipuler `count_` et rend les requêtes plus lisibles. Variante : `countif(condition)` compte conditionnellement dans un même `summarize`.
+R: A : 1 ligne (Count). B : N lignes (Computer, count_).
+!: `| count` = total en une ligne (Count) ; `summarize count() by X` = compte par groupe (count_).
+
+### has et contains
+@ niveau=I sub=comp ref=kql-has,kql-contains,kql-string-ops
+?: **Besoin :** rechercher des lignes de commande PowerShell. Une ligne de commande vaut `powershell.exe -ExecutionPolicy Bypass -File C:\Temp\run.ps1`. Quelles conditions la retiennent ? (Analysez les quatre filtres.)
+```kql
+DeviceProcessEvents
+| where TimeGenerated > ago(1d)
+| where ProcessCommandLine has "bypass"        // filtre 1
+// | where ProcessCommandLine has "pass"       // filtre 2
+// | where ProcessCommandLine contains "pass"  // filtre 3
+// | where ProcessCommandLine has_cs "bypass"  // filtre 4
+```
++: Les filtres 1 et 3 la retiennent ; le filtre 2 ne la retient pas (« pass » n'est pas un terme entier) ; le filtre 4 non plus (sensible à la casse, « Bypass » ≠ « bypass »).
+-: Les quatre filtres la retiennent. || `has` cherche un terme entier et `has_cs` est sensible à la casse.
+-: Seul le filtre 3 la retient, car `has` ne fonctionne pas sur les chemins. || `has` trouve « bypass » qui est un terme délimité dans la chaîne.
+-: Seul le filtre 4 la retient. || `has_cs "bypass"` échoue car la casse diffère.
+=: **has** recherche un **terme entier** (séquence alphanumérique délimitée), sans tenir compte de la casse, et s'appuie sur l'index de termes (rapide). **contains** recherche une **sous-chaîne** quelconque, sans tenir compte de la casse (plus lent). Les variantes **_cs** sont sensibles à la casse.
+T: Bonnes pratiques de performance : préférer `has` à `contains` quand on cherche un mot entier, `has_cs`/`==` quand la casse est connue, et `has_any(...)` pour plusieurs termes. `startswith`/`endswith` existent aussi. Les termes de moins de 3 caractères ne sont pas indexés.
+R: Avec le filtre 1 actif, la ligne est renvoyée.
+M: Pour détecter les contournements de stratégie d'exécution, combiner `has_any ("bypass", "-ep", "-exec")` et vérifier les abréviations (`-ExecutionPolicy` peut être abrégé).
+!: has = terme entier (rapide) ; contains = sous-chaîne (lent) ; suffixe _cs = sensible à la casse.
+
+### Égalité sensible ou non à la casse
+@ niveau=D sub=comp ref=kql-string-ops,kql-in
+?: **Besoin :** filtrer un compte. Le champ AccountName contient « Admin.Backup ». Quelle requête renvoie bien ces lignes ?
+```kql
+DeviceLogonEvents
+| where TimeGenerated > ago(1d)
+| where AccountName =~ "admin.backup"
+```
++: Celle-ci : l'opérateur `=~` compare sans tenir compte de la casse, donc « Admin.Backup » correspond à « admin.backup ».
+-: Aucune ligne n'est renvoyée car `=~` est un opérateur d'expression régulière. || `=~` est l'égalité insensible à la casse ; l'expression régulière s'écrit `matches regex`.
+-: Elle renvoie toutes les lignes dont AccountName commence par « admin ». || `=~` est une égalité stricte (hors casse), pas un préfixe.
+-: Elle provoque une erreur, `=~` n'existant qu'en chasse avancée. || L'opérateur est disponible partout en KQL.
+=: `==` est sensible à la casse ; **`=~`** ne l'est pas. De même, `in` est sensible et **`in~`** ne l'est pas ; `!=` / **`!~`** pour les négations.
+T: Les noms de comptes, d'hôtes et de domaines ont souvent des casses incohérentes selon les sources : utiliser `=~`, `in~` ou normaliser avec `tolower()` avant les jointures (les clés de jointure sont comparées de façon sensible à la casse).
+R: Les ouvertures de session du compte, quelle que soit la casse.
+S: Requête sur le schéma Sentinel de DeviceLogonEvents (TimeGenerated).
+!: `==`/`in` sensibles à la casse ; `=~`/`in~` insensibles.
+
+### Jointure par défaut innerunique
+@ niveau=A sub=comp ref=kql-join
+?: **Besoin :** associer des alertes aux ouvertures de session. La table de gauche contient deux lignes avec la même valeur DeviceId=« D1 », la table de droite trois lignes avec DeviceId=« D1 ». Combien de lignes produit la jointure suivante (sans `kind`) ?
+```kql
+let gauche = datatable(DeviceId:string, Alerte:string)["D1","A1","D1","A2"];
+let droite = datatable(DeviceId:string, Compte:string)["D1","u1","D1","u2","D1","u3"];
+gauche
+| join droite on DeviceId
+```
++: 3 lignes : la saveur par défaut `innerunique` déduplique la table de gauche sur la clé avant la jointure (une seule ligne gauche conservée, de façon arbitraire), puis l'associe aux 3 lignes de droite.
+-: 6 lignes, comme une jointure interne SQL classique. || Ce serait le cas avec `kind=inner`, pas avec la valeur par défaut.
+-: 2 lignes, une par alerte. || La droite n'est pas dédupliquée et produit plusieurs correspondances.
+-: 0 ligne, car les clés en double sont interdites. || Les doublons sont acceptés.
+=: En KQL, **la jointure par défaut est `innerunique`** : les doublons de clé de la table de **gauche** sont supprimés avant la jointure. Ici, une seule ligne « D1 » de gauche est conservée (A1 ou A2) et associée aux trois lignes de droite → 3 lignes. Avec `kind=inner`, on obtiendrait 2 × 3 = 6 lignes.
+T: Saveurs principales : `inner`, `innerunique` (défaut), `leftouter`, `rightouter`, `fullouter`, `leftanti`, `rightanti`, `leftsemi`, `rightsemi`. En sécurité, préciser **toujours** `kind=` pour éviter des pertes silencieuses (une alerte peut disparaître).
+R: 3 lignes avec les colonnes DeviceId, Alerte, DeviceId1, Compte.
+M: Écrire `join kind=inner` si toutes les combinaisons sont nécessaires, ou dédupliquer explicitement avec `summarize arg_max(...)` avant la jointure.
+!: join sans `kind` = innerunique (déduplication de la gauche) ; préciser `kind=inner` pour toutes les combinaisons.
+
+### Jointure leftanti
+@ niveau=I sub=comp ref=kql-join
+?: **Besoin :** contrôler la couverture. Que renvoie la requête ?
+```kqlx
+DeviceInfo
+| where Timestamp > ago(1d)
+| summarize arg_max(Timestamp, *) by DeviceId
+| join kind=leftanti (
+    DeviceNetworkEvents
+    | where Timestamp > ago(1d)
+    | distinct DeviceId
+  ) on DeviceId
+| project DeviceName, OSPlatform, Timestamp
+```
++: Les appareils présents dans l'inventaire du dernier jour qui n'ont généré aucun événement réseau sur la même période.
+-: Les appareils ayant généré des événements réseau mais absents de l'inventaire. || Ce serait `rightanti` (ou inverser les tables).
+-: Tous les appareils, enrichis de leurs événements réseau. || Ce serait une jointure `leftouter`.
+-: Les appareils présents dans les deux tables. || Ce serait une jointure `inner` ou `leftsemi`.
+=: **leftanti** renvoie les lignes de la table de **gauche** qui n'ont **aucune correspondance** à droite. Ici : appareils inventoriés sans télémétrie réseau — signe possible d'un capteur défaillant, d'un appareil éteint ou d'une collecte altérée.
+T: `arg_max(Timestamp, *) by DeviceId` garde la dernière ligne d'inventaire par appareil. `leftsemi` renvoie au contraire les lignes de gauche **ayant** une correspondance (sans ajouter de colonnes de droite). Ces modèles servent aux contrôles de couverture et de santé.
+R: Une ligne par appareil sans événement réseau, avec son nom, sa plateforme et la date de dernier inventaire.
+S: Requête de chasse avancée (Timestamp). Un appareil peut légitimement n'avoir aucun trafic (éteint, isolé).
+M: Comparer aussi avec DeviceProcessEvents pour distinguer un appareil inactif d'une télémétrie réseau désactivée.
+!: leftanti = « à gauche mais pas à droite » ; leftsemi = « à gauche et à droite » (colonnes de gauche).
+
+### arg_max pour le dernier état
+@ niveau=I sub=comp ref=kql-argmax
+?: **Besoin :** connaître le dernier état de chaque incident. Que fait `arg_max` dans cette requête ?
+```kql
+SecurityIncident
+| where TimeGenerated > ago(14d)
+| summarize arg_max(TimeGenerated, Status, Severity, Owner) by IncidentNumber
+```
++: Pour chaque IncidentNumber, il sélectionne la ligne ayant la valeur maximale de TimeGenerated et renvoie les colonnes Status, Severity et Owner de cette ligne.
+-: Il renvoie la valeur maximale de chacune des colonnes indépendamment. || `arg_max` renvoie les colonnes d'**une même ligne** (celle où TimeGenerated est maximal).
+-: Il trie les incidents par gravité maximale. || Il ne trie pas, il sélectionne une ligne par groupe.
+-: Il renvoie la première ligne de chaque incident. || C'est `arg_min` qui renvoie la ligne de valeur minimale.
+=: **arg_max(ExprMax, Col1, Col2, ...)** renvoie, pour chaque groupe, les colonnes indiquées de la ligne où ExprMax est maximal ; `arg_max(TimeGenerated, *)` renvoie toutes les colonnes. Idéal pour les tables historisées (SecurityIncident, inventaires).
+T: `arg_min` fait l'inverse (première occurrence). `take_any()` renvoie une valeur arbitraire (plus rapide, non déterministe). Pour l'horodatage de modification réel d'un incident, `LastModifiedTime` est aussi pertinent.
+R: Une ligne par incident avec son état, sa gravité et son propriétaire les plus récents.
+!: `arg_max(Temps, *) by Id` = dernière version de chaque entité.
+
+### make_set et dcount
+@ niveau=I sub=comp ref=kql-makeset,kql-dcount
+?: **Besoin :** caractériser les sources d'échec. Que contiennent les colonnes calculées ?
+```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "50126"
+| summarize NbIP = dcount(IPAddress), ListeIP = make_set(IPAddress, 20), Echecs = count() by UserPrincipalName
+```
++: NbIP est le nombre (estimé) d'IP distinctes, ListeIP un tableau dynamique d'au plus 20 IP distinctes et Echecs le nombre total d'échecs « nom d'utilisateur ou mot de passe incorrect », par utilisateur.
+-: ListeIP contient toutes les IP, y compris les doublons. || `make_set` déduplique ; c'est `make_list` qui conserve les doublons.
+-: NbIP est le nombre total de lignes. || `dcount` compte les valeurs **distinctes**.
+-: La requête échoue car on ne peut pas combiner plusieurs agrégats. || Un `summarize` accepte plusieurs agrégations.
+=: **dcount()** estime le nombre de valeurs distinctes (algorithme HyperLogLog, erreur faible) ; **make_set(x, max)** construit un tableau de valeurs distinctes (taille limitée par le second paramètre) ; **count()** compte les lignes. Le code **50126** signifie identifiants invalides.
+T: `make_list` conserve l'ordre et les doublons ; `make_bag` agrège des sacs de propriétés. Pour un comptage exact de petites cardinalités, `count_distinct()` existe mais coûte plus cher. Les tableaux issus de `make_set` peuvent être développés avec `mv-expand`.
+R: Une ligne par utilisateur avec le nombre d'IP distinctes, la liste (≤ 20) et le total d'échecs.
+M: Ajouter `dcount(AppDisplayName)` et `min(TimeGenerated)`/`max(TimeGenerated)` pour estimer la durée de l'attaque.
+!: dcount = nombre de valeurs distinctes ; make_set = liste dédupliquée (make_list = avec doublons).
+
+### Variables let et toscalar
+@ niveau=I sub=comp ref=kql-let,kql-toscalar
+?: **Besoin :** comparer chaque ordinateur à la moyenne du parc. Quel est le rôle de `toscalar` dans la requête ?
+```kql
+let periode = 1d;
+let moyenne = toscalar(
+    SecurityEvent
+    | where TimeGenerated > ago(periode)
+    | where EventID == 4625
+    | summarize count() by Computer
+    | summarize avg(count_));
+SecurityEvent
+| where TimeGenerated > ago(periode)
+| where EventID == 4625
+| summarize Echecs = count() by Computer
+| where Echecs > 3 * moyenne
+```
++: Il transforme le résultat tabulaire (une seule valeur : la moyenne des échecs par ordinateur) en valeur scalaire réutilisable dans la condition `Echecs > 3 * moyenne`.
+-: Il convertit la moyenne en chaîne de caractères. || `tostring` convertit en chaîne ; `toscalar` extrait une valeur scalaire d'une expression tabulaire.
+-: Il exécute la sous-requête pour chaque ligne. || La sous-requête est évaluée une fois.
+-: Il est inutile : on peut comparer directement à une table. || Une comparaison scalaire exige une valeur, pas une table.
+=: **let** nomme une valeur, une expression tabulaire ou une fonction (chaque instruction se termine par `;`). **toscalar()** évalue une requête renvoyant une seule cellule et en fait un scalaire. La requête renvoie les ordinateurs ayant plus de trois fois la moyenne des échecs.
+T: Une variable `let` de type timespan (`1d`) garantit la cohérence des fenêtres. Pour des sous-requêtes réutilisées plusieurs fois, `materialize()` met en cache le résultat.
+R: Les ordinateurs dont le nombre d'échecs de connexion dépasse trois fois la moyenne du parc sur 24 h.
+M: Utiliser la médiane (`percentile(count_, 50)`) plutôt que la moyenne, plus robuste aux valeurs extrêmes.
+!: `let x = ...;` nomme des valeurs ; `toscalar()` transforme un résultat d'une cellule en scalaire.
+
+### mv-expand sur un tableau dynamique
+@ niveau=A sub=comp ref=kql-mvexpand,la-t-SecurityIncident
+?: **Besoin :** relier incidents et alertes. Que fait `mv-expand` ici ?
+```kql
+SecurityIncident
+| where TimeGenerated > ago(7d)
+| summarize arg_max(TimeGenerated, *) by IncidentNumber
+| mv-expand AlertId = AlertIds to typeof(string)
+| project IncidentNumber, Title, AlertId
+```
++: Il crée une ligne par élément du tableau AlertIds, de sorte que chaque incident apparaît autant de fois qu'il contient d'alertes, avec un identifiant d'alerte par ligne (typé chaîne).
+-: Il concatène toutes les alertes en une seule chaîne. || C'est l'inverse : il éclate un tableau en lignes.
+-: Il supprime les incidents sans alerte et compte les alertes. || Il ne compte rien ; il développe le tableau.
+-: Il trie les alertes par gravité. || Aucun tri n'est effectué.
+=: **mv-expand** (multi-value expand) développe un tableau ou un sac de propriétés dynamique en **plusieurs lignes**. `to typeof(string)` fixe le type de la colonne produite, ce qui facilite une jointure ultérieure avec `SecurityAlert.SystemAlertId`.
+T: Inverse : `make_list`/`make_set` regroupent des valeurs en tableau. `mv-apply` applique une sous-requête à chaque tableau. Attention au volume : un tableau de 100 éléments multiplie les lignes par 100.
+R: Une ligne par couple (incident, alerte).
+M: Joindre ensuite avec `SecurityAlert | summarize arg_max(TimeGenerated, *) by SystemAlertId` pour obtenir le nom et le produit de chaque alerte.
+!: mv-expand = un élément de tableau par ligne ; préciser `to typeof(...)` avant une jointure.
+
+### Opérateur parse
+@ niveau=I sub=comp ref=kql-parse,la-t-Syslog
+?: **Besoin :** extraire des champs d'un message SSH. Le message Syslog vaut `Failed password for invalid user test from 203.0.113.50 port 51122 ssh2`. Que contiennent les colonnes après l'opérateur parse ?
+```kql
+Syslog
+| where TimeGenerated > ago(1d)
+| where ProcessName == "sshd"
+| parse SyslogMessage with "Failed password for " * " user " Utilisateur " from " IPSource " port " Port:int " " *
+| project TimeGenerated, HostName, Utilisateur, IPSource, Port
+```
++: Utilisateur = « test », IPSource = « 203.0.113.50 », Port = 51122 (entier).
+-: Utilisateur = « invalid user test ». || Le motif `" user "` positionne le début de Utilisateur après « user ».
+-: Toutes les colonnes sont vides car parse exige une expression régulière. || `parse` fonctionne par défaut en mode simple (motifs de texte et jokers `*`).
+-: Port est une chaîne « 51122 ssh2 ». || Le type `int` et le séparateur `" "` isolent la valeur numérique.
+=: **parse** découpe une chaîne selon un motif : les littéraux servent d'ancres, `*` ignore du texte, les noms de colonnes reçoivent les segments, avec un type optionnel (`Port:int`). Les lignes qui ne correspondent pas reçoivent des valeurs vides (sauf avec `parse kind=regex` ou `parse-where`).
+T: `parse-where` ne conserve que les lignes qui correspondent ; `parse kind=regex` utilise des expressions RE2 ; `extract()` extrait un groupe d'une expression régulière ; `split()` découpe par séparateur.
+R: Une ligne par échec SSH avec l'utilisateur ciblé, l'IP source et le port.
+S: Le format exact du message dépend de la distribution et de la version d'OpenSSH ; tester le motif sur des données réelles.
+M: Utiliser `parse-where` pour écarter les messages qui ne correspondent pas au motif (par exemple « Failed password for root »).
+!: parse = découpage par motif (ancres + `*` + colonnes typées) ; parse-where filtre les non-correspondances.
+
+### Fonctions iff et case
+@ niveau=D sub=comp ref=kql-iff,kql-case
+?: **Besoin :** classer les ouvertures de session Windows. Quelle valeur prend la colonne TypeSession pour LogonType = 3 ?
+```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4624
+| extend TypeSession = case(LogonType == 2, "Interactive",
+                            LogonType == 10, "RDP",
+                            LogonType == 3, "Réseau",
+                            "Autre")
+| summarize count() by TypeSession
+```
++: « Réseau ».
+-: « Autre », car `case` ne teste que la première condition. || `case` évalue les conditions dans l'ordre et renvoie la première vraie.
+-: « RDP ». || RDP correspond à LogonType 10.
+-: Une valeur vide, car il manque `else`. || Le dernier argument de `case` est la valeur par défaut.
+=: **case(cond1, val1, cond2, val2, ..., défaut)** renvoie la valeur associée à la première condition vraie, sinon la valeur par défaut. **iff(cond, siVrai, siFaux)** (alias `iif`) traite un seul test.
+T: Codes LogonType Windows : 2 interactif, 3 réseau, 4 batch, 5 service, 7 déverrouillage, 8 réseau texte clair, 9 nouvelles informations d'identification, 10 RemoteInteractive (RDP), 11 interactif mis en cache. Dans SecurityEvent, LogonType est numérique.
+R: Un comptage par type de session (Interactive, RDP, Réseau, Autre).
+!: case = conditions multiples ordonnées + valeur par défaut ; iff = un seul test.
+
+### Détection d'anomalies avec make-series
+@ niveau=A sub=comp ref=kql-make-series,kql-anomalies
+?: **Besoin :** détecter des pics inhabituels de trafic refusé. Que signifie la valeur 1 dans la colonne Anomalies ?
+```kql
+CommonSecurityLog
+| where TimeGenerated > ago(14d)
+| where DeviceAction == "deny"
+| make-series Refus = count() default = 0 on TimeGenerated from ago(14d) to now() step 1h
+| extend (Anomalies, Score, Base) = series_decompose_anomalies(Refus, 2.5)
+| mv-expand TimeGenerated to typeof(datetime), Refus to typeof(long), Anomalies to typeof(int)
+| where Anomalies != 0
+```
++: Qu'à cette heure, le nombre de refus est anormalement élevé par rapport à la tendance et à la saisonnalité apprises (1 = anomalie positive, -1 = anomalie négative).
+-: Que le pare-feu a refusé exactement une connexion. || La valeur est un indicateur d'anomalie, pas un compte.
+-: Que la ligne contient une erreur de calcul. || 1 est une valeur attendue de la fonction.
+-: Que l'heure correspond à la première heure de la série. || Sans rapport avec la position.
+=: **make-series** crée une série temporelle régulière (valeurs manquantes à 0 grâce à `default = 0`). **series_decompose_anomalies(série, seuil)** décompose la série (saisonnalité, tendance, résidu) et marque les points dont le résidu dépasse le seuil : **+1** (pic), **-1** (creux), **0** (normal). Le seuil 2.5 règle la sensibilité.
+T: `mv-expand` remet la série sous forme de lignes pour filtrer les anomalies. Fonctions voisines : `series_outliers`, `series_fit_line`, `series_decompose_forecast`. Une baisse brutale (-1) peut aussi signaler une perte de collecte.
+R: Les heures où le nombre de refus est anormal, avec le score et la valeur de base attendue.
+M: Segmenter par `SourceIP` ou `DeviceProduct` (`make-series ... by SourceIP`) pour localiser l'origine du pic.
+!: make-series + series_decompose_anomalies : +1 pic, -1 creux, 0 normal.
+
+### Délai entre événements avec prev()
+@ niveau=A sub=comp ref=kql-prev,kql-serialize
+?: **Besoin :** mesurer l'intervalle entre connexions successives d'un processus (balisage). Que calcule la colonne Intervalle ?
+```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(1d)
+| where DeviceName == "pc-0423" and RemoteIP == "198.51.100.23"
+| sort by Timestamp asc
+| extend Intervalle = Timestamp - prev(Timestamp)
+| project Timestamp, InitiatingProcessFileName, Intervalle
+```
++: La durée écoulée entre chaque connexion et la connexion précédente vers la même IP, dans l'ordre chronologique (vide pour la première ligne).
+-: La durée entre chaque connexion et la plus ancienne connexion du jeu de données. || `prev()` renvoie la ligne immédiatement précédente.
+-: Une erreur, car `prev()` est réservé aux tables Sentinel. || `prev()` fonctionne sur tout jeu de lignes sérialisé.
+-: Le nombre de connexions précédentes. || `prev()` renvoie une valeur, pas un compte.
+=: **prev(col)** renvoie la valeur de la ligne précédente ; il exige un jeu de lignes **sérialisé** (ordonné), ce que garantit `sort by`. La différence de deux datetime donne un **timespan**.
+T: `next()` renvoie la ligne suivante ; `row_number()` numérote. Un balisage (beaconing) de commande et contrôle présente des intervalles très réguliers (par exemple 60 s ± gigue). Pour analyser plusieurs couples, utiliser `partition` ou trier par (Device, IP, temps) et vérifier que la ligne précédente porte sur le même couple.
+R: Une ligne par connexion avec l'intervalle depuis la précédente.
+S: Requête de chasse avancée (Timestamp) ; l'échantillonnage de certaines connexions par MDE peut créer des trous.
+M: Calculer la régularité : `summarize stdev(Intervalle / 1s), avg(Intervalle / 1s)` ; un écart-type faible révèle un balisage.
+!: prev()/next() nécessitent des lignes sérialisées (`sort by`) ; datetime − datetime = timespan.
+
+### union avec withsource
+@ niveau=I sub=comp ref=kql-union
+?: **Besoin :** rechercher une IP dans plusieurs sources. Que contient la colonne Source ?
+```kql
+union withsource = Source SigninLogs, AADNonInteractiveUserSignInLogs
+| where TimeGenerated > ago(3d)
+| where IPAddress == "203.0.113.77"
+| summarize Connexions = count() by Source, UserPrincipalName
+```
++: Le nom de la table d'origine de chaque ligne (SigninLogs ou AADNonInteractiveUserSignInLogs).
+-: L'adresse IP source de la connexion. || L'IP est dans IPAddress ; Source est ajoutée par `withsource`.
+-: Le nom de l'espace de travail. || `withsource` indique la table, pas l'espace.
+-: Le résultat de la connexion. || C'est ResultType.
+=: **union** concatène les lignes de plusieurs tables (les colonnes de même nom et de même type sont fusionnées). **withsource = NomColonne** ajoute une colonne indiquant la table d'origine.
+T: `union isfuzzy=true` tolère des tables absentes. Les noms de tables peuvent utiliser des jokers (`union Device*`). Pour la performance, appliquer les filtres dans chaque branche ou juste après l'union (l'optimiseur pousse les filtres).
+R: Une ligne par table d'origine et utilisateur, avec le nombre de connexions depuis l'IP.
+M: Ajouter `AADServicePrincipalSignInLogs` (qui utilise ServicePrincipalName) pour voir si l'IP est utilisée par des applications.
+!: union = concaténation ; withsource = colonne du nom de table ; isfuzzy=true tolère les tables manquantes.
+
+### distinct et summarize by
+@ niveau=D sub=comp ref=kql-distinct
+?: **Besoin :** lister les combinaisons uniques. Quelle affirmation compare correctement ces deux requêtes ?
+```kql
+// R1
+SigninLogs | where TimeGenerated > ago(1d) | distinct UserPrincipalName, AppDisplayName
+```
+```kql
+// R2
+SigninLogs | where TimeGenerated > ago(1d) | summarize by UserPrincipalName, AppDisplayName
+```
++: Elles renvoient le même ensemble de combinaisons distinctes (utilisateur, application).
+-: R1 renvoie une ligne par connexion. || `distinct` supprime les doublons.
+-: R2 renvoie une erreur car `summarize` exige une fonction d'agrégation. || `summarize by` sans agrégat est valide et renvoie les groupes distincts.
+-: R1 renvoie aussi le nombre de connexions par combinaison. || `distinct` ne compte pas ; il faudrait `summarize count() by`.
+=: **distinct** renvoie les combinaisons uniques des colonnes indiquées ; **summarize by** sans agrégat produit le même résultat. Pour compter, utiliser `summarize count() by` ou `dcount()`.
+T: `distinct *` renvoie les lignes uniques sur toutes les colonnes (coûteux). Pour obtenir la liste des valeurs dans une seule cellule : `summarize make_set(...)`.
+R: Une ligne par couple unique (utilisateur, application) sur 24 h.
+!: distinct = combinaisons uniques ; équivalent à `summarize by` sans agrégat.
+
+### Décoder une commande PowerShell encodée
+@ niveau=A sub=comp ref=kql-base64,kql-extract
+?: **Besoin :** lire les commandes PowerShell encodées (`-EncodedCommand`). Que fait cette requête ?
+```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName in~ ("powershell.exe", "pwsh.exe")
+| where ProcessCommandLine has_any ("-enc", "-encodedcommand", "-e ")
+| extend Encode = extract(@"(?i)-e[a-z]*\s+([A-Za-z0-9+/=]{20,})", 1, ProcessCommandLine)
+| extend Decode = base64_decode_tostring(Encode)
+| project Timestamp, DeviceName, AccountName, Decode
+```
++: Elle extrait la chaîne Base64 qui suit le paramètre d'encodage, puis la décode pour afficher la commande en clair (des caractères nuls peuvent apparaître car PowerShell encode en UTF-16LE).
+-: Elle encode en Base64 les commandes PowerShell pour les masquer. || `base64_decode_tostring` décode ; il n'encode pas.
+-: Elle bloque l'exécution des commandes encodées. || Une requête de chasse ne bloque rien.
+-: Elle échoue car `extract` n'accepte pas d'expression régulière. || `extract(regex, groupe, texte)` utilise une expression RE2.
+=: **extract(regex, n, texte)** renvoie le groupe de capture n ; la chaîne verbatim `@"..."` évite d'échapper les antislashs ; `(?i)` rend l'expression insensible à la casse. **base64_decode_tostring()** décode la chaîne en UTF-8 : le texte UTF-16LE de PowerShell apparaît avec des caractères nuls intercalés.
+T: Technique MITRE T1027 / T1059.001. Le décodage révèle souvent des téléchargements (`IEX (New-Object Net.WebClient).DownloadString(...)`). Pour un rendu propre, on peut utiliser `base64_decode_toarray()` puis filtrer les octets nuls, ou `replace_string(Decode, "\0", "")`.
+R: Une ligne par exécution encodée avec la commande décodée.
+S: Les attaquants peuvent abréger le paramètre (`-e`, `-en`, `-enco`…) ou utiliser `^` pour fragmenter la ligne de commande ; le motif doit rester large.
+M: Rechercher dans `Decode` des mots-clés (`DownloadString`, `IEX`, `FromBase64String`, `http`) pour prioriser.
+!: extract() + base64_decode_tostring() pour lire les commandes encodées ; `@"..."` pour les regex.
+
+### Filtrer sur des valeurs dynamiques
+@ niveau=I sub=comp ref=kql-dynamic,la-t-SigninLogs
+?: **Besoin :** analyser les connexions par pays et navigateur. Pourquoi la requête utilise-t-elle `tostring()` ?
+```kql
+SigninLogs
+| where TimeGenerated > ago(7d)
+| extend Pays = tostring(LocationDetails.countryOrRegion), Navigateur = tostring(DeviceDetail.browser)
+| summarize Connexions = count() by Pays, Navigateur
+```
++: Parce que LocationDetails et DeviceDetail sont de type dynamique : les propriétés extraites sont dynamiques et doivent être converties en chaîne pour servir de clés de regroupement.
+-: Pour chiffrer les données personnelles. || `tostring` convertit un type, il ne chiffre rien.
+-: Parce que `summarize` n'accepte que des colonnes de type entier. || `summarize by` accepte des chaînes, dates, nombres… mais pas des valeurs dynamiques.
+-: Pour convertir le pays en code ISO. || Le contenu ne change pas ; seul le type change.
+=: Les colonnes **dynamiques** (JSON) s'interrogent par notation pointée ou indexée (`Col.prop`, `Col["prop"]`, `Col[0]`). Les valeurs obtenues sont dynamiques ; **summarize by**, **join on** et de nombreuses fonctions exigent un type scalaire : on convertit avec **tostring()**, **toint()**, **todatetime()**…
+T: `parse_json()`/`todynamic()` transforment une chaîne JSON en dynamique (par exemple `AuthenticationDetails` est une chaîne dans SigninLogs). `bag_unpack` développe un sac de propriétés en colonnes. Les grands champs dynamiques ralentissent les requêtes : n'extraire que l'utile.
+R: Un comptage par pays et navigateur.
+!: Propriété dynamique → `tostring()` avant `summarize by` ou `join`.

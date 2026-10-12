@@ -385,7 +385,7 @@ def question_html(q, refs):
     <div class="ans">Bonne réponse : <b>{', '.join(q['answer'])}</b></div>
     <h5>Correction détaillée</h5>{md(q['correction'])}
     <h5>Analyse des réponses incorrectes</h5><ul class="wrong">{wrong}</ul>
-    <h5>Explication technique</h5>{md(q['tech'])}
+    <h5>Explication technique</h5>{md(q.get('tech', ''))}
     {ex}{extra}
     <div class="key"><b>Point à retenir pour l'examen :</b> {md(q['key'])}</div>
     <h5>Référence officielle</h5>{ref_html(q['refs'], refs)}

@@ -1,0 +1,729 @@
+@@ module=3
+
+### Force brute RDP sur des serveurs Windows
+@ niveau=I sub=create ref=la-t-SecurityEvent,kql-summarize
+?: **Besoin de détection :** alerter lorsqu'une adresse IP provoque plus de 30 échecs d'ouverture de session RDP sur un serveur en 15 minutes (journal Sécurité Windows collecté via AMA). Quelle requête répond au besoin ?
++: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| where EventID == 4625 and LogonType == 10
+| summarize Echecs = count(), Comptes = dcount(TargetUserName) by IpAddress, Computer, bin(TimeGenerated, 15m)
+| where Echecs > 30
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| where EventID == 4624 and LogonType == 10
+| summarize Echecs = count() by IpAddress, bin(TimeGenerated, 15m)
+| where Echecs > 30
+```
+|| 4624 correspond aux ouvertures de session réussies, pas aux échecs.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| where EventID == 4625 and LogonType == 3
+| summarize Echecs = count() by IpAddress
+| where Echecs > 30
+```
+|| LogonType 3 désigne les ouvertures réseau (SMB…), et l'absence de `bin` ignore la fenêtre de 15 minutes.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1h)
+| where EventID == 4740
+| summarize count() by TargetAccount
+```
+|| 4740 signale un verrouillage de compte : conséquence possible, mais pas la détection demandée par IP.
+=: L'événement **4625** (échec d'ouverture de session) avec **LogonType 10** (RemoteInteractive) cible les échecs RDP. Le regroupement par IP source, serveur et tranche de 15 minutes, puis le seuil `> 30`, implémentent la règle. `dcount(TargetUserName)` aide à distinguer force brute (un compte) et pulvérisation (plusieurs comptes).
+T: Selon la configuration réseau (NLA), les échecs RDP peuvent apparaître avec **LogonType 3** : vérifiez vos données. Les champs SubStatus (0xC000006A mot de passe incorrect, 0xC0000064 compte inexistant) précisent la cause. Technique T1110.001 / T1021.001.
+R: Une ligne par IP, serveur et tranche de 15 minutes dépassant 30 échecs, avec le nombre de comptes visés.
+S: Nécessite la collecte de l'événement 4625 (jeu « Common » ou « All » du connecteur Windows Security Events via AMA). Les IP peuvent être « - » pour certains échecs locaux.
+M: Exclure les IP internes de passerelles légitimes (watchlist), et corréler avec un 4624 ultérieur depuis la même IP pour détecter une force brute réussie.
+!: Force brute RDP = 4625 + LogonType 10 (vérifier aussi 3 avec NLA), par IP et fenêtre temporelle.
+
+### Création d'un compte local ajouté aux administrateurs
+@ niveau=A sub=create ref=la-t-SecurityEvent,kql-join
+?: **Besoin de détection :** repérer la création d'un compte suivie, dans les 30 minutes, de son ajout à un groupe local (par exemple Administrateurs) sur le même ordinateur. Quelle requête est correcte ?
++: ```kql
+let creations = SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4720
+| project CreationTime = TimeGenerated, Computer, CompteCree = TargetUserName, Createur = SubjectUserName;
+let ajouts = SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4732
+| project AjoutTime = TimeGenerated, Computer, Groupe = TargetUserName, Membre = MemberName;
+creations
+| join kind=inner ajouts on Computer
+| where AjoutTime between (CreationTime .. CreationTime + 30m)
+| where Membre has CompteCree
+| project CreationTime, AjoutTime, Computer, CompteCree, Groupe, Createur
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID in (4720, 4732)
+| summarize count() by Computer
+```
+|| Compte des événements sans vérifier qu'il s'agit du même compte ni de l'ordre et du délai entre les deux.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4624
+| where LogonType == 2
+```
+|| Liste des ouvertures de session interactives, sans lien avec la création de comptes.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4726
+| project TimeGenerated, Computer, TargetUserName
+```
+|| 4726 correspond à la suppression d'un compte.
+=: **4720** = création d'un compte utilisateur ; **4732** = ajout d'un membre à un groupe local de sécurité. La jointure par ordinateur, la contrainte temporelle `between (CreationTime .. CreationTime + 30m)` et la correspondance du membre (MemberName contient souvent un DN ou un SID, d'où `has`) détectent une persistance par compte local (T1136.001 + T1098).
+T: Les jointures temporelles se font en joignant sur une clé commune puis en filtrant l'écart de temps. Pour les groupes de domaine : 4728 (global), 4756 (universel). Le champ MemberSid est plus fiable que MemberName lorsque disponible.
+R: Une ligne par compte créé puis ajouté à un groupe local dans les 30 minutes.
+S: Les champs SubjectUserName, TargetUserName et MemberName de SecurityEvent sont renseignés selon l'EventID ; MemberName peut être vide pour des comptes locaux (le SID est alors dans MemberSid).
+M: Restreindre au groupe Administrateurs (`TargetSid == "S-1-5-32-544"`) et exclure les comptes de provisionnement légitimes.
+!: Création (4720) puis ajout à un groupe (4732) rapprochés dans le temps = persistance par compte local.
+
+### Lignes de commande PowerShell encodées
+@ niveau=D sub=create ref=xdr-t-DeviceProcessEvents,kql-has-any
+?: **Besoin de chasse :** lister sur 7 jours les exécutions PowerShell utilisant un paramètre de commande encodée. Quelle requête de chasse avancée convient ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName in~ ("powershell.exe", "pwsh.exe")
+| where ProcessCommandLine has_any ("-encodedcommand", "-enc ", "-ec ", "-e ")
+| project Timestamp, DeviceName, AccountName, InitiatingProcessFileName, ProcessCommandLine
+```
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemotePort == 443
+```
+|| Liste des connexions HTTPS, sans rapport avec PowerShell.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName == "cmd.exe"
+```
+|| Cible l'interpréteur cmd.exe, pas PowerShell.
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(7d)
+| where FileName endswith ".ps1"
+```
+|| Liste des fichiers .ps1 créés ou modifiés ; une commande encodée n'utilise pas forcément de fichier.
+=: **DeviceProcessEvents** contient les lignes de commande des processus. `has_any` recherche plusieurs termes en une fois ; `in~` gère la casse des noms de fichiers. L'encodage Base64 est une technique d'obfuscation (T1027, T1059.001).
+T: Les attaquants abrègent le paramètre (`-e`, `-en`, `-enco`, `-EncodedCommand`) : élargissez avec une expression régulière (`matches regex @"(?i)\s-e[ncodema]*\s"`) si nécessaire. Le parent (InitiatingProcessFileName) oriente l'analyse : winword.exe, wmiprvse.exe ou mshta.exe sont plus suspects qu'un outil de gestion.
+R: La liste des exécutions encodées avec l'appareil, le compte, le parent et la ligne de commande.
+S: Requête de chasse avancée (Timestamp). Les espaces dans `"-e "` évitent de capturer « -ExecutionPolicy ».
+M: Décoder la charge (extract + base64_decode_tostring) et exclure les outils d'administration connus par leur processus parent.
+!: PowerShell encodé = DeviceProcessEvents + `has_any("-enc", ...)` + décodage.
+
+### Téléchargement avec certutil
+@ niveau=I sub=create ref=xdr-t-DeviceProcessEvents
+?: **Besoin de détection :** repérer l'utilisation de certutil.exe pour télécharger des fichiers depuis Internet (T1105, Living off the Land). Quelle requête est la plus précise ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "certutil.exe"
+| where ProcessCommandLine has_any ("urlcache", "verifyctl") and ProcessCommandLine has "http"
+| project Timestamp, DeviceName, AccountName, ProcessCommandLine, InitiatingProcessFileName
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "certutil.exe"
+```
+|| Trop large : certutil est utilisé légitimement pour gérer des certificats.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(1d)
+| where RemoteUrl has "certutil"
+```
+|| Le nom de l'outil n'apparaît pas dans l'URL distante.
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "certutil.exe"
+```
+|| Détecte des créations/modifications du fichier certutil.exe lui-même, pas son utilisation.
+=: Les paramètres **-urlcache** (souvent avec `-split -f`) et **-verifyctl** permettent de télécharger un fichier distant. Filtrer sur ces paramètres **et** la présence d'une URL réduit fortement les faux positifs.
+T: D'autres binaires système servent au téléchargement : bitsadmin.exe (`/transfer`), PowerShell (`Invoke-WebRequest`), curl.exe, mshta.exe. Le projet LOLBAS recense ces usages. Corréler avec DeviceFileEvents (fichier créé juste après) et DeviceNetworkEvents (connexion sortante du processus).
+R: Les exécutions de certutil avec une URL et un paramètre de téléchargement.
+M: Joindre avec DeviceFileEvents sur DeviceId et une fenêtre de 2 minutes pour identifier le fichier téléchargé et son SHA256.
+!: certutil + urlcache/verifyctl + http = téléchargement LOLBin (T1105).
+
+### Suppression des clichés instantanés
+@ niveau=I sub=create ref=xdr-t-DeviceProcessEvents,ir-ransomware
+?: **Besoin de détection :** repérer les commandes qui suppriment les clichés instantanés ou désactivent la restauration, activité typique précédant un chiffrement par rançongiciel (T1490). Quelle requête convient ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where (FileName =~ "vssadmin.exe" and ProcessCommandLine has_all ("delete", "shadows"))
+    or (FileName =~ "wmic.exe" and ProcessCommandLine has_all ("shadowcopy", "delete"))
+    or (FileName =~ "bcdedit.exe" and ProcessCommandLine has_any ("recoveryenabled", "ignoreallfailures"))
+    or (FileName =~ "wbadmin.exe" and ProcessCommandLine has_all ("delete", "catalog"))
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "vssadmin.exe"
+| where ProcessCommandLine has "list"
+```
+|| `vssadmin list shadows` est une simple consultation, pas une suppression.
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(1d)
+| where FileName endswith ".vss"
+```
+|| Les clichés ne sont pas des fichiers « .vss » créés dans DeviceFileEvents.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(1d)
+| where ActionType == "LogonFailed"
+```
+|| Sans rapport avec l'inhibition de la récupération système.
+=: Les rançongiciels suppriment les **clichés instantanés** (`vssadmin delete shadows`, `wmic shadowcopy delete`), désactivent la **récupération au démarrage** (`bcdedit /set {default} recoveryenabled no`) et suppriment le **catalogue de sauvegarde** (`wbadmin delete catalog`). `has_all` exige tous les termes.
+T: Ces commandes sont rarement légitimes sur des postes de travail : bon candidat pour une règle de détection personnalisée **avec action automatique** (isolement de l'appareil). Defender for Endpoint dispose aussi de détections natives et de la règle ASR « protection avancée contre les rançongiciels ».
+R: Les exécutions d'outils d'inhibition de la récupération avec leur contexte.
+M: Ajouter `vssadmin resize shadowstorage` (réduction à une taille minimale) et PowerShell `Get-WmiObject Win32_Shadowcopy | Remove-WmiObject`.
+!: T1490 = vssadmin/wmic/bcdedit/wbadmin ; signal fort de rançongiciel imminent.
+
+### Tâche planifiée créée par un processus suspect
+@ niveau=I sub=create ref=xdr-t-DeviceProcessEvents
+?: **Besoin de chasse :** trouver les tâches planifiées créées en ligne de commande par des processus parents inhabituels (Office, scripts) pour la persistance (T1053.005). Quelle requête est la plus adaptée ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName =~ "schtasks.exe" and ProcessCommandLine has "/create"
+| where InitiatingProcessFileName in~ ("winword.exe", "excel.exe", "powershell.exe", "wscript.exe", "cscript.exe", "mshta.exe", "rundll32.exe")
+| project Timestamp, DeviceName, AccountName, InitiatingProcessFileName, ProcessCommandLine
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName =~ "taskmgr.exe"
+```
+|| Le Gestionnaire des tâches n'a rien à voir avec les tâches planifiées.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName =~ "schtasks.exe" and ProcessCommandLine has "/query"
+```
+|| `/query` liste les tâches ; il ne crée rien.
+-: ```kqlx
+DeviceRegistryEvents
+| where Timestamp > ago(7d)
+| where RegistryKey has "Run"
+```
+|| Vise les clés Run (autre technique de persistance), pas les tâches planifiées.
+=: `schtasks.exe /create` lancé par un **processus parent anormal** (application Office, moteur de scripts, mshta, rundll32) est un indicateur de persistance malveillante. Filtrer sur le parent réduit le bruit des outils d'administration.
+T: Les tâches peuvent aussi être créées via l'API COM ou PowerShell (`Register-ScheduledTask`) sans schtasks.exe : compléter avec DeviceEvents (ActionType `ScheduledTaskCreated`) et l'événement 4698 côté SecurityEvent.
+R: Les créations de tâches planifiées par des parents suspects, avec la ligne de commande.
+M: Extraire le programme lancé par la tâche (`/tr`) et vérifier sa présence dans des dossiers inscriptibles (`\AppData\`, `\Temp\`, `\Users\Public\`).
+!: Persistance par tâche planifiée = schtasks /create + parent suspect, ou ScheduledTaskCreated / 4698.
+
+### Persistance par clé Run
+@ niveau=I sub=create ref=xdr-t-DeviceRegistryEvents
+?: **Besoin de chasse :** repérer l'ajout de valeurs de démarrage automatique dans les clés Run pointant vers des dossiers temporaires ou utilisateur (T1547.001). Quelle requête convient ?
++: ```kqlx
+DeviceRegistryEvents
+| where Timestamp > ago(7d)
+| where ActionType == "RegistryValueSet"
+| where RegistryKey has @"\CurrentVersion\Run"
+| where RegistryValueData has_any (@"\AppData\", @"\Temp\", @"\Users\Public\", @"\ProgramData\")
+| project Timestamp, DeviceName, RegistryKey, RegistryValueName, RegistryValueData, InitiatingProcessFileName
+```
+-: ```kqlx
+DeviceRegistryEvents
+| where Timestamp > ago(7d)
+| where ActionType == "RegistryKeyDeleted"
+| where RegistryKey has "Run"
+```
+|| La suppression d'une clé n'est pas l'ajout d'un mécanisme de persistance.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName =~ "regedit.exe"
+```
+|| L'ouverture de l'éditeur de registre ne prouve aucune modification des clés Run.
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(7d)
+| where FolderPath has "Run"
+```
+|| Les clés de registre ne sont pas des fichiers.
+=: **DeviceRegistryEvents** enregistre les modifications de registre ; `ActionType == "RegistryValueSet"` sur les clés **...\CurrentVersion\Run** (et RunOnce) avec une donnée pointant vers des dossiers inscriptibles par l'utilisateur est un indicateur classique de persistance.
+T: Les clés Run existent sous HKLM et HKCU (sous la forme `HKEY_CURRENT_USER\S-1-5-21-...\Software\Microsoft\Windows\CurrentVersion\Run` dans les journaux). D'autres emplacements de persistance : Winlogon (Userinit, Shell), services, dossiers de démarrage, abonnements WMI.
+R: Les nouvelles valeurs Run pointant vers des emplacements suspects.
+M: Exclure les éditeurs légitimes connus (mises à jour d'applications) via le processus initiateur signé, et enrichir avec FileProfile sur l'exécutable ciblé.
+!: Clé Run + RegistryValueSet + chemin inscriptible = persistance (T1547.001).
+
+### Accès à la mémoire de LSASS
+@ niveau=A sub=create ref=xdr-t-DeviceProcessEvents,mde-asr
+?: **Besoin de détection :** repérer les tentatives de vidage de la mémoire de LSASS par des outils légitimes détournés (procdump, comsvcs.dll via rundll32), technique T1003.001. Quelle requête est la plus pertinente ?
++: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where (FileName in~ ("procdump.exe", "procdump64.exe") and ProcessCommandLine has "lsass")
+    or (FileName =~ "rundll32.exe" and ProcessCommandLine has "comsvcs" and ProcessCommandLine has "minidump")
+| project Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine, InitiatingProcessFileName
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(1d)
+| where FileName =~ "lsass.exe"
+```
+|| lsass.exe démarre au boot : ses créations de processus ne révèlent pas un vidage mémoire.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(1d)
+| where InitiatingProcessFileName =~ "lsass.exe"
+```
+|| LSASS communique légitimement avec les contrôleurs de domaine ; cela ne détecte pas un vidage.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(1d)
+| where AccountName =~ "lsass"
+```
+|| « lsass » n'est pas un compte.
+=: Le vidage de LSASS permet d'extraire des identifiants. Les variantes « living off the land » utilisent **procdump** (Sysinternals) ou **comsvcs.dll MiniDump** via rundll32. Ces lignes de commande sont rarement légitimes.
+T: Protection préventive : règle ASR « Bloquer le vol d'informations d'identification à partir du sous-système d'autorité de sécurité locale (lsass.exe) », Credential Guard, LSA Protection (RunAsPPL). MDE détecte aussi l'accès mémoire à LSASS via des alertes natives et DeviceEvents (OpenProcessApiCall).
+R: Les commandes de vidage mémoire visant LSASS.
+S: Les outils peuvent être renommés : compléter par ProcessVersionInfoOriginalFileName (nom d'origine du binaire) pour procdump.
+M: Ajouter `ProcessVersionInfoOriginalFileName =~ "procdump"` et rechercher la création de fichiers .dmp (DeviceFileEvents).
+!: Vidage LSASS = procdump -ma lsass / rundll32 comsvcs MiniDump ; prévenir avec ASR et Credential Guard.
+
+### Pays de connexion jamais vus
+@ niveau=A sub=create ref=la-t-SigninLogs,kql-join
+?: **Besoin de détection :** alerter sur les connexions réussies depuis un pays jamais utilisé par l'utilisateur au cours des 14 jours précédents. Quelle requête implémente cette logique de référence (baseline) ?
++: ```kql
+let historique = SigninLogs
+| where TimeGenerated between (ago(15d) .. ago(1d))
+| where ResultType == "0"
+| summarize PaysConnus = make_set(Location) by UserPrincipalName;
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "0"
+| join kind=inner historique on UserPrincipalName
+| where not(set_has_element(PaysConnus, Location))
+| project TimeGenerated, UserPrincipalName, Location, IPAddress, AppDisplayName
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where Location != "FR"
+```
+|| Seuil statique : tous les voyageurs et filiales étrangères généreraient des alertes, sans tenir compte de l'historique de chaque utilisateur.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(14d)
+| summarize dcount(Location) by UserPrincipalName
+```
+|| Compte les pays sans identifier la connexion nouvelle.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType != "0"
+| summarize count() by Location
+```
+|| Porte sur les échecs, pas sur les connexions réussies depuis un nouveau pays.
+=: On construit une **référence** (pays connus par utilisateur sur la période J-15 à J-1), puis on compare les connexions du dernier jour avec `set_has_element`. La jointure **inner** ignore les nouveaux utilisateurs sans historique (choix à assumer : un `leftouter` les inclurait).
+T: Les détections fondées sur une **ligne de base** réduisent les faux positifs par rapport aux seuils statiques. L'UEBA de Sentinel calcule nativement ce type d'information (`ActivityInsights.FirstTimeUserConnectedFromCountry`). La colonne Location est un code pays.
+R: Les connexions réussies depuis un pays absent de l'historique de l'utilisateur.
+S: La période de référence doit être disponible dans le niveau Analytics (14 jours au minimum de rétention interactive).
+M: Exclure les IP de VPN d'entreprise et ajouter le niveau de risque Entra (`RiskLevelDuringSignIn`) pour prioriser.
+!: Nouveauté par utilisateur = référence `make_set` sur une période passée + `set_has_element`.
+
+### Pulvérisation réussie sur Entra ID
+@ niveau=A sub=create ref=la-t-SigninLogs,entra-incident-pw
+?: **Besoin de détection :** identifier les adresses IP qui ont échoué sur au moins 20 comptes différents (code 50126) puis réussi au moins une connexion dans la même journée. Quelle requête est correcte ?
++: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| summarize ComptesEchec = dcountif(UserPrincipalName, ResultType == "50126"),
+            ComptesSucces = make_set_if(UserPrincipalName, ResultType == "0", 50)
+            by IPAddress
+| where ComptesEchec >= 20 and array_length(ComptesSucces) > 0
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "0"
+| summarize dcount(UserPrincipalName) by IPAddress
+| where dcount_UserPrincipalName >= 20
+```
+|| Ne regarde que les succès : une IP de proxy d'entreprise légitime correspondrait.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "50126"
+| summarize count() by UserPrincipalName
+```
+|| Compte les échecs par utilisateur (force brute ciblée), pas par IP sur de nombreux comptes.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where ResultType == "50053"
+```
+|| 50053 correspond à un compte verrouillé (ou IP bloquée par le verrouillage intelligent), sans logique de pulvérisation.
+=: **dcountif()** compte les comptes distincts en échec (50126) ; **make_set_if()** collecte les comptes ayant réussi depuis la même IP. Le filtre final isole les IP qui ont pulvérisé **et** obtenu au moins un succès, cas prioritaire (compte probablement compromis).
+T: La procédure Microsoft « Investigation de la pulvérisation de mots de passe » recommande de vérifier les succès depuis les IP d'attaque, puis de réinitialiser les comptes concernés et de révoquer leurs sessions. Inclure AADNonInteractiveUserSignInLogs pour les protocoles hérités.
+R: Les IP à l'origine d'une pulvérisation suivie d'au moins un succès, avec la liste des comptes réussis.
+M: Ajouter `ClientAppUsed` pour repérer l'authentification héritée (IMAP, SMTP AUTH), souvent utilisée pour la pulvérisation et non soumise à la MFA.
+!: Spraying réussi = dcountif(échecs) élevé + make_set_if(succès) non vide par IP.
+
+### Attribution de rôle Azure
+@ niveau=I sub=create ref=la-t-AzureActivity
+?: **Besoin de détection :** alerter quand une attribution de rôle Azure (RBAC) est créée avec succès, en indiquant l'appelant et son IP. Quelle requête convient ?
++: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where OperationNameValue =~ "Microsoft.Authorization/roleAssignments/write"
+| where ActivityStatusValue == "Success"
+| project TimeGenerated, Caller, CallerIpAddress, ResourceGroup, SubscriptionId, _ResourceId
+```
+-: ```kql
+AuditLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "Add member to role"
+```
+|| Concerne les rôles d'annuaire Microsoft Entra, pas les attributions RBAC Azure.
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where OperationNameValue has "virtualMachines/start"
+```
+|| Démarrage de machines virtuelles, sans rapport avec les rôles.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where AppDisplayName == "Azure Portal"
+```
+|| Connexions au portail, sans indication d'une attribution de rôle.
+=: Les opérations du **plan de contrôle Azure** sont dans **AzureActivity**. L'attribution de rôle correspond à l'opération **Microsoft.Authorization/roleAssignments/write** ; `ActivityStatusValue == "Success"` ne garde que les opérations abouties (un même appel génère des lignes Start/Success).
+T: Les rôles **Microsoft Entra** (Administrateur général…) relèvent d'**AuditLogs** ; les rôles **Azure RBAC** (Owner, Contributor…) d'**AzureActivity**. Le détail du rôle attribué figure dans `Properties_d` (requestbody). Technique T1098 (Account Manipulation).
+R: Les attributions de rôle réussies avec l'auteur, son IP et la portée.
+M: Extraire le rôle et le bénéficiaire depuis `Properties_d.requestbody` et alerter en priorité sur Owner / User Access Administrator.
+!: Rôles Azure RBAC = AzureActivity (roleAssignments/write) ; rôles Entra = AuditLogs.
+
+### Pièce jointe exécutable reçue
+@ niveau=D sub=create ref=xdr-t-EmailAttachmentInfo
+?: **Besoin de chasse :** lister les e-mails entrants contenant une pièce jointe de type exécutable ou script. Quelle requête convient ?
++: ```kqlx
+EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| where FileType in~ ("exe", "dll", "js", "vbs", "hta", "ps1", "iso", "lnk", "scr")
+| project Timestamp, SenderFromAddress, RecipientEmailAddress, FileName, FileType, SHA256, ThreatTypes
+```
+-: ```kqlx
+EmailUrlInfo
+| where Timestamp > ago(7d)
+| where Url endswith ".exe"
+```
+|| Cherche des liens vers des exécutables, pas des pièces jointes.
+-: ```kqlx
+DeviceFileEvents
+| where Timestamp > ago(7d)
+| where FileName endswith ".exe"
+```
+|| Fichiers créés sur les postes, quelle que soit leur origine.
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(7d)
+| where AttachmentCount > 0
+```
+|| Liste tous les e-mails avec pièce jointe, sans filtrer le type.
+=: **EmailAttachmentInfo** décrit chaque pièce jointe (nom, **FileType**, taille, hachages, menaces détectées). Le filtrage sur des types à risque (exécutables, scripts, images disque ISO, raccourcis LNK) cible les vecteurs de livraison courants (T1566.001).
+T: Les attaquants contournent les filtres avec des archives protégées par mot de passe, des fichiers ISO/IMG (contournement du Mark-of-the-Web) ou des documents OneNote. Jointure avec EmailEvents (NetworkMessageId + RecipientEmailAddress) pour connaître la remise.
+R: Les pièces jointes à risque avec expéditeur, destinataire, nom, type et hachage.
+M: Joindre avec DeviceFileEvents/DeviceProcessEvents sur SHA256 pour savoir si la pièce jointe a été enregistrée ou exécutée.
+!: Types de pièces jointes = EmailAttachmentInfo.FileType.
+
+### Résolution DNS d'une liste de domaines malveillants
+@ niveau=I sub=create ref=xdr-t-DeviceNetworkEvents,kql-datatable
+?: **Besoin de chasse :** vérifier si des appareils ont contacté l'un des domaines d'une liste fournie par un CERT. Quelle requête est la plus adaptée en chasse avancée ?
++: ```kqlx
+let domaines = datatable(Domaine:string)["update-msft-cdn.net", "secure-login-portal.co", "files-share-drive.org"];
+DeviceNetworkEvents
+| where Timestamp > ago(30d)
+| where isnotempty(RemoteUrl)
+| where RemoteUrl has_any (domaines)
+| summarize Connexions = count(), Premiere = min(Timestamp), Derniere = max(Timestamp) by DeviceName, RemoteUrl, InitiatingProcessFileName
+```
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(30d)
+| where RemoteUrl == "update-msft-cdn.net, secure-login-portal.co, files-share-drive.org"
+```
+|| Compare l'URL à une chaîne contenant toute la liste : aucune correspondance.
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(30d)
+| where FileName has "secure-login-portal"
+```
+|| Un nom de domaine n'apparaît pas dans le nom d'un fichier exécuté.
+-: ```kqlx
+EmailEvents
+| where Timestamp > ago(30d)
+| where SenderFromDomain == "update-msft-cdn.net"
+```
+|| Ne vérifie que les expéditeurs d'e-mails pour un seul domaine, pas les connexions des appareils.
+=: Une **datatable** (ou une watchlist / `externaldata`) porte la liste d'IOC ; **has_any(liste)** teste la présence d'un des termes dans RemoteUrl (sous-domaines compris). Le résumé par appareil et processus donne la portée et le processus responsable.
+T: `has_any` accepte une expression tabulaire d'une colonne. Pour de grandes listes, utilisez une jointure ou les tables de renseignement (ThreatIntelIndicators) et la règle « TI map ». Dans Sentinel, DnsEvents (serveurs DNS Windows) ou les journaux de proxy complètent la vue.
+R: Une ligne par appareil, URL et processus ayant contacté un domaine de la liste.
+M: Ajouter DeviceEvents (`DnsQueryResponse`) ou les journaux DNS pour couvrir les résolutions sans connexion aboutie.
+!: Liste d'IOC = datatable/watchlist + `has_any(liste)` sur RemoteUrl.
+
+### Volume sortant élevé vers Internet
+@ niveau=I sub=create ref=la-t-CommonSecurityLog,kql-ipv4-private
+?: **Besoin de détection :** repérer les hôtes internes ayant envoyé plus de 5 Go vers des adresses publiques en une journée, d'après les journaux du pare-feu (CEF). Quelle requête convient ?
++: ```kql
+CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| where ipv4_is_private(SourceIP) and not(ipv4_is_private(DestinationIP))
+| summarize OctetsEnvoyes = sum(SentBytes), Destinations = dcount(DestinationIP) by SourceIP
+| where OctetsEnvoyes > 5 * 1024 * 1024 * 1024
+| extend Go = round(OctetsEnvoyes / 1073741824.0, 2)
+| order by OctetsEnvoyes desc
+```
+-: ```kql
+CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| summarize count() by SourceIP
+| where count_ > 5000
+```
+|| Compte des connexions, pas des volumes ; et ne distingue pas les destinations publiques.
+-: ```kql
+CommonSecurityLog
+| where TimeGenerated > ago(1d)
+| summarize sum(ReceivedBytes) by DestinationIP
+```
+|| Les octets reçus par destination ne mesurent pas ce qu'un hôte interne envoie vers Internet.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(1d)
+| summarize count() by Computer
+```
+|| Disponibilité des agents, sans données de volume.
+=: **ipv4_is_private()** distingue les plages RFC 1918 ; le filtre source privée → destination publique isole le trafic sortant. **sum(SentBytes)** par IP source mesure le volume envoyé. Exfiltration potentielle (T1048, T1567).
+T: Selon les appliances, SentBytes/ReceivedBytes peuvent être inversés ou absents (champs CEF `out`/`in`) : valider avec la documentation du fabricant. Exclure les serveurs de sauvegarde et de mise à jour connus (watchlist).
+R: Les hôtes internes dépassant 5 Go envoyés vers Internet, avec le volume en Go et le nombre de destinations.
+S: Hypothèse : le pare-feu renseigne SentBytes en octets dans CommonSecurityLog.
+M: Comparer au volume habituel de chaque hôte (référence sur 14 jours) plutôt qu'à un seuil fixe.
+!: Exfiltration réseau = sum(SentBytes) privé → public ; ipv4_is_private() pour classer les adresses.
+
+### Échecs SSH sur des serveurs Linux
+@ niveau=D sub=create ref=la-t-Syslog
+?: **Besoin de détection :** repérer les serveurs Linux recevant plus de 50 échecs d'authentification SSH par heure, d'après Syslog. Quelle requête convient ?
++: ```kql
+Syslog
+| where TimeGenerated > ago(1d)
+| where Facility in ("auth", "authpriv")
+| where ProcessName == "sshd" and SyslogMessage has "Failed password"
+| summarize Echecs = count() by Computer, bin(TimeGenerated, 1h)
+| where Echecs > 50
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4625
+```
+|| SecurityEvent concerne les journaux Windows.
+-: ```kql
+Syslog
+| where TimeGenerated > ago(1d)
+| where SeverityLevel == "emerg"
+```
+|| Les échecs SSH ne sont pas des messages d'urgence système.
+-: ```kql
+Syslog
+| where TimeGenerated > ago(1d)
+| where ProcessName == "cron"
+```
+|| cron n'a rien à voir avec l'authentification SSH.
+=: Les authentifications Linux sont journalisées dans les facilités **auth/authpriv** par le démon **sshd** ; « Failed password » signale un échec. Le regroupement par serveur et par heure applique le seuil.
+T: La collecte nécessite une DCR Syslog via AMA incluant auth/authpriv. Pour l'IP source, utiliser `parse` ou `extract(@"from (\d+\.\d+\.\d+\.\d+)", 1, SyslogMessage)`. Defender for Endpoint sur Linux fournit aussi DeviceLogonEvents.
+R: Les serveurs et heures dépassant 50 échecs SSH.
+M: Extraire l'IP source et l'utilisateur pour distinguer force brute (un compte) et pulvérisation (comptes multiples, souvent root/admin/test).
+!: SSH Linux = Syslog (auth/authpriv, sshd, « Failed password »).
+
+### Suppression massive de fichiers SharePoint
+@ niveau=I sub=create ref=la-t-OfficeActivity
+?: **Besoin de détection :** alerter si un utilisateur supprime plus de 200 fichiers SharePoint/OneDrive en une heure (sabotage ou rançongiciel cloud). Quelle requête convient ?
++: ```kql
+OfficeActivity
+| where TimeGenerated > ago(1d)
+| where OfficeWorkload in ("SharePoint", "OneDrive")
+| where Operation in ("FileDeleted", "FileDeletedFirstStageRecycleBin", "FileRecycled")
+| summarize Suppressions = count(), Sites = dcount(Site_Url) by UserId, bin(TimeGenerated, 1h)
+| where Suppressions > 200
+```
+-: ```kql
+OfficeActivity
+| where TimeGenerated > ago(1d)
+| where Operation == "FileAccessed"
+| summarize count() by UserId
+```
+|| Compte des accès, pas des suppressions.
+-: ```kql
+DeviceFileEvents
+| where TimeGenerated > ago(1d)
+| where ActionType == "FileDeleted"
+| summarize count() by DeviceName
+```
+|| Suppressions locales sur les appareils, pas dans SharePoint/OneDrive.
+-: ```kql
+OfficeActivity
+| where TimeGenerated > ago(1d)
+| where OfficeWorkload == "Exchange"
+| where Operation == "SoftDelete"
+```
+|| Suppressions d'e-mails Exchange, pas de fichiers.
+=: Les suppressions SharePoint/OneDrive apparaissent dans **OfficeActivity** avec des opérations comme **FileDeleted**, **FileRecycled** ou **FileDeletedFirstStageRecycleBin** selon le contexte. Le regroupement par utilisateur et par heure applique le seuil.
+T: Defender for Cloud Apps détecte nativement la « suppression inhabituelle de fichiers » et l'« activité de rançongiciel ». Pour la restauration : corbeille SharePoint, restauration de OneDrive à une date antérieure.
+R: Les utilisateurs et heures dépassant 200 suppressions, avec le nombre de sites concernés.
+S: Les valeurs exactes d'Operation dépendent du journal d'audit Microsoft 365 ; vérifier les opérations présentes dans votre locataire (`summarize count() by Operation`).
+M: Corréler avec une connexion à risque ou un nouvel appareil pour l'utilisateur concerné.
+!: Suppressions SharePoint/OneDrive = OfficeActivity (FileDeleted, FileRecycled…).
+
+### Service installé sur un appareil
+@ niveau=I sub=create ref=xdr-t-DeviceEvents
+?: **Besoin de chasse :** lister les services nouvellement installés dont l'exécutable se trouve hors des dossiers système, technique de persistance et d'exécution à distance (T1543.003, outils de type PsExec). Quelle requête utiliser en chasse avancée ?
++: ```kqlx
+DeviceEvents
+| where Timestamp > ago(7d)
+| where ActionType == "ServiceInstalled"
+| where FolderPath !startswith @"C:\Windows\System32" and FolderPath !startswith @"C:\Program Files"
+| project Timestamp, DeviceName, FileName, FolderPath, InitiatingProcessFileName, AdditionalFields
+```
+-: ```kqlx
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName =~ "services.exe"
+```
+|| services.exe démarre au boot ; son exécution ne signale pas l'installation d'un nouveau service.
+-: ```kqlx
+DeviceLogonEvents
+| where Timestamp > ago(7d)
+| where LogonType == "Service"
+```
+|| Ouvertures de session de type service : complément utile mais ne liste pas les installations de services.
+-: ```kqlx
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where RemotePort == 445
+```
+|| Trafic SMB, sans preuve d'installation de service.
+=: **DeviceEvents** regroupe de nombreux événements (ActionType) dont **ServiceInstalled**, avec le binaire du service (FileName, FolderPath) et des détails dans **AdditionalFields**. Un service dont l'exécutable est dans un dossier utilisateur ou temporaire est suspect.
+T: Côté Sentinel, l'installation de services correspond à l'événement **4697** (journal Sécurité, si l'audit est activé) ou **7045** (journal Système, table Event/WindowsEvent selon la collecte). PsExec crée un service PSEXESVC.
+R: Les services installés hors des dossiers système, avec le processus initiateur.
+S: Le contenu d'AdditionalFields varie selon l'ActionType ; vérifier les propriétés disponibles dans vos données avant d'en extraire des valeurs avec `parse_json(AdditionalFields)`.
+M: Corréler avec DeviceLogonEvents (LogonType Network) sur le même appareil pour identifier le compte et l'IP à l'origine d'une installation à distance.
+!: Nouveaux services = DeviceEvents « ServiceInstalled » (XDR) ou 4697/7045 (journaux Windows).
+
+### Lecture massive de secrets dans des comptes de stockage
+@ niveau=A sub=create ref=la-t-StorageBlobLogs,mdc-storage
+?: **Besoin de chasse :** identifier les adresses IP ayant téléchargé plus de 1 000 blobs d'un compte de stockage en une heure (exfiltration de données cloud, T1530). Quelle requête utiliser sur les journaux de ressources du stockage ?
++: ```kql
+StorageBlobLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "GetBlob" and StatusText == "Success"
+| summarize Telechargements = count(), Octets = sum(ResponseBodySize), Comptes = make_set(RequesterUpn, 5)
+          by CallerIpAddress, AccountName, AuthenticationType, bin(TimeGenerated, 1h)
+| where Telechargements > 1000
+```
+-: ```kql
+AzureActivity
+| where TimeGenerated > ago(1d)
+| where OperationNameValue has "storageAccounts/write"
+```
+|| Opérations de configuration du plan de contrôle, pas les lectures de données (plan de données).
+-: ```kql
+StorageBlobLogs
+| where TimeGenerated > ago(1d)
+| where OperationName == "PutBlob"
+| summarize count() by CallerIpAddress
+```
+|| PutBlob correspond à des écritures, pas à des téléchargements.
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(1d)
+| where AppDisplayName has "Storage"
+```
+|| Les accès par clé de compte ou jeton SAS n'apparaissent pas dans les connexions Entra.
+=: Les **journaux de ressources** du stockage Blob (table **StorageBlobLogs**, via paramètres de diagnostic) enregistrent le **plan de données** : `OperationName` (GetBlob, PutBlob, DeleteBlob…), `CallerIpAddress`, `AuthenticationType` (AccountKey, SAS, OAuth), `RequesterUpn`, `ResponseBodySize`.
+T: Le type d'authentification est crucial : un accès massif par **clé de compte** ou **SAS** depuis une IP inconnue est plus suspect qu'un accès OAuth d'une identité managée connue. **Defender for Storage** détecte nativement les anomalies d'accès et analyse les malwares chargés.
+R: Les IP, comptes de stockage et heures dépassant 1 000 téléchargements, avec le volume et l'identité éventuelle.
+S: Nécessite des paramètres de diagnostic « StorageRead » vers l'espace (coût d'ingestion potentiellement élevé).
+M: Exclure les IP des services internes connus et alerter sur les accès anonymes (`AuthenticationType == "Anonymous"`).
+!: Plan de données du stockage = StorageBlobLogs (GetBlob, CallerIpAddress, AuthenticationType) ; plan de contrôle = AzureActivity.
+
+### Effacement d'un journal ou désactivation de l'audit
+@ niveau=D sub=create ref=la-t-SecurityEvent
+?: **Besoin de détection :** repérer les actions anti-forensiques sur les journaux Windows : effacement du journal Sécurité et modification de la stratégie d'audit. Quelle requête convient ?
++: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID in (1102, 4719)
+| project TimeGenerated, Computer, EventID, Activity, SubjectUserName
+```
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID in (4624, 4634)
+```
+|| Ouvertures et fermetures de session ordinaires.
+-: ```kql
+SecurityEvent
+| where TimeGenerated > ago(1d)
+| where EventID == 4688
+| where CommandLine has "notepad"
+```
+|| Exécution de Notepad, sans lien avec les journaux.
+-: ```kql
+Heartbeat
+| where TimeGenerated > ago(1d)
+| where Category == "Direct Agent"
+```
+|| Disponibilité des agents.
+=: **1102** : journal d'audit (Sécurité) effacé ; **4719** : stratégie d'audit système modifiée. Ces événements traduisent souvent une tentative d'effacement de traces (T1070.001, T1562.002).
+T: Côté XDR, les commandes `wevtutil cl` ou `Clear-EventLog` apparaissent dans DeviceProcessEvents. L'absence soudaine de journaux d'un serveur (silence) peut aussi indiquer un arrêt du service de journalisation ou de l'agent.
+R: Les événements d'effacement ou de modification de l'audit, avec le compte responsable.
+M: Ajouter la recherche `wevtutil cl` dans DeviceProcessEvents et alerter sur l'arrêt du service EventLog.
+!: 1102 (journal effacé) et 4719 (audit modifié) = anti-forensique.
+
+### Connexion d'un compte d'urgence
+@ niveau=D sub=create ref=la-t-SigninLogs,entra-ca
+?: **Besoin de détection :** alerter dès qu'un des deux comptes d'accès d'urgence (break-glass) se connecte, avec succès ou non. Quelle requête est la plus adaptée à une règle NRT ?
++: ```kql
+SigninLogs
+| where UserPrincipalName in~ ("breakglass01@contoso.com", "breakglass02@contoso.com")
+| project TimeGenerated, UserPrincipalName, ResultType, IPAddress, Location, AppDisplayName
+```
+-: ```kql
+SigninLogs
+| where TimeGenerated > ago(30d)
+| summarize count() by UserPrincipalName
+| top 2 by count_
+```
+|| Renvoie les deux comptes les plus actifs, pas les comptes d'urgence.
+-: ```kql
+AuditLogs
+| where OperationName == "Reset password"
+```
+|| Réinitialisations de mot de passe, pas connexions des comptes d'urgence.
+-: ```kql
+SigninLogs
+| where ResultType == "0"
+| where UserPrincipalName startswith "admin"
+```
+|| Filtre approximatif qui manque les échecs et inclut d'autres comptes.
+=: Toute utilisation d'un **compte d'urgence** doit être exceptionnelle et immédiatement signalée. Une règle **NRT** (exécutée chaque minute, sans filtre temporel nécessaire dans la requête) sur SigninLogs filtrée par les UPN des comptes répond au besoin.
+T: Inclure aussi AADNonInteractiveUserSignInLogs dans une autre règle si nécessaire. Préférer l'**ObjectId** (UserId) des comptes à leur UPN, plus stable. Les comptes d'urgence sont exclus de l'accès conditionnel : cette surveillance compense cette exclusion.
+R: Chaque connexion (succès ou échec) des comptes d'urgence.
+M: Stocker les identifiants des comptes dans une watchlist « ComptesUrgence » pour éviter de modifier la règle.
+!: Comptes break-glass = règle NRT dédiée sur SigninLogs (idéalement par ObjectId).
